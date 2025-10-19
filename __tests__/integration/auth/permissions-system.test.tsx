@@ -8,7 +8,7 @@ import { render, screen } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import { WithPermissions } from '@/components/auth/WithPermissions';
 import { usePermissions } from '@/contexts/PermissionsContext';
-import { Role } from '@/lib/rbac-types';
+import { PermissionName, Role } from '@/lib/auth-types';
 
 // Mock next-auth
 jest.mock('next-auth/react');
@@ -62,14 +62,17 @@ describe('RBAC Permission System Integration', () => {
           'documentation.view': true,
           'matches.view': true,
           'inventory.view': true,
-          'spare_parts.delete': true,
           'requests.delete': true,
           'admin.users': true,
           'admin.permissions': true,
           'admin.roles': true
         }
       }
-    ];
+    ] as {
+      role: Role,
+      permissions: PermissionName[],
+      shouldHaveAccess: Partial<{ [key in PermissionName]: boolean }>
+    }[];
 
     testCases.forEach(({ role, permissions, shouldHaveAccess }) => {
       describe(`${role} role`, () => {
@@ -94,13 +97,13 @@ describe('RBAC Permission System Integration', () => {
             permissions,
             roles: [role] as Role[],
             isLoading: false,
-            hasPermission: (permission: string) => permissions.includes(permission),
-            hasAnyPermission: (requiredPermissions: string[]) => 
+            hasPermission: (permission: PermissionName) => permissions.includes(permission),
+            hasAnyPermission: (requiredPermissions: PermissionName[]) =>
               requiredPermissions.some(perm => permissions.includes(perm)),
-            hasAllPermissions: (requiredPermissions: string[]) => 
+            hasAllPermissions: (requiredPermissions: PermissionName[]) =>
               requiredPermissions.every(perm => permissions.includes(perm)),
             canAccess: (resource: string, action: string) => 
-              permissions.includes(`${resource}.${action}`),
+              permissions.includes(`${resource}.${action}` as PermissionName),
             refetchPermissions: jest.fn()
           });
         });
@@ -108,7 +111,7 @@ describe('RBAC Permission System Integration', () => {
         Object.entries(shouldHaveAccess).forEach(([permission, hasAccess]) => {
           it(`should ${hasAccess ? 'have' : 'not have'} access to ${permission}`, () => {
             const TestComponent = () => (
-              <WithPermissions requiredPermissions={[permission]}>
+              <WithPermissions requiredPermissions={[permission as PermissionName]}>
                 <div data-testid="protected-content">Protected Content</div>
               </WithPermissions>
             );
@@ -119,7 +122,6 @@ describe('RBAC Permission System Integration', () => {
               expect(screen.getByTestId('protected-content')).toBeInTheDocument();
             } else {
               expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
-              expect(screen.getByText(/insufficient permissions/i)).toBeInTheDocument();
             }
           });
         });
@@ -142,13 +144,13 @@ describe('RBAC Permission System Integration', () => {
         permissions: ['documentation.view'],
         roles: ['guest'] as Role[],
         isLoading: false,
-        hasPermission: (permission: string) => permission === 'documentation.view',
-        hasAnyPermission: (requiredPermissions: string[]) => 
+        hasPermission: (permission: PermissionName) => permission === 'documentation.view',
+        hasAnyPermission: (requiredPermissions: PermissionName[]) => 
           requiredPermissions.includes('documentation.view'),
-        hasAllPermissions: (requiredPermissions: string[]) => 
+        hasAllPermissions: (requiredPermissions: PermissionName[]) => 
           requiredPermissions.every(perm => perm === 'documentation.view'),
         canAccess: (resource: string, action: string) => 
-          `${resource}.${action}` === 'documentation.view',
+          `${resource}.${action}` as PermissionName === 'documentation.view',
         refetchPermissions: jest.fn()
       });
 
@@ -176,13 +178,13 @@ describe('RBAC Permission System Integration', () => {
         permissions: ['inventory.view'],
         roles: ['spare_parts_attendant'] as Role[],
         isLoading: false,
-        hasPermission: (permission: string) => permission === 'inventory.view',
-        hasAnyPermission: (requiredPermissions: string[]) => 
+        hasPermission: (permission: PermissionName) => permission === 'inventory.view',
+        hasAnyPermission: (requiredPermissions: PermissionName[]) => 
           requiredPermissions.includes('inventory.view'),
-        hasAllPermissions: (requiredPermissions: string[]) => 
+        hasAllPermissions: (requiredPermissions: PermissionName[]) => 
           requiredPermissions.every(perm => perm === 'inventory.view'),
         canAccess: (resource: string, action: string) => 
-          `${resource}.${action}` === 'inventory.view',
+          `${resource}.${action}` as PermissionName === 'inventory.view',
         refetchPermissions: jest.fn()
       });
 

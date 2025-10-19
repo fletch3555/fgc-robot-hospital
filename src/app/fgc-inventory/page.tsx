@@ -17,6 +17,7 @@ import {
   Inventory as InventoryIcon,
   Search as SearchIcon
 } from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
 import OptimizedImage from '@/components/OptimizedImage';
 import { imageCacheManager } from '@/lib/imageCache';
 import { ReviewStatus } from '@/lib/types';
@@ -25,40 +26,45 @@ import { WithAuth } from '@/components/auth/WithAuth';
 import { WithPermissions } from '@/components/auth/WithPermissions';
 
 // Function to get styling based on review status
-const getReviewStatusStyling = (reviewStatus: ReviewStatus) => {
+const getReviewStatusStyling = (reviewStatus: ReviewStatus, mode: 'light' | 'dark') => {
+  const isDark = mode === 'dark';
   switch (reviewStatus) {
     case 'needs_software_review':
     case 'needs_hardware_review':
       return {
+        borderWidth: '2px',
+        borderStyle: 'solid',
         borderColor: '#ffeb3b', // Yellow border
-        backgroundColor: '#fffde7', // Light yellow background
-        borderWidth: 2
+        backgroundColor: isDark ? '#4d4d00' : '#fffde7', // Dark yellow background for dark mode
       };
     case 'approval_needed':
       return {
-        // borderColor: '#ff9800', // Orange border
-        // backgroundColor: '#fff3e0', // Light orange background
+        borderWidth: '2px',
+        borderStyle: 'solid',
         borderColor: '#f44336', // Red border
-        backgroundColor: '#ffebee', // Light red background
-        borderWidth: 2
+        backgroundColor: isDark ? '#4d0000' : '#ffebee', // Dark red background for dark mode
       };
     case 'do_not_loan':
       return {
-        // borderColor: '#f44336', // Red border
-        borderColor: '#000000', // Black border
-        backgroundColor: '#ffebee', // Light red background
-        borderWidth: 3
+        borderWidth: '3px',
+        borderStyle: 'solid',
+        borderColor: isDark ? '#ffebee' : '#000000', // Black border
+        backgroundColor: isDark ? '#4d0000' : '#ffebee', // Dark red background for dark mode
       };
     default:
       return {
+        borderWidth: '1px',
+        borderStyle: 'solid',
         borderColor: 'transparent',
         backgroundColor: 'background.paper',
-        borderWidth: 1
+        boxShadow: '0 0 0 1px rgba(0,0,0,0.12)'
       };
   }
 };
 
 const FGCInventoryPage = () => {
+  const theme = useTheme();
+  const mode = theme.palette.mode;
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -161,10 +167,8 @@ const FGCInventoryPage = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Box sx={{
                 padding: '6px',
-                border: '1px solid transparent',
-                backgroundColor: '#ffffff',
-                borderRadius: 1,
-                boxShadow: '0 0 0 1px rgba(0,0,0,0.12)'
+                borderRadius: '4px',
+                ...getReviewStatusStyling('normal', mode)
               }}>
                 <Typography variant="body2">Normal</Typography>
               </Box>
@@ -172,9 +176,8 @@ const FGCInventoryPage = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Box sx={{
                 padding: '6px',
-                border: '2px solid #ffeb3b',
-                backgroundColor: '#fffde7',
-                borderRadius: 1
+                borderRadius: '4px',
+                ...getReviewStatusStyling('needs_software_review', mode)
               }}>
                 <Typography variant="body2">Needs Review</Typography>
               </Box>
@@ -182,9 +185,8 @@ const FGCInventoryPage = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Box sx={{
                 padding: '6px',
-                border: '2px solid #f44336',
-                backgroundColor: '#ffebee',
-                borderRadius: 1
+                borderRadius: '4px',
+                ...getReviewStatusStyling('approval_needed', mode)
               }}>
                 <Typography variant="body2">Approval Needed</Typography>
               </Box>
@@ -192,9 +194,8 @@ const FGCInventoryPage = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Box sx={{
                 padding: '6px',
-                border: '3px solid #000000',
-                backgroundColor: '#ffebee',
-                borderRadius: 1
+                borderRadius: '4px',
+                ...getReviewStatusStyling('do_not_loan', mode)
               }}>
                 <Typography variant="body2">Do Not Loan</Typography>
               </Box>
@@ -233,14 +234,11 @@ const FGCInventoryPage = () => {
             gap: 2 
           }}>
             {paginatedItems.map((item) => {
-              const statusStyling = getReviewStatusStyling(item.review_status || 'normal');
               return (
               <Card key={item.id} sx={{ 
                 p: 2, 
                 transition: 'all 0.2s ease-in-out',
-                border: `${statusStyling.borderWidth}px solid`,
-                borderColor: statusStyling.borderColor,
-                backgroundColor: statusStyling.backgroundColor,
+                ...getReviewStatusStyling(item.review_status || 'normal', mode),
                 '&:hover': {
                   transform: 'translateY(-2px)',
                   boxShadow: 4
@@ -318,7 +316,7 @@ const FGCInventoryPage = () => {
                       display: 'flex', 
                       alignItems: 'center',
                       gap: 1,
-                      backgroundColor: 'grey.50',
+                      // backgroundColor: 'grey.50',
                       padding: 1,
                       borderRadius: 1
                     }}>
@@ -364,10 +362,7 @@ const FGCInventoryPage = () => {
 function FGCInventoryPageWithAuth() {
   return (
     <WithAuth>
-      <WithPermissions 
-        requiredPermissions={['inventory.view']}
-        fallbackMessage="You need inventory access permissions to view this page."
-      >
+      <WithPermissions requiredPermissions={['inventory.view']}>
         <FGCInventoryPage />
       </WithPermissions>
     </WithAuth>

@@ -48,11 +48,8 @@ function CreateRequestPage() {
 
   // Separate state objects for each request type
   const [hardwareData, setHardwareData] = useState<HardwareRequestData>({
-    partName: "",
-    partNumber: "",
-    replacementRequired: "",
-    issue: "",
-    serialNumber: "",
+    type: undefined,
+    location: undefined,
   });
 
   const [softwareData, setSoftwareData] = useState<SoftwareRequestData>({
@@ -80,21 +77,19 @@ function CreateRequestPage() {
   // Validation functions
   const validateHardwareData = () => {
     const errors: {[key: string]: string} = {};
-    
-    // Validate part name is provided
-    if (!hardwareData.partName?.trim()) {
-      errors.partName = "Please enter the part name";
-    }
-    
-    // Validate replacement required is selected
-    if (!hardwareData.replacementRequired) {
-      errors.replacementRequired = "Please select if replacement is required";
-    }
-    
-    return errors;
-  };
 
-  const validateSoftwareData = () => {
+    // Validate type is selected
+    if (!hardwareData.type) {
+      errors.type = "Please select a hardware request type";
+    }
+
+    // Validate location is selected
+    if (!hardwareData.location) {
+      errors.location = "Please select a location";
+    }
+
+    return errors;
+  };  const validateSoftwareData = () => {
     const errors: {[key: string]: string} = {};
     
     // Validate programming language is selected
@@ -293,7 +288,7 @@ function CreateRequestPage() {
         countryCode: string;
         type: string;
         comments?: string;
-        priority?: string;
+        // priority?: string;
         hardwareData?: unknown;
         softwareData?: unknown;
         machineShopData?: unknown;
@@ -306,32 +301,33 @@ function CreateRequestPage() {
 
       // Add type-specific data based on request type
       if (formData.type === 'hardware') {
-        requestData.hardwareData = {
-          partName: hardwareData.partName,
-          partNumber: hardwareData.partNumber,
-          replacementRequired: hardwareData.replacementRequired,
-          issue: hardwareData.issue,
-          serialNumber: hardwareData.serialNumber,
-        };
+        requestData.hardwareData = hardwareData;
+        // requestData.hardwareData = {
+        //   type: hardwareData.type,
+        //   location: hardwareData.location,
+        // };
       } else if (formData.type === 'software') {
-        requestData.softwareData = {
-          programmingLanguage: softwareData.programmingLanguage,
-          type: softwareData.type,
-        };
+        requestData.softwareData = softwareData;
+        // requestData.softwareData = {
+        //   programmingLanguage: softwareData.programmingLanguage,
+        //   type: softwareData.type,
+        // };
       } else if (formData.type === 'machine_shop') {
-        requestData.machineShopData = {
-          action: machineShopData.action,
-          actionOther: machineShopData.actionOther,
-          material: machineShopData.material,
-          materialOther: machineShopData.materialOther,
-          isTeamLabeled: machineShopData.isTeamLabeled,
-          isDimensionallyMarked: machineShopData.isDimensionallyMarked,
-        };
+        requestData.machineShopData = machineShopData;
+        // requestData.machineShopData = {
+        //   action: machineShopData.action,
+        //   actionOther: machineShopData.actionOther,
+        //   material: machineShopData.material,
+        //   materialOther: machineShopData.materialOther,
+        //   isTeamLabeled: machineShopData.isTeamLabeled,
+        //   isDimensionallyMarked: machineShopData.isDimensionallyMarked,
+        // };
       } else if (formData.type === 'battery_charging') {
-        requestData.batteryChargingData = {
-          batteryType: batteryChargingData.batteryType,
-          initialCharge: batteryChargingData.initialCharge,
-        };
+        requestData.batteryChargingData = batteryChargingData;
+        // requestData.batteryChargingData = {
+        //   batteryType: batteryChargingData.batteryType,
+        //   initialCharge: batteryChargingData.initialCharge,
+        // };
       }
 
       if (process.env.NODE_ENV === 'development') {

@@ -15,10 +15,14 @@ const mockQuery = query as jest.MockedFunction<typeof query>;
 
 function setupUserPermissionsMock(userPermissions: string[] = []) {
   mockQuery.mockImplementation((sql: string) => {
-    if (sql.includes('SELECT DISTINCT p.name')) {
-      // getUserPermissionNames query
+    if (
+      sql.includes('SELECT DISTINCT rp.permission_name') &&
+      sql.includes('FROM role_permissions rp') &&
+      sql.includes('JOIN user_roles ur ON rp.role = ur.role_id') &&
+      sql.includes('WHERE ur.user_id = $1')
+    ) {
       return Promise.resolve({
-        rows: userPermissions.map(permission => ({ name: permission }))
+        rows: userPermissions.map(permission => ({ permission_name: permission }))
       });
     }
     // Default to empty results for other queries

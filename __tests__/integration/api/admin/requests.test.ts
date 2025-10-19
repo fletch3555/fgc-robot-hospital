@@ -15,8 +15,14 @@ const mockQuery = query as jest.MockedFunction<typeof query>;
 
 function setupUserPermissionsMock(userPermissions: string[] = []) {
   mockQuery.mockImplementation((sql: string) => {
-    if (sql.includes('SELECT DISTINCT p.name')) {
+    if (sql.includes('SELECT DISTINCT rp.permission_name')) {
       // getUserPermissionNames query
+      return Promise.resolve({
+        rows: userPermissions.map(permission => ({ permission_name: permission }))
+      });
+    }
+    if (sql.includes('SELECT DISTINCT p.name')) {
+      // old getUserPermissionNames query
       return Promise.resolve({
         rows: userPermissions.map(permission => ({ name: permission }))
       });
@@ -72,7 +78,7 @@ describe("/api/admin/requests", () => {
           country_code: "US",
           country_name: "United States",
           comments: "Test request",
-          priority: "medium",
+          // priority: "medium",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -83,7 +89,7 @@ describe("/api/admin/requests", () => {
           country_code: "CA",
           country_name: "Canada",
           comments: "Completed request",
-          priority: "low",
+          // priority: "low",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -111,7 +117,7 @@ describe("/api/admin/requests", () => {
           country_code: "US",
           country_name: "United States",
           comments: "Inspector request",
-          priority: "high",
+          // priority: "high",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },

@@ -7,53 +7,33 @@ import {
   mockSession,
   mockAdminSession,
 } from "../../../helpers/test-utils";
+import { PermissionName } from "@/lib/auth-types";
 
 // Mock database query
 const mockQuery = query as jest.MockedFunction<typeof query>;
 
-// Mock RBAC model
-const mockRBACModel = {
-  getPermissionsForRole: jest.fn(),
-  assignPermissionToRole: jest.fn(),
-  removePermissionFromRole: jest.fn(),
-};
-
-// jest.mock("../../../../src/models/RBAC", () => ({
-//   RBACModel: {
-//     getPermissionsForRole: (...args: unknown[]) => mockRBACModel.getPermissionsForRole(...args),
-//     assignPermissionToRole: (...args: unknown[]) => mockRBACModel.assignPermissionToRole(...args),
-//     removePermissionFromRole: (...args: unknown[]) => mockRBACModel.removePermissionFromRole(...args),
-//   },
-// }));
-
-const mockPermissions = [
-  { id: "perm-1", name: "read_requests", description: "Read requests permission", category: "requests", created_at: "2025-10-16T00:03:30.179Z" },
-  { id: "perm-2", name: "write_requests", description: "Write requests permission", category: "requests", created_at: "2025-10-16T00:03:30.179Z" },
-];
-
-function setupUserPermissionsMock(userPermissions: string[] = []) {
+function setupUserPermissionsMock(userPermissions: PermissionName[] = [], forceError = false) {
   mockQuery.mockImplementation((sql: string) => {
-    if (sql.includes('SELECT DISTINCT p.name')) {
+    if (
+      sql.includes('SELECT DISTINCT rp.permission_name') &&
+      sql.includes('FROM role_permissions rp') &&
+      sql.includes('JOIN user_roles ur ON rp.role = ur.role_id') &&
+      sql.includes('WHERE ur.user_id = $1')
+    ) {
       return Promise.resolve({
-        rows: userPermissions.map(permission => ({ name: permission }))
+        rows: userPermissions.map(permission => ({ permission_name: permission }))
       });
     }
-    if (sql.includes('SELECT r.*, p.id as permission_id')) {
-      return Promise.resolve({
-        rows: [
-          { role: "admin", display_name: "Administrator", description: "Full system access", color: "#e91e63", is_default: false, permission_id: "perm-1", name: "read_requests", permission_description: "Read requests permission", category: "requests", permission_created_at: "2025-10-16T00:03:30.179Z" },
-          { role: "admin", display_name: "Administrator", description: "Full system access", color: "#e91e63", is_default: false, permission_id: "perm-2", name: "write_requests", permission_description: "Write requests permission", category: "requests", permission_created_at: "2025-10-16T00:03:30.179Z" },
-          { role: "volunteer", display_name: "Volunteer", description: "Basic user access", color: "#4caf50", is_default: true, permission_id: "perm-1", name: "read_requests", permission_description: "Read requests permission", category: "requests", permission_created_at: "2025-10-16T00:03:30.179Z" },
-          { role: "lead_robot_inspector", display_name: "Lead Robot Inspector", description: "Advanced inspection permissions", color: "#607d8b", is_default: false, permission_id: "perm-1", name: "read_requests", permission_description: "Read requests permission", category: "requests", permission_created_at: "2025-10-16T00:03:30.179Z" },
-        ]
-      });
+
+    if (forceError &&
+      sql.includes('SELECT rp.permission_name FROM role_permissions rp') &&
+      sql.includes('WHERE rp.role = $1') &&
+      sql.includes('ORDER BY rp.permission_name')
+    ) {
+      // Force error for getRolesWithPermissions query
+      throw new Error("Database connection failed");
     }
-    if (sql.includes('WHERE rp.role = $1')) {
-      // getPermissionsForRole query - return mock permissions
-      return Promise.resolve({
-        rows: mockPermissions
-      });
-    }
+
     return Promise.resolve({ rows: [] });
   });
 }
@@ -64,9 +44,6 @@ describe("/api/admin/roles", () => {
     setupAuthMock();
     jest.clearAllMocks();
     mockQuery.mockReset();
-    mockRBACModel.getPermissionsForRole.mockReset();
-    mockRBACModel.assignPermissionToRole.mockReset();
-    mockRBACModel.removePermissionFromRole.mockReset();
   });
 
   describe("GET", () => {
@@ -110,17 +87,7 @@ describe("/api/admin/roles", () => {
 
     it("should handle database errors gracefully", async () => {
       setupAuthMock(mockAdminSession);
-      setupUserPermissionsMock(["admin.roles"]);
-      
-      mockQuery.mockImplementation((sql: string) => {
-        if (sql.includes('SELECT DISTINCT p.name')) {
-          return Promise.resolve({
-            rows: [{ name: "admin.roles" }]
-          });
-        }
-        // Force error for getRolesWithPermissions query
-        throw new Error("Database connection failed");
-      });
+      setupUserPermissionsMock(["admin.roles"], true);
 
       const response = await GET();
       const data = await response.json();
@@ -198,20 +165,7 @@ describe("/api/admin/roles", () => {
 
     it("should handle database errors during role permission fetch", async () => {
       setupAuthMock(mockAdminSession);
-      setupUserPermissionsMock(["admin.roles"]);
-      
-      // Force query error
-      mockQuery.mockImplementation((sql: string) => {
-        if (sql.includes('SELECT DISTINCT p.name')) {
-          return Promise.resolve({
-            rows: [{ name: "admin.roles" }]
-          });
-        }
-        if (sql.includes('WHERE rp.role = $1')) {
-          throw new Error("Database error");
-        }
-        return Promise.resolve({ rows: [] });
-      });
+      setupUserPermissionsMock(["admin.roles"], true);
 
       const request = new NextRequest("http://localhost:3000/api/admin/roles", {
         method: "POST",

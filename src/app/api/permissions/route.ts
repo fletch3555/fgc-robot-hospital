@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, PermissionDB } from '@/lib/authz';
+import { requireAuth, UserAuthorizationService, RolePermissionService } from '@/lib/authz';
 import { Role } from '@/lib/auth-types';
 
 export async function GET(request: NextRequest) {
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
 
-      const permissions = await PermissionDB.getPermissionsForUser(userId);
+      const permissions = await UserAuthorizationService.getPermissionsForUser(userId);
       const permissionNames = permissions.map(p => p.name);
 
       return NextResponse.json({ 
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
 
-      const permissions = await PermissionDB.getPermissionsForRole(role);
+      const permissions = await RolePermissionService.getPermissionsForRole(role);
       const permissionNames = permissions.map(p => p.name);
 
       return NextResponse.json({ 

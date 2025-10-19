@@ -55,11 +55,13 @@ export default function EditRequestModal({
 
   // Separate state objects for each request type
   const [hardwareData, setHardwareData] = useState<HardwareRequestData>({
-    partName: "",
-    partNumber: "",
-    replacementRequired: "",
-    issue: "",
-    serialNumber: "",
+    // partName: "",
+    // partNumber: "",
+    // replacementRequired: "",
+    // issue: "",
+    // serialNumber: "",
+    type: undefined,
+    location: undefined,
   });
 
   const [softwareData, setSoftwareData] = useState<SoftwareRequestData>({
@@ -98,11 +100,13 @@ export default function EditRequestModal({
 
       // Initialize separate data objects
       setHardwareData({
-        partName: (request.hardware_data as HardwareRequestData)?.partName || "",
-        partNumber: (request.hardware_data as HardwareRequestData)?.partNumber || "",
-        replacementRequired: (request.hardware_data as HardwareRequestData)?.replacementRequired || "",
-        issue: (request.hardware_data as HardwareRequestData)?.issue || "",
-        serialNumber: (request.hardware_data as HardwareRequestData)?.serialNumber || "",
+        type: (request.hardware_data as HardwareRequestData)?.type || undefined,
+        location: (request.hardware_data as HardwareRequestData)?.location || undefined,
+        // partName: (request.hardware_data as HardwareRequestData)?.partName || "",
+        // partNumber: (request.hardware_data as HardwareRequestData)?.partNumber || "",
+        // replacementRequired: (request.hardware_data as HardwareRequestData)?.replacementRequired || "",
+        // issue: (request.hardware_data as HardwareRequestData)?.issue || "",
+        // serialNumber: (request.hardware_data as HardwareRequestData)?.serialNumber || "",
       });
 
       setSoftwareData({
@@ -135,17 +139,17 @@ export default function EditRequestModal({
       
       try {
         // Define role mappings for each request type
-        const roleMapping: { [key: string]: string[] } = {
-          hardware: ['flying_squad_hardware', 'robot_inspector', 'lead_robot_inspector', 'admin'],
-          software: ['flying_squad_software', 'admin'],
-          machine_shop: ['machine_shop_operator', 'admin'],
-          battery_charging: ['flying_squad_hardware', 'robot_inspector', 'lead_robot_inspector', 'admin'],
-        };
+        // const roleMapping: { [key: string]: string[] } = {
+        //   hardware: ['flying_squad_hardware', 'robot_inspector', 'lead_robot_inspector', 'admin'],
+        //   software: ['flying_squad_software', 'admin'],
+        //   machine_shop: ['machine_shop_operator', 'admin'],
+        //   battery_charging: ['flying_squad_hardware', 'robot_inspector', 'lead_robot_inspector', 'admin'],
+        // };
 
-        const roles = roleMapping[formData.type];
-        if (!roles) return;
+        // const roles = roleMapping[formData.type];
+        // if (!roles) return;
 
-        const response = await fetch(`/api/users?roles=${roles.join(',')}`);
+        const response = await fetch(`/api/users?permissions=${formData.type}.view`);
         if (response.ok) {
           const fetchedUsers = await response.json();
           setUsers(fetchedUsers);
@@ -200,21 +204,30 @@ export default function EditRequestModal({
   // Validation functions
   const validateHardwareData = () => {
     const errors: {[key: string]: string} = {};
-    
-    // Validate part name is provided
-    if (!hardwareData.partName?.trim()) {
-      errors.partName = "Please enter a part name";
+
+    // Validate type is selected
+    if (!hardwareData.type) {
+      errors.type = "Please select a request type";
     }
-    
-    // Validate part name length
-    if (hardwareData.partName && hardwareData.partName.length > 100) {
-      errors.partName = "Part name must be 100 characters or less";
+    // Validate location is selected
+    if (!hardwareData.location) {
+      errors.location = "Please select a work location";
     }
+
+    // // Validate part name is provided
+    // if (!hardwareData.partName?.trim()) {
+    //   errors.partName = "Please enter a part name";
+    // }
     
-    // Validate replacement required is selected
-    if (!hardwareData.replacementRequired || hardwareData.replacementRequired === "unknown") {
-      errors.replacementRequired = "Please specify if replacement is required";
-    }
+    // // Validate part name length
+    // if (hardwareData.partName && hardwareData.partName.length > 100) {
+    //   errors.partName = "Part name must be 100 characters or less";
+    // }
+    
+    // // Validate replacement required is selected
+    // if (!hardwareData.replacementRequired || hardwareData.replacementRequired === "unknown") {
+    //   errors.replacementRequired = "Please specify if replacement is required";
+    // }
     
     return errors;
   };
@@ -365,35 +378,39 @@ export default function EditRequestModal({
       // Map type-specific data to the appropriate field
       switch (formData.type) {
         case "hardware":
-          requestBody.hardware_data = {
-            partName: hardwareData.partName,
-            partNumber: hardwareData.partNumber,
-            replacementRequired: hardwareData.replacementRequired,
-            issue: hardwareData.issue,
-            serialNumber: hardwareData.serialNumber,
-          };
+          requestBody.hardware_data = hardwareData;
+          // requestBody.hardware_data = {
+          //   partName: hardwareData.partName,
+          //   partNumber: hardwareData.partNumber,
+          //   replacementRequired: hardwareData.replacementRequired,
+          //   issue: hardwareData.issue,
+          //   serialNumber: hardwareData.serialNumber,
+          // };
           break;
         case "software":
-          requestBody.software_data = {
-            programmingLanguage: softwareData.programmingLanguage,
-            type: softwareData.type,
-          };
+          requestBody.software_data = softwareData;
+          // requestBody.software_data = {
+          //   programmingLanguage: softwareData.programmingLanguage,
+          //   type: softwareData.type,
+          // };
           break;
         case "machine_shop":
-          requestBody.machine_shop_data = {
-            action: machineShopData.action,
-            actionOther: machineShopData.actionOther,
-            material: machineShopData.material,
-            materialOther: machineShopData.materialOther,
-            isTeamLabeled: machineShopData.isTeamLabeled,
-            isDimensionallyMarked: machineShopData.isDimensionallyMarked,
-          };
+          requestBody.machine_shop_data = machineShopData;
+          // requestBody.machine_shop_data = {
+          //   action: machineShopData.action,
+          //   actionOther: machineShopData.actionOther,
+          //   material: machineShopData.material,
+          //   materialOther: machineShopData.materialOther,
+          //   isTeamLabeled: machineShopData.isTeamLabeled,
+          //   isDimensionallyMarked: machineShopData.isDimensionallyMarked,
+          // };
           break;
         case "battery_charging":
-          requestBody.battery_charging_data = {
-            batteryType: batteryChargingData.batteryType,
-            initialCharge: batteryChargingData.initialCharge,
-          };
+          requestBody.battery_charging_data = batteryChargingData;
+          // requestBody.battery_charging_data = {
+          //   batteryType: batteryChargingData.batteryType,
+          //   initialCharge: batteryChargingData.initialCharge,
+          // };
           break;
       }
 

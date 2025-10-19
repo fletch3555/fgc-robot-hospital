@@ -1,11 +1,9 @@
 import React from 'react';
 import {
   Grid,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
 } from '@mui/material';
 import { HardwareRequestData } from '@/lib/types';
 
@@ -17,85 +15,95 @@ export interface HardwareFieldsProps {
 
 // Utility function to serialize form data for hardware requests
 export const serializeHardwareData = (formData: FormData): HardwareRequestData => ({
-  partName: formData.get('partName')?.toString() || undefined,
-  partNumber: formData.get('partNumber')?.toString() || undefined,
-  replacementRequired: formData.get('replacementRequired')?.toString() || undefined,
-  issue: formData.get('issue')?.toString() || undefined,
-  serialNumber: formData.get('serialNumber')?.toString() || undefined,
+  type: formData.get('type')?.toString() as HardwareRequestData['type'] || undefined,
+  location: formData.get('location')?.toString() as HardwareRequestData['location'] || undefined,
 });
 
 export default function HardwareFields({ data, onChange, errors = {} }: HardwareFieldsProps) {
-  const handleChange = (field: string, value: string) => {
-    onChange({ [field]: value });
+  const handleTypeChange = (_: React.MouseEvent<HTMLElement>, newType: HardwareRequestData['type']) => {
+    onChange({ type: newType || undefined });
+  };
+
+  const handleLocationChange = (_: React.MouseEvent<HTMLElement>, newLocation: HardwareRequestData['location']) => {
+    onChange({ location: newLocation || undefined });
   };
 
   return (
     <Grid container spacing={2}>
       <Grid size={12}>
-        <TextField
-          label="Part Name"
-          value={data.partName || ""}
-          onChange={(e) => handleChange('partName', e.target.value)}
+        <Typography variant="h6" gutterBottom>
+          Hardware Request Type
+        </Typography>
+        <ToggleButtonGroup
+          value={data.type}
+          exclusive
+          onChange={handleTypeChange}
+          aria-label="hardware request type"
           fullWidth
-          required
-          error={!!errors.partName}
-          helperText={errors.partName}
           sx={{
-            '& .MuiOutlinedInput-root': {
-              borderRadius: { xs: 1, sm: 2 }
+            '& .MuiToggleButton-root': {
+              flex: 1,
+              py: 1.5,
+              borderRadius: 1,
+              mx: 0.5,
+              '&:first-of-type': { ml: 0 },
+              '&:last-of-type': { mr: 0 }
             }
           }}
-          margin="normal"
-        />
+        >
+          <ToggleButton value="mechanism_build" aria-label="mechanism build">
+            Mechanism Build
+          </ToggleButton>
+          <ToggleButton value="troubleshooting" aria-label="troubleshooting">
+            Troubleshooting
+          </ToggleButton>
+          <ToggleButton value="need_tools" aria-label="need tools">
+            Need Tools
+          </ToggleButton>
+          <ToggleButton value="other" aria-label="other">
+            Other
+          </ToggleButton>
+        </ToggleButtonGroup>
+        {errors.type && (
+          <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
+            {errors.type}
+          </Typography>
+        )}
       </Grid>
-      <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField
-          label="Part Number"
-          value={data.partNumber || ""}
-          onChange={(e) => handleChange('partNumber', e.target.value)}
-          fullWidth
-          margin="normal"
-        />
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField
-          label="Serial Number"
-          value={data.serialNumber || ""}
-          onChange={(e) => handleChange('serialNumber', e.target.value)}
-          fullWidth
-          margin="normal"
-        />
-      </Grid>
+
       <Grid size={12}>
-        <FormControl fullWidth margin="normal" error={!!errors.replacementRequired}>
-          <InputLabel>Replacement Required *</InputLabel>
-          <Select
-            value={data.replacementRequired || "unknown"}
-            onChange={(e) => handleChange('replacementRequired', e.target.value)}
-            label="Replacement Required *"
-          >
-            <MenuItem value="unknown">Unknown</MenuItem>
-            <MenuItem value="yes">Yes</MenuItem>
-            <MenuItem value="no">No</MenuItem>
-          </Select>
-          {errors.replacementRequired && (
-            <div style={{ color: '#d32f2f', fontSize: '0.75rem', margin: '3px 14px 0' }}>
-              {errors.replacementRequired}
-            </div>
-          )}
-        </FormControl>
-      </Grid>
-      <Grid size={12}>
-        <TextField
-          label="Issue Description"
-          value={data.issue || ""}
-          onChange={(e) => handleChange('issue', e.target.value)}
+        <Typography variant="h6" gutterBottom>
+          Location
+        </Typography>
+        <ToggleButtonGroup
+          value={data.location}
+          exclusive
+          onChange={handleLocationChange}
+          aria-label="location"
           fullWidth
-          multiline
-          rows={3}
-          margin="normal"
-          placeholder="Please describe the hardware issue..."
-        />
+          sx={{
+            '& .MuiToggleButton-root': {
+              flex: 1,
+              py: 1.5,
+              borderRadius: 1,
+              mx: 0.5,
+              '&:first-of-type': { ml: 0 },
+              '&:last-of-type': { mr: 0 }
+            }
+          }}
+        >
+          <ToggleButton value="hospital" aria-label="hospital">
+            Hospital
+          </ToggleButton>
+          <ToggleButton value="pit" aria-label="pit">
+            Pit
+          </ToggleButton>
+        </ToggleButtonGroup>
+        {errors.location && (
+          <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
+            {errors.location}
+          </Typography>
+        )}
       </Grid>
     </Grid>
   );

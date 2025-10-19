@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkPermissions, PermissionDB } from '@/lib/authz';
+import { checkPermissions, RolePermissionService } from '@/lib/authz';
 import { Role } from '@/lib/auth-types';
 
 export async function GET(
@@ -14,7 +14,7 @@ export async function GET(
     }
 
     const { role } = await params;
-    const permissions = await PermissionDB.getPermissionsForRole(role as Role);
+    const permissions = await RolePermissionService.getPermissionsForRole(role as Role);
     return NextResponse.json({ permissions });
   } catch (error) {
     console.error('Error fetching role permissions:', error);
@@ -38,13 +38,15 @@ export async function PUT(
     }
 
     const { role } = await params;
-    const { permissionIds } = await request.json();
+    const { permissionNames } = await request.json();
 
-    if (!Array.isArray(permissionIds)) {
-      return NextResponse.json({ error: 'Invalid permissionIds format' }, { status: 400 });
+    console.log(permissionNames)
+
+    if (!Array.isArray(permissionNames)) {
+      return NextResponse.json({ error: 'Invalid permissionNames format' }, { status: 400 });
     }
 
-    await PermissionDB.updateRolePermissions(role as Role, permissionIds);
+    await RolePermissionService.updateRolePermissions(role as Role, permissionNames);
 
     return NextResponse.json({ 
       success: true, 

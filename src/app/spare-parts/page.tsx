@@ -31,14 +31,25 @@ interface SparePart {
   id: string;
   country_code: string;
   country_name: string;
-  requested_quantity: number;
-  requested_by: string;
-  requested_by_name: string;
-  requested_by_email: string;
-  part_number: string;
-  item_description: string;
-  group_name: string;
-  requested_at: string;
+  item_name: string;
+  fgc_part_number?: string;
+  quantity: number;
+  is_loan: boolean;
+  status: 'issued' | 'returned';
+  submitted_by: string;
+  issued_by_name: string;
+  issued_by_email: string;
+  handled_by?: string;
+  handled_by_name?: string;
+  handled_by_email?: string;
+  notes?: string[];
+  created_at: string;
+  updated_at: string;
+  fgc_details?: {
+    part_number: string;
+    item_description: string;
+    group_name: string;
+  };
 }
 
 function SparePartsPage() {
@@ -51,25 +62,25 @@ function SparePartsPage() {
     if (isAuthenticated) {
       setLoading(true);
       const fetchSpareParts = () => {
-        fetchWithAuth('/api/spare-parts-requests')
+        fetchWithAuth('/api/spare-parts')
           .then(res => {
             if (!res.ok) {
-              throw new Error('Failed to fetch spare parts requests');
+              throw new Error('Failed to fetch spare parts');
             }
             return res.json();
           })
           .then(data => {
-            // Sort by requested_at descending and take the 10 most recent
+            // Sort by created_at descending and take the 10 most recent
             const sortedData = data
               .sort((a: SparePart, b: SparePart) => 
-                new Date(b.requested_at).getTime() - new Date(a.requested_at).getTime()
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
               )
               .slice(0, 10);
             setSpareParts(sortedData);
           })
           .catch(err => {
             console.error(err);
-            setError('Failed to load spare parts requests');
+            setError('Failed to load spare parts');
           })
           .finally(() => {
             setLoading(false);
@@ -150,10 +161,10 @@ function SparePartsPage() {
             <CardContent>
               <Box textAlign="center" py={4}>
                 <Typography variant="h6" color="text.secondary" gutterBottom>
-                  No spare parts requests found
+                  No spare parts found
                 </Typography>
                 <Typography variant="body2" color="text.secondary" mb={3}>
-                  Get started by creating your first spare parts request.
+                  Get started by issuing your first spare part to a team.
                 </Typography>
                 <Button
                   variant="contained"
@@ -161,7 +172,7 @@ function SparePartsPage() {
                   href="/spare-parts/new"
                   startIcon={<AddIcon />}
                 >
-                  Create First Request
+                  Issue Parts
                 </Button>
               </Box>
             </CardContent>
@@ -169,16 +180,17 @@ function SparePartsPage() {
         ) : (
           <>
             <Typography variant="body2" color="text.secondary" mb={2}>
-              Showing {spareParts.length} most recent request(s)
+              Showing {spareParts.length} most recent part(s) issued
             </Typography>
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
                   <TableRow>
                     <TableCell>Item</TableCell>
-                    <TableCell>Country</TableCell>
+                    <TableCell>Team</TableCell>
                     <TableCell align="center">Quantity</TableCell>
-                    <TableCell>Requested</TableCell>
+                    <TableCell align="center">Status</TableCell>
+                    <TableCell>Issued</TableCell>
                     <TableCell align="center">Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -188,11 +200,18 @@ function SparePartsPage() {
                       <TableCell>
                         <Box>
                           <Typography variant="body2" fontWeight="medium">
-                            {part.item_description}
+                            {part.fgc_details?.item_description || part.item_name}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {part.part_number} • {part.group_name}
-                          </Typography>
+                          {part.fgc_details && (
+                            <Typography variant="caption" color="text.secondary">
+                              {part.fgc_details.part_number} • {part.fgc_details.group_name}
+                            </Typography>
+                          )}
+                          {part.is_loan && (
+                            <Typography variant="caption" color="warning.main" sx={{ display: 'block' }}>
+                              • LOAN ITEM
+                            </Typography>
+                          )}
                         </Box>
                       </TableCell>
                       <TableCell>
@@ -207,22 +226,31 @@ function SparePartsPage() {
                       </TableCell>
                       <TableCell align="center">
                         <Typography variant="body2" fontWeight="medium">
-                          {part.requested_quantity}
+                          {part.quantity}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography 
+                          variant="body2" 
+                          color={part.status === 'issued' ? 'warning.main' : 'success.main'}
+                          fontWeight="medium"
+                        >
+                          {part.status.toUpperCase()}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Box>
                           <Typography variant="body2">
-                            {formatDate(part.requested_at)}
+                            {formatDate(part.created_at)}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            by {part.requested_by_name}
+                            by {part.issued_by_name}
                           </Typography>
                         </Box>
                       </TableCell>
                       <TableCell align="center">
-                        {/* Allow editing for requests by the current user */}
-                        {part.requested_by_email === session?.user?.email && (
+                        {/* Allow editing for parts issued by the current user */}
+                        {part.issued_by_email === session?.user?.email && (
                           <Button
                             size="small"
                             variant="outlined"
@@ -235,7 +263,7 @@ function SparePartsPage() {
                           </Button>
                         )}
                         {/* Show message for non-editable items */}
-                        {part.requested_by_email !== session?.user?.email && (
+                        {part.issued_by_email !== session?.user?.email && (
                           <Typography variant="caption" color="text.secondary">
                             Not editable
                           </Typography>
@@ -256,10 +284,7 @@ function SparePartsPage() {
 export default function ProtectedSparePartsPage() {
   return (
     <WithAuth>
-      <WithPermissions 
-        requiredAnyPermissions={['spare_parts.view', 'spare_parts.create', 'spare_parts.edit']}
-        fallbackMessage="You need spare parts permissions to access this page."
-      >
+      <WithPermissions requiredAnyPermissions={['spare_parts.view', 'spare_parts.create', 'spare_parts.edit']}>
         <SparePartsPage />
       </WithPermissions>
     </WithAuth>

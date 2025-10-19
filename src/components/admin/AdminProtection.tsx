@@ -21,7 +21,7 @@ export default function AdminProtection({ children }: AdminProtectionProps) {
       return;
     }
 
-    if (!session.user.roles.includes('admin')) {
+    if (!session?.user?.roles?.includes('admin')) {
       router.push('/');
       return;
     }
@@ -43,7 +43,7 @@ export default function AdminProtection({ children }: AdminProtectionProps) {
     );
   }
 
-  if (!session || !session.user.roles.includes('admin')) {
+  if (!session?.user?.roles?.includes('admin')) {
     return (
       <Box
         display="flex"

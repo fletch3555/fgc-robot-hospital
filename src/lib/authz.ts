@@ -9,8 +9,294 @@ import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
 import { Session } from "next-auth";
 import { authOptions } from "./authn";
-import { query } from "./database";
-import { Role, Permission, RoleMetadata } from "./auth-types";
+import { query } from "@/lib/database";
+import { Role, Permission, PermissionCategory, RoleMetadata, PermissionName } from "./auth-types";
+
+// =============================================================================
+// Permission Definitions
+// =============================================================================
+
+export const PERMISSIONS: Record<PermissionName, Permission> = {
+  // Request Management
+  'requests.view': {
+    name: 'requests.view',
+    description: 'View support requests',
+    category: 'requests'
+  },
+  'requests.create': {
+    name: 'requests.create',
+    description: 'Create new support requests',
+    category: 'requests'
+  },
+  'requests.edit': {
+    name: 'requests.edit',
+    description: 'Edit support requests',
+    category: 'requests'
+  },
+  'requests.delete': {
+    name: 'requests.delete',
+    description: 'Delete support requests',
+    category: 'requests'
+  },
+  'requests.assign': {
+    name: 'requests.assign',
+    description: 'Assign requests to users',
+    category: 'requests'
+  },
+  'requests.status_update': {
+    name: 'requests.status_update',
+    description: 'Update request status',
+    category: 'requests'
+  },
+
+  // Hardware Support
+  'hardware.view': {
+    name: 'hardware.view',
+    description: 'View hardware requests',
+    category: 'hardware'
+  },
+  'hardware.create': {
+    name: 'hardware.create',
+    description: 'Create hardware requests',
+    category: 'hardware'
+  },
+  'hardware.edit': {
+    name: 'hardware.edit',
+    description: 'Edit hardware requests',
+    category: 'hardware'
+  },
+  'hardware.assignee': {
+    name: 'hardware.assignee',
+    description: 'Can be assigned to hardware requests',
+    category: 'hardware'
+  },
+
+  // Software Support
+  'software.view': {
+    name: 'software.view',
+    description: 'View software requests',
+    category: 'software'
+  },
+  'software.create': {
+    name: 'software.create',
+    description: 'Create software requests',
+    category: 'software'
+  },
+  'software.edit': {
+    name: 'software.edit',
+    description: 'Edit software requests',
+    category: 'software'
+  },
+  'software.assignee': {
+    name: 'software.assignee',
+    description: 'Can be assigned to software requests',
+    category: 'software'
+  },
+
+  // Machine Shop
+  'machine_shop.view': {
+    name: 'machine_shop.view',
+    description: 'View machine shop requests',
+    category: 'machine_shop'
+  },
+  'machine_shop.create': {
+    name: 'machine_shop.create',
+    description: 'Create machine shop requests',
+    category: 'machine_shop'
+  },
+  'machine_shop.edit': {
+    name: 'machine_shop.edit',
+    description: 'Edit machine shop requests',
+    category: 'machine_shop'
+  },
+  'machine_shop.assignee': {
+    name: 'machine_shop.assignee',
+    description: 'Can be assigned to machine shop requests',
+    category: 'machine_shop'
+  },
+
+  // Battery Charging
+  'battery_charging.view': {
+    name: 'battery_charging.view',
+    description: 'View battery charging requests',
+    category: 'battery_charging'
+  },
+  'battery_charging.create': {
+    name: 'battery_charging.create',
+    description: 'Create battery charging requests',
+    category: 'battery_charging'
+  },
+  'battery_charging.edit': {
+    name: 'battery_charging.edit',
+    description: 'Edit battery charging requests',
+    category: 'battery_charging'
+  },
+  'battery_charging.assignee': {
+    name: 'battery_charging.assignee',
+    description: 'Can be assigned to battery charging requests',
+    category: 'battery_charging'
+  },
+
+  // Spare Parts
+  'spare_parts.view': {
+    name: 'spare_parts.view',
+    description: 'View spare parts inventory',
+    category: 'spare_parts'
+  },
+  'spare_parts.create': {
+    name: 'spare_parts.create',
+    description: 'Add new spare parts',
+    category: 'spare_parts'
+  },
+  'spare_parts.edit': {
+    name: 'spare_parts.edit',
+    description: 'Edit spare parts',
+    category: 'spare_parts'
+  },
+  'spare_parts.issue': {
+    name: 'spare_parts.issue',
+    description: 'Issue spare parts',
+    category: 'spare_parts'
+  },
+  'spare_parts.receive': {
+    name: 'spare_parts.receive',
+    description: 'Receive returned spare parts',
+    category: 'spare_parts'
+  },
+
+  // Robot Inspection
+  'inspection.view': {
+    name: 'inspection.view',
+    description: 'View inspection reports',
+    category: 'inspection'
+  },
+  'inspection.create': {
+    name: 'inspection.create',
+    description: 'Create inspection reports',
+    category: 'inspection'
+  },
+  'inspection.edit': {
+    name: 'inspection.edit',
+    description: 'Edit inspection reports',
+    category: 'inspection'
+  },
+  'inspection.approve': {
+    name: 'inspection.approve',
+    description: 'Approve inspection reports',
+    category: 'inspection'
+  },
+
+  // User Management
+  'users.view': {
+    name: 'users.view',
+    description: 'View user list',
+    category: 'users'
+  },
+  'users.create': {
+    name: 'users.create',
+    description: 'Create new users',
+    category: 'users'
+  },
+  'users.edit': {
+    name: 'users.edit',
+    description: 'Edit user information',
+    category: 'users'
+  },
+  'users.delete': {
+    name: 'users.delete',
+    description: 'Delete users',
+    category: 'users'
+  },
+  'users.role_assign': {
+    name: 'users.role_assign',
+    description: 'Assign roles to users',
+    category: 'users'
+  },
+
+  // Admin Functions
+  'admin.dashboard': {
+    name: 'admin.dashboard',
+    description: 'Access admin dashboard',
+    category: 'admin'
+  },
+  'admin.roles': {
+    name: 'admin.roles',
+    description: 'Manage roles and permissions',
+    category: 'admin'
+  },
+  'admin.permissions': {
+    name: 'admin.permissions',
+    description: 'Manage system permissions',
+    category: 'admin'
+  },
+  'admin.users': {
+    name: 'admin.users',
+    description: 'Manage user accounts',
+    category: 'admin'
+  },
+  'admin.requests': {
+    name: 'admin.requests',
+    description: 'Manage all requests',
+    category: 'admin'
+  },
+  'admin.system': {
+    name: 'admin.system',
+    description: 'System administration',
+    category: 'admin'
+  },
+  'admin.reports': {
+    name: 'admin.reports',
+    description: 'Generate reports',
+    category: 'admin'
+  },
+
+  // Reference & Documentation
+  'documentation.view': {
+    name: 'documentation.view',
+    description: 'View documentation and guides',
+    category: 'documentation'
+  },
+  'inventory.view': {
+    name: 'inventory.view',
+    description: 'View FGC inventory',
+    category: 'inventory'
+  },
+  'matches.view': {
+    name: 'matches.view',
+    description: 'View match schedules',
+    category: 'matches'
+  }
+};
+
+/**
+ * Get all permissions as an array
+ */
+export function getAllPermissions(): Permission[] {
+  return Object.values(PERMISSIONS);
+}
+
+/**
+ * Get permissions grouped by category
+ */
+export function getPermissionsByCategory(): Partial<Record<PermissionCategory, Permission[]>> {
+  const grouped: Partial<Record<PermissionCategory, Permission[]>> = {};
+
+  Object.values(PERMISSIONS).forEach(permission => {
+    if (!grouped[permission.category]) {
+      grouped[permission.category] = [];
+    }
+    grouped[permission.category]?.push(permission);
+  });
+  
+  return grouped;
+}
+
+/**
+ * Get permission by name (with type safety)
+ */
+export function getPermission(name: PermissionName): Permission {
+  return PERMISSIONS[name];
+}
 
 // =============================================================================
 // Types and Interfaces
@@ -34,7 +320,7 @@ export interface AuthzResult {
   authorized: boolean;
   response: NextResponse | null;
   session?: Session;
-  permissions?: string[];
+  permissions?: PermissionName[];
 }
 
 // =============================================================================
@@ -100,39 +386,95 @@ export const ROLE_METADATA: Record<Role, RoleMetadata> = {
 };
 
 // =============================================================================
-// Database Operations for Permissions
+// Permission Registry - Code-based permission definitions
 // =============================================================================
 
-export class PermissionDB {
+/**
+ * Registry for code-based permission definitions and utilities
+ * All permission definitions are managed in code for type safety and performance
+ */
+export class PermissionRegistry {
   /**
-   * Get all permissions from the database
+   * Get all available permissions from code definitions
    */
-  static async getAllPermissions(): Promise<Permission[]> {
+  static getAllPermissions(): Permission[] {
+    return getAllPermissions();
+  }
+
+  /**
+   * Get permissions grouped by category
+   */
+  static getPermissionsByCategory(): Record<string, Permission[]> {
+    return getPermissionsByCategory();
+  }
+
+  /**
+   * Get a specific permission by name
+   */
+  static getPermission(name: PermissionName): Permission | undefined {
+    return PERMISSIONS[name];
+  }
+
+  /**
+   * Check if a permission name exists
+   */
+  static isValidPermission(name: string): name is PermissionName {
+    return name in PERMISSIONS;
+  }
+}
+
+// =============================================================================
+// Role Permission Service - Database-based role assignments
+// =============================================================================
+
+/**
+ * Service for managing role-permission assignments in the database
+ * Handles which roles have which permissions
+ */
+export class RolePermissionService {
+  /**
+   * Get permission names assigned to a specific role
+   */
+  static async getPermissionNamesForRole(role: Role): Promise<string[]> {
     try {
       const result = await query(
-        'SELECT * FROM permissions ORDER BY category, name',
-        []
+        `SELECT rp.permission_name FROM role_permissions rp
+         WHERE rp.role = $1
+         ORDER BY rp.permission_name`,
+        [role]
       );
-      return result.rows;
+      return result.rows.map((row: { permission_name: string }) => row.permission_name);
     } catch (error) {
-      console.error('Error fetching permissions:', error);
+      console.error('Error fetching role permission names:', error);
       throw error;
     }
   }
 
   /**
-   * Get permissions for a specific role
+   * Get full permission objects for a specific role
    */
   static async getPermissionsForRole(role: Role): Promise<Permission[]> {
     try {
       const result = await query(
-        `SELECT p.* FROM permissions p
-         JOIN role_permissions rp ON p.id = rp.permission_id
+        `SELECT rp.permission_name FROM role_permissions rp
          WHERE rp.role = $1
-         ORDER BY p.category, p.name`,
+         ORDER BY rp.permission_name`,
         [role]
       );
-      return result.rows;
+      
+      // Map to Permission objects from code
+      const permissions: Permission[] = [];
+      for (const row of result.rows) {
+        const perm = PERMISSIONS[row.permission_name as PermissionName];
+        if (perm) {
+          permissions.push({
+            name: perm.name,
+            description: perm.description,
+            category: perm.category,
+          });
+        }
+      }
+      return permissions;
     } catch (error) {
       console.error('Error fetching role permissions:', error);
       throw error;
@@ -140,75 +482,20 @@ export class PermissionDB {
   }
 
   /**
-   * Get permissions for a user (considering all their roles)
-   */
-  static async getPermissionsForUser(userId: string): Promise<Permission[]> {
-    try {
-      const result = await query(
-        `SELECT DISTINCT p.* FROM permissions p
-         JOIN role_permissions rp ON p.id = rp.permission_id
-         JOIN user_roles ur ON rp.role = ur.role_id
-         WHERE ur.user_id = $1
-         ORDER BY p.category, p.name`,
-        [userId]
-      );
-      return result.rows;
-    } catch (error) {
-      console.error('Error fetching user permissions:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get permission names for a user
-   */
-  static async getUserPermissionNames(userId: string): Promise<string[]> {
-    try {
-      const result = await query(
-        `SELECT DISTINCT p.name
-         FROM permissions p
-         JOIN role_permissions rp ON p.id = rp.permission_id
-         JOIN user_roles ur ON rp.role = ur.role_id
-         WHERE ur.user_id = $1`,
-        [userId]
-      );
-      return result.rows.map((row: { name: string }) => row.name);
-    } catch (error) {
-      console.error('Error getting user permissions:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Check if a role has a specific permission
    */
-  static async roleHasPermission(role: Role, permissionName: string): Promise<boolean> {
+  static async roleHasPermission(role: Role, permissionName: PermissionName): Promise<boolean> {
     try {
       const result = await query(
-        `SELECT 1 FROM role_permissions rp
-         JOIN permissions p ON rp.permission_id = p.id
-         WHERE rp.role = $1 AND p.name = $2`,
+        `SELECT EXISTS(
+           SELECT 1 FROM role_permissions rp
+           WHERE rp.role = $1 AND rp.permission_name = $2
+         ) as has_permission`,
         [role, permissionName]
-      );
-      return result.rows.length > 0;
-    } catch (error) {
-      console.error('Error checking role permission:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Check if a user has a specific permission
-   */
-  static async userHasPermission(userId: string, permissionName: string): Promise<boolean> {
-    try {
-      const result = await query(
-        `SELECT user_has_permission($1, $2) as has_permission`,
-        [userId, permissionName]
       );
       return result.rows[0]?.has_permission || false;
     } catch (error) {
-      console.error('Error checking user permission:', error);
+      console.error('Error checking role permission:', error);
       throw error;
     }
   }
@@ -218,35 +505,31 @@ export class PermissionDB {
    */
   static async getPermissionsByCategory(role?: Role): Promise<Record<string, Permission[]>> {
     try {
-      let query_str: string;
-      let params: (string | Role)[];
-
-      if (role) {
-        query_str = `
-          SELECT p.*, (rp.role IS NOT NULL) as has_permission
-          FROM permissions p
-          LEFT JOIN role_permissions rp ON p.id = rp.permission_id AND rp.role = $1
-          ORDER BY p.category, p.name
-        `;
-        params = [role];
-      } else {
-        query_str = `
-          SELECT *, false as has_permission
-          FROM permissions 
-          ORDER BY category, name
-        `;
-        params = [];
-      }
-
-      const result = await query(query_str, params);
+      let rolePermissions: string[] = [];
       
-      // Group by category
+      if (role) {
+        // Get permissions assigned to this role
+        rolePermissions = await this.getPermissionNamesForRole(role);
+      }
+      
+      // Get all permissions from code
+      const allPermissions = getAllPermissions();
+      
+      // Group by category and mark which ones the role has
       const grouped: Record<string, Permission[]> = {};
-      for (const permission of result.rows) {
-        if (!grouped[permission.category]) {
-          grouped[permission.category] = [];
+      for (const perm of allPermissions) {
+        if (!grouped[perm.category]) {
+          grouped[perm.category] = [];
         }
-        grouped[permission.category].push(permission);
+        
+        const hasPermission = role ? rolePermissions.includes(perm.name) : false;
+        
+        grouped[perm.category].push({
+          name: perm.name,
+          description: perm.description,
+          category: perm.category,
+          has_permission: hasPermission // Add this field for UI
+        } as Permission & { has_permission: boolean });
       }
       
       return grouped;
@@ -259,7 +542,7 @@ export class PermissionDB {
   /**
    * Update role permissions (replace all permissions for a role)
    */
-  static async updateRolePermissions(role: Role, permissionIds: string[]): Promise<void> {
+  static async updateRolePermissions(role: Role, permissionNames: PermissionName[]): Promise<void> {
     try {
       // Start transaction
       await query('BEGIN', []);
@@ -268,14 +551,14 @@ export class PermissionDB {
       await query('DELETE FROM role_permissions WHERE role = $1', [role]);
 
       // Add new permissions
-      if (permissionIds.length > 0) {
-        const values = permissionIds.map((_, index) => 
+      if (permissionNames.length > 0) {
+        const values = permissionNames.map((_, index) => 
           `($1, $${index + 2})`
         ).join(', ');
         
         await query(
-          `INSERT INTO role_permissions (role, permission_id) VALUES ${values}`,
-          [role, ...permissionIds]
+          `INSERT INTO role_permissions (role, permission_name) VALUES ${values}`,
+          [role, ...permissionNames]
         );
       }
 
@@ -292,11 +575,11 @@ export class PermissionDB {
   /**
    * Grant permission to role
    */
-  static async grantPermissionToRole(role: Role, permissionId: string): Promise<void> {
+  static async grantPermissionToRole(role: Role, permissionName: PermissionName): Promise<void> {
     try {
       await query(
-        'INSERT INTO role_permissions (role, permission_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [role, permissionId]
+        'INSERT INTO role_permissions (role, permission_name) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [role, permissionName]
       );
     } catch (error) {
       console.error('Error granting permission to role:', error);
@@ -307,15 +590,128 @@ export class PermissionDB {
   /**
    * Revoke permission from role
    */
-  static async revokePermissionFromRole(role: Role, permissionId: string): Promise<void> {
+  static async revokePermissionFromRole(role: Role, permissionName: PermissionName): Promise<void> {
     try {
       await query(
-        'DELETE FROM role_permissions WHERE role = $1 AND permission_id = $2',
-        [role, permissionId]
+        'DELETE FROM role_permissions WHERE role = $1 AND permission_name = $2',
+        [role, permissionName]
       );
     } catch (error) {
       console.error('Error revoking permission from role:', error);
       throw error;
+    }
+  }
+}
+
+// =============================================================================
+// User Authorization Service - Combines registry and role permissions
+// =============================================================================
+
+/**
+ * Service for user authorization that combines code-based permissions with database role assignments
+ * This is the main service for checking user permissions
+ */
+export class UserAuthorizationService {
+  /**
+   * Get permission names for a user (from all their roles)
+   */
+  static async getUserPermissionNames(userId: string): Promise<PermissionName[]> {
+    try {
+      const result = await query(
+        `SELECT DISTINCT rp.permission_name
+         FROM role_permissions rp
+         JOIN user_roles ur ON rp.role = ur.role_id
+         WHERE ur.user_id = $1`,
+        [userId]
+      );
+      return result.rows.map((row: { permission_name: PermissionName }) => row.permission_name);
+    } catch (error) {
+      console.error('Error getting user permissions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get full permission objects for a user (from all their roles)
+   */
+  static async getPermissionsForUser(userId: string): Promise<Permission[]> {
+    try {
+      const result = await query(
+        `SELECT DISTINCT rp.permission_name
+         FROM role_permissions rp
+         JOIN user_roles ur ON rp.role = ur.role_id
+         WHERE ur.user_id = $1
+         ORDER BY rp.permission_name`,
+        [userId]
+      );
+      
+      // Map permission names to full permission objects from code
+      const permissions: Permission[] = [];
+      for (const row of result.rows) {
+        const perm = PERMISSIONS[row.permission_name as PermissionName];
+        if (perm) {
+          permissions.push({
+            name: perm.name,
+            description: perm.description,
+            category: perm.category,
+          });
+        }
+      }
+      return permissions;
+    } catch (error) {
+      console.error('Error fetching user permissions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if a user has a specific permission
+   */
+  static async userHasPermission(userId: string, permissionName: string): Promise<boolean> {
+    console.log(userId, permissionName);
+    try {
+      const result = await query(
+        `SELECT EXISTS(
+           SELECT 1 FROM role_permissions rp
+           JOIN user_roles ur ON rp.role = ur.role_id
+           WHERE ur.user_id = $1 AND rp.permission_name = $2
+         ) as has_permission`,
+        [userId, permissionName]
+      );
+      return result.rows[0]?.has_permission || false;
+    } catch (error) {
+      console.error('Error checking user permission:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if a user has all required permissions
+   */
+  static async userHasAllPermissions(userId: string, permissionNames: PermissionName[]): Promise<boolean> {
+    if (permissionNames.length === 0) return true;
+    
+    try {
+      const userPermissions = await this.getUserPermissionNames(userId);
+      return permissionNames.every(permission => userPermissions.includes(permission));
+    } catch (error) {
+      console.error('Error checking user permissions:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if a user has any of the required permissions
+   */
+  static async userHasAnyPermission(userId: string, permissionNames: PermissionName[]): Promise<boolean> {
+    if (permissionNames.length === 0) return true;
+    
+    try {
+      const userPermissions = await this.getUserPermissionNames(userId);
+      return permissionNames.some(permission => userPermissions.includes(permission));
+    } catch (error) {
+      console.error('Error checking user permissions:', error);
+      return false;
     }
   }
 }
@@ -365,7 +761,7 @@ export async function requireAuth(): Promise<AuthzResult> {
  * Check if current user has specific permissions
  */
 export async function checkPermissions(
-  requiredPermissions: string[], 
+  requiredPermissions: PermissionName[], 
   requireAll = true
 ): Promise<AuthzResult> {
   const session = await getAuthenticatedSession();
@@ -377,18 +773,8 @@ export async function checkPermissions(
     };
   }
 
-  // Admin users have all permissions
-  if (session.user.roles?.includes('admin')) {
-    return {
-      authorized: true,
-      response: null,
-      session,
-      permissions: ['*'] // Admin has all permissions
-    };
-  }
-
   try {
-    const userPermissions = await PermissionDB.getUserPermissionNames(session.user.id);
+    const userPermissions = await UserAuthorizationService.getUserPermissionNames(session.user.id);
     
     let hasPermission = false;
     if (requireAll) {
@@ -435,7 +821,7 @@ export async function checkPermissions(
  */
 export async function hasPermission(userId: string, permission: string): Promise<boolean> {
   try {
-    return await PermissionDB.userHasPermission(userId, permission);
+    return await UserAuthorizationService.userHasPermission(userId, permission);
   } catch (error) {
     console.error('Error checking user permission:', error);
     return false;
@@ -447,65 +833,11 @@ export async function hasPermission(userId: string, permission: string): Promise
  */
 export async function getUserPermissions(userId: string): Promise<string[]> {
   try {
-    return await PermissionDB.getUserPermissionNames(userId);
+    return await UserAuthorizationService.getUserPermissionNames(userId);
   } catch (error) {
     console.error('Error getting user permissions:', error);
     return [];
   }
-}
-
-// =============================================================================
-// Role-Based Authorization (Legacy Support)
-// =============================================================================
-
-/**
- * Check if current user has specific roles
- */
-export async function checkRoles(requiredRoles: Role[], requireAll = false): Promise<AuthzResult> {
-  const session = await getAuthenticatedSession();
-  
-  if (!session || !session.user?.id) {
-    return {
-      authorized: false,
-      response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    };
-  }
-
-  const userRoles = session.user.roles || [];
-  
-  let hasRole = false;
-  if (requireAll) {
-    // User must have ALL required roles
-    hasRole = requiredRoles.every(role => userRoles.includes(role));
-  } else {
-    // User must have ANY of the required roles
-    hasRole = requiredRoles.some(role => userRoles.includes(role));
-  }
-
-  if (!hasRole) {
-    return {
-      authorized: false,
-      response: NextResponse.json({
-        error: 'Insufficient role permissions',
-        required: requiredRoles,
-        requireAll,
-        userRoles
-      }, { status: 403 })
-    };
-  }
-
-  return {
-    authorized: true,
-    response: null,
-    session
-  };
-}
-
-/**
- * Require admin role
- */
-export async function requireAdmin(): Promise<AuthzResult> {
-  return await checkRoles(['admin']);
 }
 
 // =============================================================================
@@ -623,7 +955,7 @@ export async function getRolesWithPermissions(): Promise<(RoleMetadata & { permi
     const roles = Object.keys(ROLE_METADATA) as Role[];
     const rolesWithPermissions = await Promise.all(
       roles.map(async (role) => {
-        const permissions = await PermissionDB.getPermissionsForRole(role);
+        const permissions = await RolePermissionService.getPermissionsForRole(role);
         return {
           ...ROLE_METADATA[role],
           permissions

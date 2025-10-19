@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkPermissions, PermissionDB, getRolesWithPermissions } from '@/lib/authz';
+import { checkPermissions, RolePermissionService, getRolesWithPermissions } from '@/lib/authz';
 
 export async function GET() {
   try {
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Role is required' }, { status: 400 });
     }
 
-    const permissions = await PermissionDB.getPermissionsForRole(role);
+    const permissions = await RolePermissionService.getPermissionsForRole(role);
     return NextResponse.json(permissions);
   } catch (error) {
     console.error('Error fetching role permissions:', error);

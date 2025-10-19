@@ -2,15 +2,15 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
-import { Role } from '@/lib/auth-types';
+import { Role, PermissionName } from '@/lib/auth-types';
 
 interface PermissionsContextType {
-  permissions: string[];
+  permissions: PermissionName[];
   roles: Role[];
   isLoading: boolean;
-  hasPermission: (permission: string) => boolean;
-  hasAnyPermission: (permissions: string[]) => boolean;
-  hasAllPermissions: (permissions: string[]) => boolean;
+  hasPermission: (permission: PermissionName) => boolean;
+  hasAnyPermission: (permissions: PermissionName[]) => boolean;
+  hasAllPermissions: (permissions: PermissionName[]) => boolean;
   canAccess: (resource: string, action: string) => boolean;
   refetchPermissions: () => Promise<void>;
 }
@@ -20,7 +20,7 @@ const PermissionsContext = createContext<PermissionsContextType | undefined>(und
 // Cache for permissions to avoid multiple API calls
 let permissionsCache: {
   userId?: string;
-  permissions: string[];
+  permissions: PermissionName[];
   roles: Role[];
   timestamp: number;
 } | null = null;
@@ -42,7 +42,7 @@ const getFromCache = (userId: string) => {
   return permissionsCache;
 };
 
-const setCache = (userId: string, data: { permissions: string[]; roles: Role[]; timestamp: number }) => {
+const setCache = (userId: string, data: { permissions: PermissionName[]; roles: Role[]; timestamp: number }) => {
   permissionsCache = {
     userId,
     ...data
@@ -55,7 +55,7 @@ interface PermissionsProviderProps {
 
 export function PermissionsProvider({ children }: PermissionsProviderProps) {
   const { data: session, status } = useSession();
-  const [permissions, setPermissions] = useState<string[]>([]);
+  const [permissions, setPermissions] = useState<PermissionName[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -80,7 +80,7 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
     }
 
     try {
-      const response = await fetch('/api/auth/permissions');
+      const response = await fetch(`/api/permissions?userId=${session.user.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch permissions');
       }
@@ -115,29 +115,29 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
     }
   }, [userId]);
 
-  const hasPermission = (permission: string): boolean => {
+  const hasPermission = (permission: PermissionName): boolean => {
     const allUserRoles = [...roles, ...sessionRoleNames];
     if (!allUserRoles.length) return false;
-    if (allUserRoles.includes('admin')) return true; // Admins have all permissions
+    // if (allUserRoles.includes('admin')) return true; // Admins have all permissions
     return permissions.includes(permission);
   };
 
-  const hasAnyPermission = (requiredPermissions: string[]): boolean => {
+  const hasAnyPermission = (requiredPermissions: PermissionName[]): boolean => {
     const allUserRoles = [...roles, ...sessionRoleNames];
     if (!allUserRoles.length) return false;
-    if (allUserRoles.includes('admin')) return true;
+    // if (allUserRoles.includes('admin')) return true;
     return requiredPermissions.some(permission => permissions.includes(permission));
   };
 
-  const hasAllPermissions = (requiredPermissions: string[]): boolean => {
+  const hasAllPermissions = (requiredPermissions: PermissionName[]): boolean => {
     const allUserRoles = [...roles, ...sessionRoleNames];
     if (!allUserRoles.length) return false;
-    if (allUserRoles.includes('admin')) return true;
+    // if (allUserRoles.includes('admin')) return true;
     return requiredPermissions.every(permission => permissions.includes(permission));
   };
 
   const canAccess = (resource: string, action: string): boolean => {
-    return hasPermission(`${resource}.${action}`);
+    return hasPermission(`${resource}.${action}` as PermissionName);
   };
 
   const refetchPermissions = async (): Promise<void> => {

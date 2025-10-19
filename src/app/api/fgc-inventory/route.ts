@@ -60,15 +60,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-// export async function POST(request: NextRequest) {
-//   // POST method is deprecated for static data
-//   // Returns a message indicating that this is now static data
-//   return NextResponse.json(
-//     { 
-//       error: 'FGC inventory is now static data. Modifications should be made to the kop-inventory.ts file.',
-//       message: 'This API endpoint no longer supports creating new inventory items as the data is now static.'
-//     },
-//     { status: 405 } // Method Not Allowed
-//   );
-// }

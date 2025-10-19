@@ -2,8 +2,7 @@
 
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { WithAuth } from '@/components/auth/WithAuth';
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { JSX, useEffect, useState } from "react";
 import {
   Container,
   Typography,
@@ -26,16 +25,18 @@ import { IRequest } from '@/lib/types';
 import { getCountryName } from '@/lib/countryUtils';
 import { formatRequestDate } from '@/lib/dateUtils';
 import EditRequestModal from '@/components/requests/EditRequestModal';
+import { PermissionName } from '@/lib/auth-types';
+import { usePermissions } from '@/contexts/PermissionsContext';
 
 function RequestsPage() {
   const { fetchWithAuth, isAuthenticated, isLoading } = useAuthenticatedFetch();
-  const router = useRouter();
   const [requests, setRequests] = useState<IRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<IRequest | null>(null);
   const [selectedTab, setSelectedTab] = useState(0);
+  const { hasPermission } = usePermissions();
 
   useEffect(() => {
     async function fetchRequests() {
@@ -102,12 +103,18 @@ function RequestsPage() {
 
   // Define tab configurations
   const tabs = [
-    { label: 'All', value: 'all', icon: null, count: requests.length },
-    { label: 'Hardware', value: 'hardware', icon: <BuildRounded />, count: requests.filter(r => r.type === 'hardware').length },
-    { label: 'Software', value: 'software', icon: <ComputerRounded />, count: requests.filter(r => r.type === 'software').length },
-    { label: 'Machine Shop', value: 'machine_shop', icon: <PrecisionManufacturingRounded />, count: requests.filter(r => r.type === 'machine_shop').length },
-    { label: 'Battery Charging', value: 'battery_charging', icon: <BatteryChargingFullRounded />, count: requests.filter(r => r.type === 'battery_charging').length },
-  ];
+    { label: 'All', value: 'all', icon: null, count: requests.length, permissions: ['hardware.view', 'software.view', 'machine_shop.view', 'battery_charging.view'] },
+    { label: 'Hardware', value: 'hardware', icon: <BuildRounded />, count: requests.filter(r => r.type === 'hardware').length, permissions: ['hardware.view'] },
+    { label: 'Software', value: 'software', icon: <ComputerRounded />, count: requests.filter(r => r.type === 'software').length, permissions: ['software.view'] },
+    { label: 'Machine Shop', value: 'machine_shop', icon: <PrecisionManufacturingRounded />, count: requests.filter(r => r.type === 'machine_shop').length, permissions: ['machine_shop.view'] },
+    { label: 'Battery Charging', value: 'battery_charging', icon: <BatteryChargingFullRounded />, count: requests.filter(r => r.type === 'battery_charging').length, permissions: ['battery_charging.view'] },
+  ] as {
+    label: string,
+    value: string,
+    icon: JSX.Element | null,
+    count: number,
+    permissions: PermissionName[]
+  }[];
 
   // Filter requests based on selected tab
   const filteredRequests = selectedTab === 0 
@@ -152,20 +159,20 @@ function RequestsPage() {
           <Typography variant="h4" component="h1" gutterBottom>
             Support Requests
           </Typography>
-          <Button
+          {/* <Button
             variant="contained"
             color="primary"
             onClick={() => router.push("/requests/new")}
           >
             New Request
-          </Button>
+          </Button> */}
         </Box>
 
         {/* Tabs for filtering by request type */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={selectedTab} onChange={handleTabChange} aria-label="request type tabs">
-            {tabs.map((tab) => (
-              <Tab 
+            {tabs.filter(tab => tab.permissions.some(permission => hasPermission(permission))).map((tab) => (
+              <Tab
                 key={tab.value}
                 icon={tab.icon || undefined}
                 label={`${tab.label} (${tab.count})`}
@@ -271,7 +278,7 @@ function RequestsPage() {
                     : `No ${tabs[selectedTab].label.toLowerCase()} requests found`
                   }
                 </Typography>
-                <Button
+                {/* <Button
                   variant="contained"
                   color="primary"
                   sx={{ mt: 2 }}
@@ -281,7 +288,7 @@ function RequestsPage() {
                     ? "Create Your First Request"
                     : `Create ${tabs[selectedTab].label} Request`
                   }
-                </Button>
+                </Button> */}
               </Box>
             </Grid>
           )}

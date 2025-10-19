@@ -15,8 +15,14 @@ const mockQuery = query as jest.MockedFunction<typeof query>;
 
 function setupUserPermissionsMock(userPermissions: string[] = []) {
   mockQuery.mockImplementation((sql: string) => {
-    if (sql.includes('SELECT DISTINCT p.name')) {
+    if (sql.includes('SELECT DISTINCT rp.permission_name')) {
       // getUserPermissionNames query
+      return Promise.resolve({
+        rows: userPermissions.map(permission => ({ permission_name: permission }))
+      });
+    }
+    if (sql.includes('SELECT DISTINCT p.name')) {
+      // old getUserPermissionNames query
       return Promise.resolve({
         rows: userPermissions.map(permission => ({ name: permission }))
       });
@@ -46,7 +52,7 @@ describe("/api/requests", () => {
 
     it("should return requests when user is authenticated", async () => {
       setupAuthMock(mockSession);
-      setupUserPermissionsMock(['requests.view']); // User has requests view permission
+      setupUserPermissionsMock(['hardware.view']); // User has hardware view permission
 
       const mockRequests = [
         {
@@ -56,7 +62,7 @@ describe("/api/requests", () => {
           country_code: "US",
           country_name: "United States",
           comments: "Test request",
-          priority: "medium",
+          // priority: "medium",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -90,10 +96,9 @@ describe("/api/requests", () => {
       countryCode: "US",
       type: "hardware",
       comments: "New hardware request",
-      hardwareData: {
-        priority: "medium",
-        category: "motor",
-        subcategory: "brushed",
+      hardware: {
+        type: "troubleshooting",
+        location: "hospital",
       },
     };
 

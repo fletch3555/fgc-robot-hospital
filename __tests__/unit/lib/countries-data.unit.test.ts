@@ -1,18 +1,13 @@
+/**
+ * Countries Data Unit Tests
+ * 
+ * Tests for static country data structure and filtering logic
+ */
+
 import { countries } from '@/data/countries';
 
-// Mock the fetch function
-global.fetch = jest.fn();
-
-describe('Match Schedule Page', () => {
-  beforeEach(() => {
-    (fetch as jest.Mock).mockClear();
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  describe('Countries data', () => {
+describe('Countries Data Unit Tests', () => {
+  describe('Countries data structure', () => {
     it('should have country data available', () => {
       expect(countries).toBeDefined();
       expect(Array.isArray(countries)).toBe(true);
@@ -26,70 +21,22 @@ describe('Match Schedule Page', () => {
       expect(typeof country.code).toBe('string');
       expect(typeof country.name).toBe('string');
     });
-  });
 
-  describe('API Integration', () => {
-    it('should call the FIRST Global API with correct URL', async () => {
-      const mockResponse = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({ matches: [] }),
-      };
-      
-      (fetch as jest.Mock).mockResolvedValue(mockResponse);
-
-      // Simulate API call
-      const response = await fetch('https://api.first.global/v1');
-      
-      expect(fetch).toHaveBeenCalledWith('https://api.first.global/v1');
-      expect(response.ok).toBe(true);
+    it('should have unique country codes', () => {
+      const codes = countries.map(country => country.code);
+      const uniqueCodes = new Set(codes);
+      expect(uniqueCodes.size).toBe(codes.length);
     });
 
-    it('should handle API errors gracefully', async () => {
-      (fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
-
-      try {
-        await fetch('https://api.first.global/v1');
-      } catch (error) {
-        expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe('Network error');
-      }
-    });
-
-    it('should handle successful API response', async () => {
-      const mockMatches = [
-        {
-          id: 1,
-          scheduledTime: '2025-01-01T10:00:00Z',
-          field: 1,
-          played: false,
-          participants: [
-            { country: 'USA' },
-            { country: 'CAN' },
-            { country: 'GBR' },
-            { country: 'FRA' },
-            { country: 'GER' },
-            { country: 'ITA' },
-          ],
-        },
-      ];
-
-      const mockResponse = {
-        ok: true,
-        json: jest.fn().mockResolvedValue({ matches: mockMatches }),
-      };
-      
-      (fetch as jest.Mock).mockResolvedValue(mockResponse);
-
-      const response = await fetch('https://api.first.global/v1');
-      const data = await response.json();
-      
-      expect(data.matches).toEqual(mockMatches);
-      expect(data.matches[0].field).toBe(1);
-      expect(data.matches[0].participants[0].country).toBe('USA');
+    it('should have non-empty country names', () => {
+      countries.forEach(country => {
+        expect(country.name.trim()).toBeTruthy();
+        expect(country.code.trim()).toBeTruthy();
+      });
     });
   });
 
-  describe('Match data filtering', () => {
+  describe('Match data filtering logic', () => {
     const mockMatches = [
       {
         id: 1,
@@ -150,6 +97,49 @@ describe('Match Schedule Page', () => {
       expect(uniqueCountries).toContain('USA');
       expect(uniqueCountries).toContain('CAN');
       expect(uniqueCountries).toContain('JPN');
+    });
+
+    it('should handle empty matches array', () => {
+      const emptyMatches: unknown[] = [];
+      const countrySet = new Set<string>();
+      emptyMatches.forEach(match => {
+        const matchObj = match as { red1?: { code?: string }; blue1?: { code?: string } };
+        if (matchObj.red1?.code) countrySet.add(matchObj.red1.code);
+        if (matchObj.blue1?.code) countrySet.add(matchObj.blue1.code);
+      });
+
+      expect(Array.from(countrySet)).toHaveLength(0);
+    });
+
+    it('should handle matches with missing country data', () => {
+      const incompleteMatches = [
+        {
+          id: 1,
+          red1: { code: 'USA' },
+          red2: { code: '' }, // Empty code
+          red3: null, // Missing team
+          blue1: { code: 'CAN' },
+          blue2: { code: 'GBR' },
+          blue3: { code: 'FRA' },
+        },
+      ];
+
+      const validCodes = incompleteMatches
+        .flatMap(match => [
+          match.red1?.code,
+          match.red2?.code,
+          (match.red3 as { code?: string } | null)?.code,
+          match.blue1?.code,
+          match.blue2?.code,
+          match.blue3?.code,
+        ])
+        .filter(code => code && code.trim().length > 0);
+
+      expect(validCodes).toHaveLength(4); // USA, CAN, GBR, FRA
+      expect(validCodes).toContain('USA');
+      expect(validCodes).toContain('CAN');
+      expect(validCodes).toContain('GBR');
+      expect(validCodes).toContain('FRA');
     });
   });
 });

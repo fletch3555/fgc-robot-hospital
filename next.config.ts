@@ -36,23 +36,6 @@ const nextConfig: NextConfig = {
       }
     ];
   },
-
-  // Webpack configuration to exclude server-side modules from client bundle
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      // Exclude server-side modules from client bundle
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        dns: false,
-        tls: false,
-        'pg-native': false,
-      };
-    }
-    
-    return config;
-  },
 };
 
 export default nextConfig;

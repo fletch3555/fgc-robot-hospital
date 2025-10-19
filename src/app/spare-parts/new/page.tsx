@@ -148,7 +148,7 @@ function NewSparePart() {
     // Validate that all items have been selected
     const hasUnselectedItems = formData.requestedItems.some(item => !item.fgcInventoryId);
     if (hasUnselectedItems) {
-      setError('Please select an FGC inventory item for all requested items');
+      setError('Please select an FGC inventory item for all items to issue');
       setIsSubmitting(false);
       return;
     }
@@ -162,21 +162,26 @@ function NewSparePart() {
     }
 
     try {
-      const response = await fetchWithAuth('/api/spare-parts-requests', {
+      const response = await fetchWithAuth('/api/spare-parts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           countryCode: formData.countryCode,
-          requestedItems: formData.requestedItems,
+          issuedItems: formData.requestedItems.map(item => ({
+            fgcPartNumber: item.partNumber,
+            itemName: item.description,
+            quantity: item.requestedQuantity
+          })),
           notes: formData.notes || '',
+          isLoan: true // Default to loan since this is for tracking items given to teams
         }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to submit request');
+        throw new Error(data.error || 'Failed to issue parts');
       }
 
       router.push('/spare-parts');
@@ -201,7 +206,7 @@ function NewSparePart() {
             Back
           </Button>
           <Typography variant="h4" component="h1">
-            Request Spare Parts
+            Issue Spare Parts
           </Typography>
         </Box>
         
@@ -257,7 +262,7 @@ function NewSparePart() {
 
                 <Grid size={12}>
                   <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                    Request Items
+                    Items to Issue
                   </Typography>
                 </Grid>
 
@@ -377,7 +382,7 @@ function NewSparePart() {
                       startIcon={<SaveIcon />}
                       disabled={isSubmitting}
                     >
-                      {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                      {isSubmitting ? 'Issuing Parts...' : 'Issue Parts'}
                     </Button>
                   </Box>
                 </Grid>

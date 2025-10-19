@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkPermissions, PermissionDB } from '@/lib/authz';
+import { getAllPermissions, checkPermissions } from '@/lib/authz';
 
 export async function GET() {
   try {
@@ -9,7 +9,7 @@ export async function GET() {
       return authz.response!;
     }
 
-    const permissions = await PermissionDB.getAllPermissions();
+    const permissions = getAllPermissions();
     return NextResponse.json(permissions);
   } catch (error) {
     console.error('Error fetching permissions:', error);

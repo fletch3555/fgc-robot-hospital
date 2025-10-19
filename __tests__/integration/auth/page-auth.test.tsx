@@ -10,18 +10,18 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import '@testing-library/jest-dom';
-import { PermissionsProvider } from '../../src/contexts/PermissionsContext';
+import { PermissionsProvider } from '../../../src/contexts/PermissionsContext';
 
 // Import page components - we'll test the internal components directly
-import HomePage from '../../src/app/page';
-import RequestsPage from '../../src/app/requests/page';
-import NewRequestPage from '../../src/app/requests/new/page';
-import AdminDashboard from '../../src/app/admin/page';
-import AdminUsersPage from '../../src/app/admin/users/page';
-import AdminRolesPage from '../../src/app/admin/roles/page';
-import AdminTeamsPage from '../../src/app/admin/teams/page';
-import AdminRequestsPage from '../../src/app/admin/requests/page';
-import SparePartsPage from '../../src/app/spare-parts/page';
+import HomePage from '../../../src/app/page';
+import RequestsPage from '../../../src/app/requests/page';
+import NewRequestPage from '../../../src/app/requests/new/page';
+import AdminDashboard from '../../../src/app/admin/page';
+import AdminUsersPage from '../../../src/app/admin/users/page';
+import AdminRolesPage from '../../../src/app/admin/roles/page';
+import AdminTeamsPage from '../../../src/app/admin/teams/page';
+import AdminRequestsPage from '../../../src/app/admin/requests/page';
+import SparePartsPage from '../../../src/app/spare-parts/page';
 
 // Mock Next.js modules
 jest.mock('next-auth/react');
@@ -207,7 +207,7 @@ describe('Page Authentication Tests', () => {
     });
 
     test('should render main dashboard for authenticated volunteers', async () => {
-      renderWithProviders(<HomePage />);
+      render(<HomePage />, { wrapper: TestWrapper });
       
       await waitFor(() => {
         expect(screen.getByText('Robot Hospital Dashboard')).toBeInTheDocument();
@@ -215,7 +215,7 @@ describe('Page Authentication Tests', () => {
     });
 
     test('should render requests page for authenticated volunteers', async () => {
-      renderWithProviders(<RequestsPage />);
+      render(<RequestsPage />, { wrapper: TestWrapper });
       
       await waitFor(() => {
         expect(screen.getByText('Support Requests')).toBeInTheDocument();
@@ -274,7 +274,7 @@ describe('Page Authentication Tests', () => {
     });
 
     test('should render main dashboard for admins', async () => {
-      renderWithProviders(<HomePage />);
+      render(<HomePage />, { wrapper: TestWrapper });
       
       await waitFor(() => {
         expect(screen.getByText('Robot Hospital Dashboard')).toBeInTheDocument();
@@ -301,7 +301,7 @@ describe('Page Authentication Tests', () => {
     });
 
     test('should render volunteer pages for admins (admins have all access)', async () => {
-      renderWithProviders(<RequestsPage />);
+      render(<RequestsPage />, { wrapper: TestWrapper });
       
       await waitFor(() => {
         expect(screen.getByText('Support Requests')).toBeInTheDocument();
@@ -384,7 +384,7 @@ describe('Page Authentication Tests', () => {
         })
       ) as jest.Mock;
 
-      renderWithProviders(<RequestsPage />);
+      render(<RequestsPage />, { wrapper: TestWrapper });
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith('/api/requests', {
@@ -404,7 +404,7 @@ describe('Page Authentication Tests', () => {
         update: jest.fn(),
       });
 
-      renderWithProviders(<HomePage />);
+      render(<HomePage />, { wrapper: TestWrapper });
 
       await waitFor(() => {
         // Volunteers should not see admin-specific elements

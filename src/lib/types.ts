@@ -28,7 +28,7 @@ export interface IUser {
 }
 
 export type RequestType = 'hardware' | 'software' | 'machine_shop' | 'battery_charging';
-export type RequestPriority = 'low' | 'medium' | 'high' | 'urgent';
+// export type RequestPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type RequestStatus = 'open' | 'in-progress' | 'completed';
 
 export interface IRequest {
@@ -36,7 +36,7 @@ export interface IRequest {
   country_code: string;
   comments?: string;
   type: RequestType;
-  priority: RequestPriority;
+  // priority: RequestPriority;
   status: RequestStatus;
   submitted_by: string; // UUID reference to users.id
   assigned_to?: string; // UUID reference to users.id
@@ -79,11 +79,8 @@ export interface ITeam {
 
 // Request type-specific data interfaces (camelCase for React/Node.js)
 export interface HardwareRequestData {
-  partName?: string;
-  partNumber?: string;
-  replacementRequired?: string;
-  issue?: string;
-  serialNumber?: string;
+  type?: 'mechanism_build' | 'troubleshooting' | 'need_tools' | 'other';
+  location?: 'hospital' | 'pit';
 }
 
 export interface SoftwareRequestData {

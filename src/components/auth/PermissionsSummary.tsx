@@ -1,6 +1,8 @@
 'use client';
 
 import { usePermissions } from '@/contexts/PermissionsContext';
+import { getPermissionsByCategory } from '@/lib/authz';
+import { PermissionName } from '@/lib/auth-types';
 import { 
   Card, 
   CardContent, 
@@ -46,19 +48,8 @@ export function PermissionsSummary({ showTitle = true }: PermissionsSummaryProps
     );
   }
 
-  const permissionCategories = {
-    'Requests': ['requests.view', 'requests.create', 'requests.edit', 'requests.delete'],
-    'Hardware': ['hardware.view', 'hardware.create', 'hardware.edit'],
-    'Software': ['software.view', 'software.create', 'software.edit'],
-    'Machine Shop': ['machine_shop.view', 'machine_shop.create', 'machine_shop.edit', 'machine_shop.operate'],
-    'Spare Parts': ['spare_parts.view', 'spare_parts.create', 'spare_parts.edit', 'spare_parts.issue'],
-    'Inspection': ['inspection.view', 'inspection.create', 'inspection.approve'],
-    'Documentation': ['documentation.view'],
-    'Inventory': ['inventory.view'],
-    'Matches': ['matches.view'],
-    'Users': ['users.view', 'users.create', 'users.edit', 'users.delete'],
-    'Admin': ['admin.dashboard', 'admin.reports', 'admin.settings']
-  };
+  // Use code-based permission categories
+  const permissionCategories = getPermissionsByCategory();
 
   return (
     <Card>
@@ -85,7 +76,7 @@ export function PermissionsSummary({ showTitle = true }: PermissionsSummaryProps
 
         <Grid container spacing={2}>
           {Object.entries(permissionCategories).map(([category, categoryPermissions]) => {
-            const hasAnyInCategory = categoryPermissions.some(permission => hasPermission(permission));
+            const hasAnyInCategory = categoryPermissions.some(permission => hasPermission(permission.name as PermissionName));
             
             if (!hasAnyInCategory) return null;
 
@@ -97,12 +88,12 @@ export function PermissionsSummary({ showTitle = true }: PermissionsSummaryProps
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     {categoryPermissions.map(permission => {
-                      const hasThisPermission = hasPermission(permission);
-                      const action = permission.split('.')[1];
+                      const hasThisPermission = hasPermission(permission.name as PermissionName);
+                      const action = permission.name.split('.')[1];
                       
                       return (
                         <Box 
-                          key={permission}
+                          key={permission.name}
                           sx={{ 
                             display: 'flex', 
                             alignItems: 'center', 

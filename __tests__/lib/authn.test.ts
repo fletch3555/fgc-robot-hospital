@@ -11,7 +11,6 @@ import {
   getAuthenticatedSession,
   requireAuthentication,
   createAuthGuard,
-  requireAdmin,
   hasValidSession,
   getAuthenticatedUser,
 } from "@/lib/authn";
@@ -251,45 +250,6 @@ describe("Authentication Module - lib/authn.ts", () => {
 
       const guard = createAuthGuard(["admin"]);
       const result = await guard();
-
-      expect(result.authenticated).toBe(false);
-      expect(mockNextResponse.json).toHaveBeenCalledWith(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    });
-  });
-
-  describe("requireAdmin", () => {
-    it("should allow admin users", async () => {
-      mockGetServerSession.mockResolvedValueOnce(mockAdminSession as Session);
-
-      const result = await requireAdmin();
-
-      expect(result.authenticated).toBe(true);
-      expect(result.user).toEqual(mockAdminSession.user);
-    });
-
-    it("should reject non-admin users", async () => {
-      mockGetServerSession.mockResolvedValueOnce(mockSession as Session);
-
-      const result = await requireAdmin();
-
-      expect(result.authenticated).toBe(false);
-      expect(mockNextResponse.json).toHaveBeenCalledWith(
-        {
-          error: "Insufficient permissions",
-          required: ["admin"],
-          userRoles: ["guest"]
-        },
-        { status: 403 }
-      );
-    });
-
-    it("should reject unauthenticated users", async () => {
-      mockGetServerSession.mockResolvedValueOnce(null);
-
-      const result = await requireAdmin();
 
       expect(result.authenticated).toBe(false);
       expect(mockNextResponse.json).toHaveBeenCalledWith(

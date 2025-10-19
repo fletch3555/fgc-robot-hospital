@@ -21,21 +21,6 @@ const eslintConfig = [
       "next-env.d.ts"
     ],
   },
-  // {
-  //   files: ["**/*.d.ts"],
-  //   rules: {
-  //     // Turn off @typescript-eslint/no-unused-vars specifically for .d.ts files
-  //     "@typescript-eslint/no-unused-vars": "off"
-  //   }
-  // },
-  // {
-  //   files: ["**/*.ts", "**/*.tsx"],
-  //   rules: {
-  //     // Allow any types in form handlers and API routes for now
-  //     // TODO: Replace with proper types in future iterations
-  //     "@typescript-eslint/no-explicit-any": "warn"
-  //   }
-  // },
   {
     files: ["jest.config.js"],
     rules: {

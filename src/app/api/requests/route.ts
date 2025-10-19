@@ -6,7 +6,7 @@ import { checkPermissions } from "@/lib/authz";
 
 export async function GET() {
   try {
-    const authz = await checkPermissions(['requests.view']);
+    const authz = await checkPermissions(['requests.view', 'hardware.view', 'software.view', 'machine_shop.view'], false);
     
     if (!authz.authorized) {
       return authz.response!;
@@ -14,7 +14,19 @@ export async function GET() {
 
     await connectToDatabase();
     
-    const requests = await Request.findAll();
+    const requests = (await Request.findAll()).filter(request => {
+      // Filter requests based on type and user permissions
+      if (request.type === 'hardware')
+        return authz.permissions?.includes('hardware.view');
+      if (request.type === 'software')
+        return authz.permissions?.includes('software.view');
+      if (request.type === 'machine_shop')
+        return authz.permissions?.includes('machine_shop.view');
+      if (request.type === 'battery_charging')
+        return authz.permissions?.includes('requests.view');
+
+      return false;
+    });
 
     return NextResponse.json(requests);
   } catch (error) {
@@ -54,7 +66,7 @@ export async function POST(req: NextRequest) {
       countryCode,
       type,
       comments,
-      priority: 'medium', // Default priority
+      // priority: 'medium', // Default priority
       submittedBy: submittedById,
       hardwareData,
       softwareData,

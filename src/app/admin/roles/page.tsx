@@ -30,7 +30,7 @@ import {
   Security as SecurityIcon,
   Group as GroupIcon
 } from '@mui/icons-material';
-import { Role, Permission } from '@/lib/auth-types';
+import { Role, Permission, PermissionCategory, PermissionName } from '@/lib/auth-types';
 
 interface RoleWithPermissions {
   role: Role;
@@ -59,7 +59,7 @@ function RoleManagementPage() {
   const [tabValue, setTabValue] = useState(0);
   const [roles, setRoles] = useState<RoleWithPermissions[]>([]);
   const [, setPermissions] = useState<Permission[]>([]);
-  const [permissionsByCategory, setPermissionsByCategory] = useState<Record<string, Permission[]>>({});
+  const [permissionsByCategory, setPermissionsByCategory] = useState<Partial<Record<PermissionCategory, Permission[]>>>({});
   const [, setSelectedRole] = useState<Role | null>(null);
   const [, setRolePermissions] = useState<string[]>([]);
   const [matrixChanges, setMatrixChanges] = useState<Record<string, string[]>>({});
@@ -128,7 +128,7 @@ function RoleManagementPage() {
       if (!response.ok) throw new Error('Failed to load role permissions');
       
       const rolePermissionsData = await response.json();
-      setRolePermissions(rolePermissionsData.map((p: Permission) => p.id));
+      setRolePermissions(rolePermissionsData.map((p: Permission) => p.name));
     } catch (error) {
       console.error('Error loading role permissions:', error);
       setSnackbar({
@@ -139,12 +139,12 @@ function RoleManagementPage() {
     }
   };
 
-  const handleMatrixPermissionToggle = (role: Role, permissionId: string) => {
+  const handleMatrixPermissionToggle = (role: Role, permissionName: PermissionName) => {
     setMatrixChanges(prev => {
-      const rolePermissions = prev[role] || roles.find(r => r.role === role)?.permissions.map(p => p.id) || [];
-      const newPermissions = rolePermissions.includes(permissionId)
-        ? rolePermissions.filter(id => id !== permissionId)
-        : [...rolePermissions, permissionId];
+      const rolePermissions = prev[role] || roles.find(r => r.role === role)?.permissions.map(p => p.name) || [];
+      const newPermissions = rolePermissions.includes(permissionName)
+        ? rolePermissions.filter(name => name !== permissionName)
+        : [...rolePermissions, permissionName];
       
       return {
         ...prev,
@@ -158,13 +158,13 @@ function RoleManagementPage() {
       setSaving(true);
       
       // Save changes for each modified role
-      const savePromises = Object.entries(matrixChanges).map(([role, permissionIds]) =>
+      const savePromises = Object.entries(matrixChanges).map(([role, permissionNames]) =>
         fetchWithAuth(`/api/admin/roles/${role}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ permissionIds })
+          body: JSON.stringify({ permissionNames })
         })
       );
 
@@ -351,24 +351,24 @@ function RoleManagementPage() {
                         
                         {/* Permission Rows */}
                         {categoryPermissions.map((permission) => (
-                          <TableRow key={permission.id} hover>
+                          <TableRow key={permission.name} hover>
                             <TableCell sx={{ position: 'sticky', left: 0, bgcolor: 'background.paper', zIndex: 1 }}>
                               <Typography variant="body2" color="text.secondary" fontSize="0.8rem">
                                 {permission.description}
                               </Typography>
                             </TableCell>
                             {roles.map((role) => {
-                              const originalPermissions = role.permissions.map(p => p.id);
+                              const originalPermissions = role.permissions.map(p => p.name);
                               const currentPermissions = matrixChanges[role.role] || originalPermissions;
-                              const hasPermission = currentPermissions.includes(permission.id);
+                              const hasPermission = currentPermissions.includes(permission.name);
                               const hasChanged = matrixChanges[role.role] && 
-                                (originalPermissions.includes(permission.id) !== hasPermission);
+                                (originalPermissions.includes(permission.name) !== hasPermission);
 
                               return (
                                 <TableCell key={role.role} align="center">
                                   <Switch
                                     checked={hasPermission}
-                                    onChange={() => handleMatrixPermissionToggle(role.role, permission.id)}
+                                    onChange={() => handleMatrixPermissionToggle(role.role, permission.name)}
                                     size="small"
                                     color={hasChanged ? "warning" : "primary"}
                                   />
@@ -387,7 +387,7 @@ function RoleManagementPage() {
                       </TableCell>
                       {roles.map((role) => {
                         const originalCount = role.permissions.length;
-                        const currentPermissions = matrixChanges[role.role] || role.permissions.map(p => p.id);
+                        const currentPermissions = matrixChanges[role.role] || role.permissions.map(p => p.name);
                         const currentCount = currentPermissions.length;
                         const hasChanged = matrixChanges[role.role] && originalCount !== currentCount;
                         

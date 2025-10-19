@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { usePermissions } from '@/contexts/PermissionsContext';
+import { PermissionName } from '@/lib/auth-types';
 import {
   Drawer,
   List,
@@ -53,7 +54,7 @@ interface NavItem {
   icon: React.ReactNode;
   href?: string;
   children?: NavItem[];
-  requiredPermissions?: string[]; // Array of required permissions to show this item
+  requiredPermissions?: PermissionName[]; // Array of required permissions to show this item
   requireAnyPermission?: boolean; // If true, user needs ANY of the permissions; if false (default), needs ALL
 }
 
@@ -291,7 +292,7 @@ function SidebarContent() {
     const items = [...navItems];
     
     // Check if user has any admin permissions before adding admin nav items
-    const adminPermissions = ['admin.dashboard', 'users.view', 'admin.roles', 'admin.reports'];
+    const adminPermissions: PermissionName[] = ['admin.dashboard', 'users.view', 'admin.roles', 'admin.reports'];
     if (hasAnyPermission(adminPermissions)) {
       items.push(...getAdminNavItems());
     }

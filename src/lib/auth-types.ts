@@ -21,17 +21,87 @@ export type PermissionCategory =
   | 'hardware' 
   | 'software'
   | 'machine_shop'
+  | 'battery_charging'
   | 'spare_parts'
   | 'inspection'
   | 'users'
-  | 'admin';
+  | 'admin'
+  | 'documentation'
+  | 'inventory'
+  | 'matches';
 
+export type PermissionName = 
+  // Request Management
+  | 'requests.view'
+  | 'requests.create'
+  | 'requests.edit'
+  | 'requests.delete'
+  | 'requests.assign'
+  | 'requests.status_update'
+  
+  // Hardware Support
+  | 'hardware.view'
+  | 'hardware.create'
+  | 'hardware.edit'
+  | 'hardware.assignee'
+  
+  // Software Support
+  | 'software.view'
+  | 'software.create'
+  | 'software.edit'
+  | 'software.assignee'
+  
+  // Machine Shop
+  | 'machine_shop.view'
+  | 'machine_shop.create'
+  | 'machine_shop.edit'
+  | 'machine_shop.assignee'
+  
+  // Battery Charging
+  | 'battery_charging.view'
+  | 'battery_charging.create'
+  | 'battery_charging.edit'
+  | 'battery_charging.assignee'
+  
+  // Spare Parts
+  | 'spare_parts.view'
+  | 'spare_parts.create'
+  | 'spare_parts.edit'
+  | 'spare_parts.issue'
+  | 'spare_parts.receive'
+  
+  // Robot Inspection
+  | 'inspection.view'
+  | 'inspection.create'
+  | 'inspection.edit'
+  | 'inspection.approve'
+  
+  // User Management
+  | 'users.view'
+  | 'users.create'
+  | 'users.edit'
+  | 'users.delete'
+  | 'users.role_assign'
+  
+  // Admin Functions
+  | 'admin.dashboard'
+  | 'admin.roles'
+  | 'admin.permissions'
+  | 'admin.users'
+  | 'admin.requests'
+  | 'admin.system'
+  | 'admin.reports'
+  
+  // Reference & Documentation
+  | 'documentation.view'
+  | 'inventory.view'
+  | 'matches.view';
+
+// Database Permission interface (for API compatibility)
 export interface Permission {
-  id: string;
-  name: string;
+  name: PermissionName;
   description: string;
   category: PermissionCategory;
-  created_at: string;
 }
 
 export interface RoleMetadata {

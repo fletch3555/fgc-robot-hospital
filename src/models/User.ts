@@ -113,38 +113,6 @@ export class User {
     }
   }
 
-  // Get user permissions (from all roles)
-  static async getUserPermissions(userId: string): Promise<string[]> {
-    try {
-      const result = await query(
-        `SELECT DISTINCT p.name
-         FROM permissions p
-         JOIN role_permissions rp ON p.id = rp.permission_id
-         JOIN user_roles ur ON rp.role = ur.role_id
-         WHERE ur.user_id = $1`,
-        [userId]
-      );
-      return result.rows.map((row: { name: string }) => row.name);
-    } catch (error) {
-      console.error('Error getting user permissions:', error);
-      throw error;
-    }
-  }
-
-  // Check if user has specific permission
-  static async hasPermission(userId: string, permission: string): Promise<boolean> {
-    try {
-      const result = await query(
-        `SELECT user_has_permission($1, $2) as has_permission`,
-        [userId, permission]
-      );
-      return result.rows[0]?.has_permission || false;
-    } catch (error) {
-      console.error('Error checking user permission:', error);
-      throw error;
-    }
-  }
-
   static async update(id: string, updates: Partial<IUser>): Promise<IUser | null> {
     try {
       // Separate roles from other updates
@@ -206,7 +174,6 @@ export class User {
          LEFT JOIN user_roles ur ON u.id = ur.user_id
          GROUP BY u.id`,
       );
-      // const result = await query('SELECT * FROM users ORDER BY created_at DESC');
       return result.rows;
     } catch (error) {
       console.error('Error finding all users:', error);
@@ -220,6 +187,25 @@ export class User {
       const result = await query(
         `SELECT * FROM users WHERE role IN (${placeholders}) ORDER BY name ASC`,
         roles
+      );
+      return result.rows;
+    } catch (error) {
+      console.error('Error finding users by roles:', error);
+      throw error;
+    }
+  }
+
+  static async findByPermissions(permissions: string[]): Promise<IUser[]> {
+    try {
+      const placeholders = permissions.map((_, index) => `$${index + 1}`).join(', ');
+      const result = await query(
+        `SELECT u.*
+        FROM users u
+        JOIN user_roles ur ON u.id = ur.user_id
+        JOIN role_permissions rp ON ur.role_id = rp.role
+        WHERE rp.permission_name IN (${placeholders})
+        ORDER BY name ASC`,
+        permissions
       );
       return result.rows;
     } catch (error) {

@@ -22,8 +22,14 @@ jest.mock("../../../src/models/User", () => ({
 
 function setupUserPermissionsMock(userPermissions: string[] = []) {
   mockQuery.mockImplementation((sql: string) => {
-    if (sql.includes('SELECT DISTINCT p.name')) {
+    if (sql.includes('SELECT DISTINCT rp.permission_name')) {
       // getUserPermissionNames query
+      return Promise.resolve({
+        rows: userPermissions.map(permission => ({ permission_name: permission }))
+      });
+    }
+    if (sql.includes('SELECT DISTINCT p.name')) {
+      // old getUserPermissionNames query
       return Promise.resolve({
         rows: userPermissions.map(permission => ({ name: permission }))
       });

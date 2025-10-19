@@ -8,8 +8,9 @@ import { renderHook } from '@testing-library/react';
 import { useSession, signOut } from 'next-auth/react';
 import { Session } from 'next-auth';
 import { useRouter } from 'next/navigation';
-import { useAuthenticatedFetch } from '../../src/hooks/useAuthenticatedFetch';
-import { authenticatedFetch, handleAuthError, refreshSession } from '../../src/lib/authn';
+import { useAuthenticatedFetch } from '../../../src/hooks/useAuthenticatedFetch';
+import { authenticatedFetch, handleAuthError, refreshSession } from '../../../src/lib/authn';
+import { IUserSummary } from '@/lib/types';
 
 // Mock dependencies
 jest.mock('next-auth/react');
@@ -190,7 +191,7 @@ describe('Authentication Utilities Tests', () => {
     test('should provide authenticated fetch function for authenticated users', async () => {
       mockUseSession.mockReturnValue({
         data: {
-          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] },
+          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] } as IUserSummary,
           expires: '2025-12-31',
         },
         status: 'authenticated',
@@ -250,7 +251,7 @@ describe('Authentication Utilities Tests', () => {
     test('should handle 401 responses in fetchWithAuth', async () => {
       mockUseSession.mockReturnValue({
         data: {
-          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] },
+          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] } as IUserSummary,
           expires: '2025-12-31',
         },
         status: 'authenticated',
@@ -277,7 +278,7 @@ describe('Authentication Utilities Tests', () => {
     test('should preserve fetch options', async () => {
       mockUseSession.mockReturnValue({
         data: {
-          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] },
+          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] } as IUserSummary,
           expires: '2025-12-31',
         },
         status: 'authenticated',
@@ -313,7 +314,7 @@ describe('Authentication Utilities Tests', () => {
     test('should handle network errors gracefully', async () => {
       mockUseSession.mockReturnValue({
         data: {
-          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] },
+          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] } as IUserSummary,
           expires: '2025-12-31',
         },
         status: 'authenticated',
@@ -357,7 +358,7 @@ describe('Authentication Utilities Tests', () => {
       // Change to authenticated
       mockUseSession.mockReturnValue({
         data: {
-          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] },
+          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] } as IUserSummary,
           expires: '2025-12-31',
         },
         status: 'authenticated',
@@ -382,7 +383,7 @@ describe('Authentication Utilities Tests', () => {
       testCases.forEach(({ role, expected }) => {
         mockUseSession.mockReturnValue({
           data: {
-            user: { id: '1', email: 'user@example.com', name: 'Test User', roles: [role] },
+            user: { id: '1', email: 'user@example.com', name: 'Test User', roles: [role] } as IUserSummary,
             expires: '2025-12-31',
           },
           status: 'authenticated',
@@ -391,7 +392,7 @@ describe('Authentication Utilities Tests', () => {
 
         const { result } = renderHook(() => useAuthenticatedFetch());
 
-        expect(result.current.session?.user?.roles).toContain(expected);
+        expect((result.current.session?.user as IUserSummary)?.roles).toContain(expected);
       });
     });
   });

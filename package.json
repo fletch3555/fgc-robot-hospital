@@ -11,7 +11,14 @@
     "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:unit": "TEST_TYPE=unit jest",
+    "test:unit:watch": "TEST_TYPE=unit jest --watch",
+    "test:unit:coverage": "TEST_TYPE=unit jest --coverage",
+    "test:integration": "TEST_TYPE=integration jest",
+    "test:integration:watch": "TEST_TYPE=integration jest --watch",
+    "test:integration:coverage": "TEST_TYPE=integration jest --coverage",
+    "test:legacy": "TEST_TYPE=legacy jest"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

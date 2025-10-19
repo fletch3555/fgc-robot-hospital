@@ -410,14 +410,6 @@ export function createAuthGuard(requiredRoles?: string[]) {
   };
 }
 
-/**
- * Admin-only authentication guard
- */
-export async function requireAdmin(): Promise<AuthenticationResult> {
-  const guard = createAuthGuard(['admin']);
-  return await guard();
-}
-
 // =============================================================================
 // Session Validation and Security
 // =============================================================================

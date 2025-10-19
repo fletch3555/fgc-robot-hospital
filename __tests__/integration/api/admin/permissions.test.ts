@@ -14,16 +14,12 @@ import {
   mockAdminSession,
 } from "../../../helpers/test-utils";
 
-// Mock PermissionDB
-const mockPermissionDB = {
-  getAllPermissions: jest.fn(),
-};
+// Mock the getAllPermissions function
+const mockGetAllPermissions = jest.fn();
 
 jest.mock("../../../../src/lib/authz", () => ({
   ...jest.requireActual("../../../../src/lib/authz"),
-  PermissionDB: {
-    getAllPermissions: (...args: unknown[]) => mockPermissionDB.getAllPermissions(...args),
-  },
+  getAllPermissions: (...args: unknown[]) => mockGetAllPermissions(...args),
   checkPermissions: jest.fn(),
 }));
 
@@ -67,18 +63,14 @@ function setupUserPermissionsMock(userPermissions: string[] = [], hasSession: bo
 describe("/api/admin/permissions", () => {
   const mockPermissions = [
     {
-      id: "perm-1",
       name: "requests.view",
-      description: "View requests",
-      category: "requests",
-      created_at: "2024-01-01T00:00:00Z"
+      description: "View support requests",
+      category: "requests"
     },
     {
-      id: "perm-2",
       name: "admin.users",
-      description: "Manage users",
-      category: "admin",
-      created_at: "2024-01-01T00:00:00Z"
+      description: "Manage user accounts",
+      category: "admin"
     }
   ];
 
@@ -87,7 +79,7 @@ describe("/api/admin/permissions", () => {
     setupAuthMock();
     setupDatabaseMock();
     jest.clearAllMocks();
-    mockPermissionDB.getAllPermissions.mockReset();
+    mockGetAllPermissions.mockReset();
   });
 
   describe("GET", () => {
@@ -121,20 +113,22 @@ describe("/api/admin/permissions", () => {
     it("should return all permissions for authorized user", async () => {
       setupAuthMock(mockAdminSession);
       setupUserPermissionsMock(["admin.permissions"]);
-      mockPermissionDB.getAllPermissions.mockResolvedValueOnce(mockPermissions);
+      mockGetAllPermissions.mockReturnValueOnce(mockPermissions);
 
       const response = await GET();
       const data = await response.json();
 
       expect(response.status).toBe(200);
       expect(data).toEqual(mockPermissions);
-      expect(mockPermissionDB.getAllPermissions).toHaveBeenCalledTimes(1);
+      expect(mockGetAllPermissions).toHaveBeenCalledTimes(1);
     });
 
-    it("should handle database errors gracefully", async () => {
+    it("should handle errors gracefully", async () => {
       setupAuthMock(mockAdminSession);
       setupUserPermissionsMock(["admin.permissions"]);
-      mockPermissionDB.getAllPermissions.mockRejectedValueOnce(new Error("Database error"));
+      mockGetAllPermissions.mockImplementationOnce(() => {
+        throw new Error("Permissions error");
+      });
 
       const response = await GET();
       const data = await response.json();

@@ -57,30 +57,30 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const params = await context.params;
-    const authz = await checkPermissions(['spare_parts.delete']);
-    if (!authz.authorized) {
-      return authz.response!;
-    }
+// export async function DELETE(
+//   request: NextRequest,
+//   context: { params: Promise<{ id: string }> }
+// ) {
+//   try {
+//     const params = await context.params;
+//     const authz = await checkPermissions(['spare_parts.delete']);
+//     if (!authz.authorized) {
+//       return authz.response!;
+//     }
 
-    await connectToDatabase();
+//     await connectToDatabase();
 
-    const sparePart = await SparePart.findById(params.id);
+//     const sparePart = await SparePart.findById(params.id);
     
-    if (!sparePart) {
-      return NextResponse.json({ error: 'Spare part request not found' }, { status: 404 });
-    }
+//     if (!sparePart) {
+//       return NextResponse.json({ error: 'Spare part request not found' }, { status: 404 });
+//     }
 
-    await SparePart.delete(params.id);
+//     await SparePart.delete(params.id);
 
-    return NextResponse.json({ message: 'Spare part request deleted successfully' });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
-  }
-}
+//     return NextResponse.json({ message: 'Spare part request deleted successfully' });
+//   } catch (error: unknown) {
+//     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+//     return NextResponse.json({ error: errorMessage }, { status: 500 });
+//   }
+// }

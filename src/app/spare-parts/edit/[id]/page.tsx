@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { WithAuth } from '@/components/auth/WithAuth';
+import { WithPermissions } from '@/components/auth/WithPermissions';
 import { countries } from '@/data/countries';
 import {
   Typography,
@@ -46,9 +47,12 @@ interface SparePartData {
   updatedAt: string;
 }
 
-function EditSparePartPage({ params }: { params: { id: string } }) {
+function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
   const { fetchWithAuth, session, isAuthenticated, isLoading: authLoading } = useAuthenticatedFetch();
   const router = useRouter();
+  
+  // Unwrap the async params using React.use()
+  const { id } = React.use(params);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +69,7 @@ function EditSparePartPage({ params }: { params: { id: string } }) {
   const fetchSparePart = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetchWithAuth(`/api/spare-parts/${params.id}`);
+      const response = await fetchWithAuth(`/api/spare-parts/${id}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch spare part request');
@@ -88,7 +92,7 @@ function EditSparePartPage({ params }: { params: { id: string } }) {
     } finally {
       setIsLoading(false);
     }
-  }, [params.id, fetchWithAuth]);
+  }, [id, fetchWithAuth]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -131,7 +135,7 @@ function EditSparePartPage({ params }: { params: { id: string } }) {
         notes: formData.notes.trim() ? [formData.notes.trim()] : [],
       };
 
-      const response = await fetchWithAuth(`/api/spare-parts/${params.id}`, {
+      const response = await fetchWithAuth(`/api/spare-parts/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -186,27 +190,6 @@ function EditSparePartPage({ params }: { params: { id: string } }) {
 
   if (!sparePartData) {
     return null;
-  }
-
-  // Check if user can edit this request
-  const canEdit = sparePartData.submittedBy._id === session.user.id;
-
-  if (!canEdit) {
-    return (
-      <Box sx={{ py: 4 }}>
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          You can only edit your own requests.
-        </Alert>
-        <Button
-          component={Link}
-          href="/spare-parts"
-          startIcon={<ArrowBackIcon />}
-          variant="outlined"
-        >
-          Back to Spare Parts
-        </Button>
-      </Box>
-    );
   }
 
   return (
@@ -351,11 +334,12 @@ function EditSparePartPage({ params }: { params: { id: string } }) {
   );
 }
 
-export default async function ProtectedEditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = await params;
+export default function ProtectedEditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <WithAuth>
-      <EditSparePartPage params={resolvedParams} />
+      <WithPermissions requiredPermissions={['spare_parts.edit']}>
+        <EditSparePartPage params={params} />
+      </WithPermissions>
     </WithAuth>
   );
 }

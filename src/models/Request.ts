@@ -5,7 +5,8 @@ import {
   HardwareRequestData, 
   SoftwareRequestData, 
   MachineShopRequestData, 
-  BatteryChargingRequestData 
+  BatteryChargingRequestData, 
+  RequestType
 } from '@/lib/types';
 import { getCurrentUTCTimestamp } from '@/lib/dateUtils';
 
@@ -114,9 +115,9 @@ export class Request {
 
   static async create(requestData: {
     countryCode: string;
-    type: 'hardware' | 'software' | 'machine_shop' | 'battery_charging';
+    type: RequestType; // 'hardware' | 'software' | 'machine_shop' | 'battery_charging';
     comments?: string;
-    priority: 'low' | 'medium' | 'high' | 'urgent';
+    // priority: 'low' | 'medium' | 'high' | 'urgent';
     submittedBy: string;
     hardwareData?: HardwareRequestData;
     softwareData?: SoftwareRequestData;
@@ -129,17 +130,17 @@ export class Request {
       
       const result = await query(
         `INSERT INTO requests (
-           id, country_code, type, comments, priority, 
+           id, country_code, type, comments, 
            status, submitted_by, hardware_data, software_data, machine_shop_data, battery_charging_data,
            created_at, updated_at
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
          RETURNING *`,
         [
           id,
           requestData.countryCode.toUpperCase(),
           requestData.type,
           requestData.comments || null,
-          requestData.priority,
+          // requestData.priority,
           'open',
           requestData.submittedBy,
           requestData.hardwareData ? JSON.stringify(requestData.hardwareData) : null,

@@ -49,7 +49,7 @@ export async function PATCH(
     const updateData: Record<string, unknown> = {};
     
     if (body.status) updateData.status = body.status;
-    if (body.priority) updateData.priority = body.priority;
+    // if (body.priority) updateData.priority = body.priority;
     if (body.comments !== undefined) updateData.comments = body.comments;
     if (body.assigned_to !== undefined) updateData.assigned_to = body.assigned_to;
     if (body.country_code) updateData.country_code = body.country_code;

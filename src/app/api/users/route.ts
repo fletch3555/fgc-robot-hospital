@@ -14,12 +14,15 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const roles = searchParams.get('roles')?.split(',');
+    const permissions = searchParams.get('permissions')?.split(',');
 
     await connectToDatabase();
 
     let users: IUser[];
     if (roles && roles.length > 0) {
       users = await User.findByRoles(roles);
+    } else if (permissions && permissions.length > 0) {
+      users = await User.findByPermissions(permissions);
     } else {
       users = await User.findAll();
     }
