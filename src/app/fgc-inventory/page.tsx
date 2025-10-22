@@ -48,8 +48,11 @@ const getReviewStatusStyling = (reviewStatus: ReviewStatus, mode: 'light' | 'dar
       return {
         borderWidth: '3px',
         borderStyle: 'solid',
-        borderColor: isDark ? '#ffebee' : '#000000', // Black border
+        borderColor: '#f88811',
         backgroundColor: isDark ? '#4d0000' : '#ffebee', // Dark red background for dark mode
+        backgroundImage: isDark
+          ? 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' viewBox=\'0 0 40 40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23454545\' fill-opacity=\'0.6\' fill-rule=\'evenodd\'%3E%3Cpath d=\'M0 40L40 0H20L0 20M40 40V20L20 40\'/%3E%3C/g%3E%3C/svg%3E")'
+          : 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' viewBox=\'0 0 40 40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23858585\' fill-opacity=\'0.3\' fill-rule=\'evenodd\'%3E%3Cpath d=\'M0 40L40 0H20L0 20M40 40V20L20 40\'/%3E%3C/g%3E%3C/svg%3E")',
       };
     default:
       return {
@@ -235,8 +238,9 @@ const FGCInventoryPage = () => {
           }}>
             {paginatedItems.map((item) => {
               return (
-              <Card key={item.id} sx={{ 
-                p: 2, 
+              <Card key={item.id} sx={{
+                p: 2,
+                position: 'relative',
                 transition: 'all 0.2s ease-in-out',
                 ...getReviewStatusStyling(item.review_status || 'normal', mode),
                 '&:hover': {
@@ -279,12 +283,12 @@ const FGCInventoryPage = () => {
                   </Box>
                   
                   {/* Information */}
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Box sx={{ flex: 1, minWidth: 0, pr: 12, pb: 5 }}>
                     {/* Description */}
-                    <Typography 
-                      variant="h6" 
-                      sx={{ 
-                        mb: 1, 
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        mb: 1,
                         fontWeight: 'bold',
                         color: 'text.primary',
                         lineHeight: 1.3,
@@ -298,11 +302,11 @@ const FGCInventoryPage = () => {
                     </Typography>
                     
                     {/* Part Number */}
-                    <Typography 
-                      variant="body2" 
-                      fontFamily="monospace" 
-                      sx={{ 
-                        mb: 2, 
+                    <Typography
+                      variant="body2"
+                      fontFamily="monospace"
+                      sx={{
+                        mb: 2,
                         color: 'primary.main',
                         fontWeight: 'medium',
                         wordBreak: 'break-all'
@@ -310,23 +314,27 @@ const FGCInventoryPage = () => {
                     >
                       {item.part_number}
                     </Typography>
-                    
-                    {/* Quantity */}
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center',
-                      gap: 1,
-                      // backgroundColor: 'grey.50',
-                      padding: 1,
-                      borderRadius: 1
-                    }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Quantity in Kit:
-                      </Typography>
-                      <Typography variant="h6" fontWeight="bold" color="secondary.main">
-                        {item.quantity}
-                      </Typography>
-                    </Box>
+                  </Box>
+                  
+                  {/* Quantity - Positioned absolutely in bottom-right */}
+                  <Box sx={{
+                    position: 'absolute',
+                    bottom: 16,
+                    right: 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    padding: 1,
+                    borderRadius: 1,
+                    backgroundColor: 'background.paper',
+                    boxShadow: 1
+                  }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Quantity in Kit:
+                    </Typography>
+                    <Typography variant="h6" fontWeight="bold" color="secondary.main">
+                      {item.quantity}
+                    </Typography>
                   </Box>
                 </Box>
               </Card>
