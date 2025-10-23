@@ -70,7 +70,7 @@ const FGCInventoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 18;
 
   // Filter and paginate items based on search
   const { paginatedItems, pagination } = useMemo(() => {
