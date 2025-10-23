@@ -51,12 +51,16 @@ export default function BatteryChargingFields({ data, onChange, errors = {} }: B
               gap: 2,
               width: '100%',
               '& .MuiToggleButton-root': {
-                border: errors.batteryType ? '2px solid #f44336' : undefined,
+                border: '1px solid',
+                borderColor: errors.batteryType ? 'error.main' : 'divider',
+                borderRadius: { xs: 1, sm: 2 },
                 '&.Mui-selected': {
                   backgroundColor: 'primary.main',
                   color: 'white',
+                  borderColor: 'primary.main',
                   '&:hover': {
                     backgroundColor: 'primary.dark',
+                    borderColor: 'primary.dark',
                   },
                   '& .MuiTypography-root': {
                     color: 'white',
@@ -64,6 +68,7 @@ export default function BatteryChargingFields({ data, onChange, errors = {} }: B
                 },
                 '&:hover': {
                   backgroundColor: 'primary.light',
+                  borderColor: 'primary.main',
                 },
                 padding: { xs: 2, sm: 3 },
                 minHeight: { xs: '80px', sm: '100px' },

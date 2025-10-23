@@ -199,17 +199,22 @@ export class User {
     try {
       const placeholders = permissions.map((_, index) => `$${index + 1}`).join(', ');
       const result = await query(
-        `SELECT u.*
+        `SELECT u.*,
+                COALESCE(
+                  array_agg(DISTINCT ur.role_id) FILTER (WHERE ur.role_id IS NOT NULL),
+                  ARRAY[]::VARCHAR[]
+                ) as roles
         FROM users u
         JOIN user_roles ur ON u.id = ur.user_id
         JOIN role_permissions rp ON ur.role_id = rp.role
         WHERE rp.permission_name IN (${placeholders})
-        ORDER BY name ASC`,
+        GROUP BY u.id
+        ORDER BY u.name ASC`,
         permissions
       );
       return result.rows;
     } catch (error) {
-      console.error('Error finding users by roles:', error);
+      console.error('Error finding users by permissions:', error);
       throw error;
     }
   }

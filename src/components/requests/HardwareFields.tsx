@@ -41,13 +41,27 @@ export default function HardwareFields({ data, onChange, errors = {} }: Hardware
           aria-label="hardware request type"
           fullWidth
           sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
+            gap: { xs: 1, sm: 2 },
             '& .MuiToggleButton-root': {
-              flex: 1,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: { xs: 1, sm: 2 },
               py: 1.5,
-              borderRadius: 1,
-              mx: 0.5,
-              '&:first-of-type': { ml: 0 },
-              '&:last-of-type': { mr: 0 }
+              '&.Mui-selected': {
+                backgroundColor: 'primary.main',
+                color: 'white',
+                borderColor: 'primary.main',
+                '&:hover': {
+                  backgroundColor: 'primary.dark',
+                  borderColor: 'primary.dark',
+                },
+              },
+              '&:hover': {
+                backgroundColor: 'primary.light',
+                borderColor: 'primary.main',
+              },
             }
           }}
         >
@@ -82,13 +96,27 @@ export default function HardwareFields({ data, onChange, errors = {} }: Hardware
           aria-label="location"
           fullWidth
           sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: { xs: 1, sm: 2 },
             '& .MuiToggleButton-root': {
-              flex: 1,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: { xs: 1, sm: 2 },
               py: 1.5,
-              borderRadius: 1,
-              mx: 0.5,
-              '&:first-of-type': { ml: 0 },
-              '&:last-of-type': { mr: 0 }
+              '&.Mui-selected': {
+                backgroundColor: 'primary.main',
+                color: 'white',
+                borderColor: 'primary.main',
+                '&:hover': {
+                  backgroundColor: 'primary.dark',
+                  borderColor: 'primary.dark',
+                },
+              },
+              '&:hover': {
+                backgroundColor: 'primary.light',
+                borderColor: 'primary.main',
+              },
             }
           }}
         >

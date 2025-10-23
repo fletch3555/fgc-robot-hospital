@@ -14,7 +14,6 @@ import {
   Stack
 } from '@mui/material';
 import {
-  Inventory as InventoryIcon,
   Search as SearchIcon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
@@ -128,20 +127,24 @@ const FGCInventoryPage = () => {
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <InventoryIcon color="primary" />
-        FGC 2025 Kit of Parts Inventory
+        {/* <InventoryIcon color="primary" /> */}
+        FGC Kit Inventory
       </Typography>
 
       {/* Search and Legend */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Box sx={{ 
-          display: 'flex', 
-          gap: 3, 
+        <Box sx={{
+          display: 'flex',
+          gap: { xs: 2, sm: 3 },
           flexDirection: { xs: 'column', sm: 'row' },
           alignItems: { xs: 'stretch', sm: 'center' }
         }}>
           {/* Search Box */}
-          <Box sx={{ flex: '1 1 300px', minWidth: '280px' }}>
+          <Box sx={{
+            flex: { xs: '1 1 auto', sm: '1 1 300px' },
+            minWidth: { xs: 'auto', sm: '280px' },
+            maxWidth: { xs: '100%', sm: '400px' }
+          }}>
             <TextField
               fullWidth
               label="Search parts..."
@@ -160,47 +163,47 @@ const FGCInventoryPage = () => {
           </Box>
           
           {/* Status Legend */}
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 2, 
-            flexWrap: 'wrap', 
+          <Box sx={{
+            display: 'flex',
+            gap: { xs: 1, sm: 2 },
+            flexWrap: 'wrap',
             alignItems: 'center',
-            justifyContent: { xs: 'center', sm: 'flex-end' }
+            justifyContent: { xs: 'flex-start', sm: 'flex-end' }
           }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Box sx={{
-                padding: '6px',
+                padding: { xs: '4px 6px', sm: '6px' },
                 borderRadius: '4px',
                 ...getReviewStatusStyling('normal', mode)
               }}>
-                <Typography variant="body2">Normal</Typography>
+                <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Normal</Typography>
               </Box>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Box sx={{
-                padding: '6px',
+                padding: { xs: '4px 6px', sm: '6px' },
                 borderRadius: '4px',
                 ...getReviewStatusStyling('needs_software_review', mode)
               }}>
-                <Typography variant="body2">Needs Review</Typography>
+                <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Needs Review</Typography>
               </Box>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Box sx={{
-                padding: '6px',
+                padding: { xs: '4px 6px', sm: '6px' },
                 borderRadius: '4px',
                 ...getReviewStatusStyling('approval_needed', mode)
               }}>
-                <Typography variant="body2">Approval Needed</Typography>
+                <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Approval Needed</Typography>
               </Box>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Box sx={{
-                padding: '6px',
+                padding: { xs: '4px 6px', sm: '6px' },
                 borderRadius: '4px',
                 ...getReviewStatusStyling('do_not_loan', mode)
               }}>
-                <Typography variant="body2">Do Not Loan</Typography>
+                <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Do Not Loan</Typography>
               </Box>
             </Box>
           </Box>
@@ -211,10 +214,14 @@ const FGCInventoryPage = () => {
       <Box sx={{ mb: 3 }}>
         {loading ? (
           // Loading skeleton
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', 
-            gap: 2 
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(auto-fill, minmax(350px, 1fr))',
+              md: 'repeat(auto-fill, minmax(400px, 1fr))'
+            },
+            gap: 2
           }}>
             {Array.from(new Array(12)).map((_, index) => (
               <Card key={index} sx={{ p: 2 }}>
@@ -231,10 +238,14 @@ const FGCInventoryPage = () => {
             ))}
           </Box>
         ) : (
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', 
-            gap: 2 
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(auto-fill, minmax(350px, 1fr))',
+              md: 'repeat(auto-fill, minmax(400px, 1fr))'
+            },
+            gap: 2
           }}>
             {paginatedItems.map((item) => {
               return (
@@ -248,9 +259,19 @@ const FGCInventoryPage = () => {
                   boxShadow: 4
                 }
               }}>
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                <Box sx={{
+                  display: 'flex',
+                  gap: 2,
+                  alignItems: 'flex-start',
+                  flexDirection: { xs: 'column', sm: 'row' }
+                }}>
                   {/* Image */}
-                  <Box sx={{ flexShrink: 0 }}>
+                  <Box sx={{
+                    flexShrink: 0,
+                    width: { xs: '100%', sm: 'auto' },
+                    display: 'flex',
+                    justifyContent: { xs: 'center', sm: 'flex-start' }
+                  }}>
                     {item.image_url ? (
                       <OptimizedImage
                         src={item.image_url}
@@ -283,7 +304,13 @@ const FGCInventoryPage = () => {
                   </Box>
                   
                   {/* Information */}
-                  <Box sx={{ flex: 1, minWidth: 0, pr: 12, pb: 5 }}>
+                  <Box sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    pr: { xs: 0, sm: 12 },
+                    pb: { xs: 8, sm: 5 },
+                    width: { xs: '100%', sm: 'auto' }
+                  }}>
                     {/* Description */}
                     <Typography
                       variant="h6"
@@ -319,8 +346,8 @@ const FGCInventoryPage = () => {
                   {/* Quantity - Positioned absolutely in bottom-right */}
                   <Box sx={{
                     position: 'absolute',
-                    bottom: 16,
-                    right: 16,
+                    bottom: { xs: 8, sm: 16 },
+                    right: { xs: 8, sm: 16 },
                     display: 'flex',
                     alignItems: 'center',
                     gap: 1,

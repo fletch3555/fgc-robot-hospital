@@ -50,6 +50,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
           bgcolor: 'background.default',
+          overflow: 'auto',
+          WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
         }}
       >
         <Toolbar /> {/* Spacer for fixed AppBar */}

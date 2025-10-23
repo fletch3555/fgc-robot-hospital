@@ -58,7 +58,31 @@ export default function MachineShopFields({ data, onChange, errors = {} }: Machi
               }
             }}
             aria-label="action needed"
-            sx={{ flexWrap: 'wrap', gap: 1 }}
+            fullWidth
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
+              gap: { xs: 1, sm: 2 },
+              '& .MuiToggleButton-root': {
+                border: '1px solid',
+                borderColor: errors.action ? 'error.main' : 'divider',
+                borderRadius: { xs: 1, sm: 2 },
+                py: 1.5,
+                '&.Mui-selected': {
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  borderColor: 'primary.main',
+                  '&:hover': {
+                    backgroundColor: 'primary.dark',
+                    borderColor: 'primary.dark',
+                  },
+                },
+                '&:hover': {
+                  backgroundColor: 'primary.light',
+                  borderColor: 'primary.main',
+                },
+              }
+            }}
           >
             <ToggleButton value="cut" aria-label="cut">
               Cut
@@ -115,7 +139,31 @@ export default function MachineShopFields({ data, onChange, errors = {} }: Machi
               }
             }}
             aria-label="material type"
-            sx={{ flexWrap: 'wrap', gap: 1 }}
+            fullWidth
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
+              gap: { xs: 1, sm: 2 },
+              '& .MuiToggleButton-root': {
+                border: '1px solid',
+                borderColor: errors.material ? 'error.main' : 'divider',
+                borderRadius: { xs: 1, sm: 2 },
+                py: 1.5,
+                '&.Mui-selected': {
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  borderColor: 'primary.main',
+                  '&:hover': {
+                    backgroundColor: 'primary.dark',
+                    borderColor: 'primary.dark',
+                  },
+                },
+                '&:hover': {
+                  backgroundColor: 'primary.light',
+                  borderColor: 'primary.main',
+                },
+              }
+            }}
           >
             <ToggleButton value="extrusion" aria-label="extrusion">
               Extrusion

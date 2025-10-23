@@ -213,7 +213,11 @@ function ServoGearsPage() {
           Replacing Gears Walkthrough
         </Typography>
         
-        <Box sx={{ overflowX: 'auto' }}>
+        {/* Desktop Table View */}
+        <Box sx={{
+          display: { xs: 'none', md: 'block' },
+          overflowX: 'auto'
+        }}>
           <Table sx={{ minWidth: 650 }} size="small">
             <colgroup>
               <col style={{ width: '30%' }} />
@@ -241,6 +245,44 @@ function ServoGearsPage() {
               ))}
             </TableBody>
           </Table>
+        </Box>
+
+        {/* Mobile Card View */}
+        <Box sx={{
+          display: { xs: 'block', md: 'none' }
+        }}>
+          {gears_rows.map((row, index) => (
+            <Paper
+              key={`step-${index + 1}`}
+              elevation={2}
+              sx={{
+                p: 2,
+                mb: 2,
+                '&:last-child': { mb: 0 }
+              }}
+            >
+              <Typography
+                variant="h6"
+                sx={{
+                  mb: 2,
+                  fontWeight: 600,
+                  color: 'primary.main'
+                }}
+              >
+                Step {index + 1}
+              </Typography>
+              <Box sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                mb: 2
+              }}>
+                {row.img}
+              </Box>
+              <Typography variant="body1">
+                {row.text}
+              </Typography>
+            </Paper>
+          ))}
         </Box>
       </Paper>
     </Container>

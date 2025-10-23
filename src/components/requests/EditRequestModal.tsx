@@ -138,18 +138,7 @@ export default function EditRequestModal({
       if (!formData.type) return;
       
       try {
-        // Define role mappings for each request type
-        // const roleMapping: { [key: string]: string[] } = {
-        //   hardware: ['flying_squad_hardware', 'robot_inspector', 'lead_robot_inspector', 'admin'],
-        //   software: ['flying_squad_software', 'admin'],
-        //   machine_shop: ['machine_shop_operator', 'admin'],
-        //   battery_charging: ['flying_squad_hardware', 'robot_inspector', 'lead_robot_inspector', 'admin'],
-        // };
-
-        // const roles = roleMapping[formData.type];
-        // if (!roles) return;
-
-        const response = await fetch(`/api/users?permissions=${formData.type}.view`);
+        const response = await fetch(`/api/users?permissions=${formData.type}.assignee`);
         if (response.ok) {
           const fetchedUsers = await response.json();
           setUsers(fetchedUsers);
@@ -213,21 +202,6 @@ export default function EditRequestModal({
     if (!hardwareData.location) {
       errors.location = "Please select a work location";
     }
-
-    // // Validate part name is provided
-    // if (!hardwareData.partName?.trim()) {
-    //   errors.partName = "Please enter a part name";
-    // }
-    
-    // // Validate part name length
-    // if (hardwareData.partName && hardwareData.partName.length > 100) {
-    //   errors.partName = "Part name must be 100 characters or less";
-    // }
-    
-    // // Validate replacement required is selected
-    // if (!hardwareData.replacementRequired || hardwareData.replacementRequired === "unknown") {
-    //   errors.replacementRequired = "Please specify if replacement is required";
-    // }
     
     return errors;
   };
@@ -379,38 +353,15 @@ export default function EditRequestModal({
       switch (formData.type) {
         case "hardware":
           requestBody.hardware_data = hardwareData;
-          // requestBody.hardware_data = {
-          //   partName: hardwareData.partName,
-          //   partNumber: hardwareData.partNumber,
-          //   replacementRequired: hardwareData.replacementRequired,
-          //   issue: hardwareData.issue,
-          //   serialNumber: hardwareData.serialNumber,
-          // };
           break;
         case "software":
           requestBody.software_data = softwareData;
-          // requestBody.software_data = {
-          //   programmingLanguage: softwareData.programmingLanguage,
-          //   type: softwareData.type,
-          // };
           break;
         case "machine_shop":
           requestBody.machine_shop_data = machineShopData;
-          // requestBody.machine_shop_data = {
-          //   action: machineShopData.action,
-          //   actionOther: machineShopData.actionOther,
-          //   material: machineShopData.material,
-          //   materialOther: machineShopData.materialOther,
-          //   isTeamLabeled: machineShopData.isTeamLabeled,
-          //   isDimensionallyMarked: machineShopData.isDimensionallyMarked,
-          // };
           break;
         case "battery_charging":
           requestBody.battery_charging_data = batteryChargingData;
-          // requestBody.battery_charging_data = {
-          //   batteryType: batteryChargingData.batteryType,
-          //   initialCharge: batteryChargingData.initialCharge,
-          // };
           break;
       }
 
@@ -575,7 +526,7 @@ export default function EditRequestModal({
               </MenuItem>
               {users.map((user) => (
                 <MenuItem key={user.id} value={user.id}>
-                  {user.name} ({user.roles.map(role => role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())).join(', ')})
+                  {user.name}
                 </MenuItem>
               ))}
             </Select>

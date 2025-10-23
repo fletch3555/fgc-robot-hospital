@@ -533,11 +533,16 @@ function CreateRequestPage() {
                   gap: { xs: 1, sm: 2 },
                   width: '100%',
                   '& .MuiToggleButton-root': {
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: { xs: 1, sm: 2 },
                       '&.Mui-selected': {
                           backgroundColor: 'primary.main',
                           color: 'white',
+                          borderColor: 'primary.main',
                           '&:hover': {
                               backgroundColor: 'primary.dark',
+                              borderColor: 'primary.dark',
                           },
                           '& .MuiTypography-root': {
                               color: 'white',
@@ -545,6 +550,7 @@ function CreateRequestPage() {
                       },
                       '&:hover': {
                           backgroundColor: 'primary.light',
+                          borderColor: 'primary.main',
                       },
                       flexDirection: 'column',
                       padding: 2,

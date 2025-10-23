@@ -116,10 +116,18 @@ function RequestsPage() {
     permissions: PermissionName[]
   }[];
 
+  // Filter tabs based on permissions
+  const visibleTabs = tabs
+    .filter(tab => tab.count > 0)
+    .filter(tab => tab.permissions.some(permission => hasPermission(permission)));
+
+  // Ensure selectedTab is within bounds of visible tabs
+  const safeSelectedTab = Math.min(selectedTab, Math.max(0, visibleTabs.length - 1));
+
   // Filter requests based on selected tab
-  const filteredRequests = selectedTab === 0 
-    ? requests 
-    : requests.filter(request => request.type === tabs[selectedTab].value);
+  const filteredRequests = safeSelectedTab === 0 || !visibleTabs[safeSelectedTab]
+    ? requests
+    : requests.filter(request => request.type === visibleTabs[safeSelectedTab].value);
 
   if (isLoading || loading) {
     return (
@@ -170,8 +178,8 @@ function RequestsPage() {
 
         {/* Tabs for filtering by request type */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs value={selectedTab} onChange={handleTabChange} aria-label="request type tabs">
-            {tabs.filter(tab => tab.permissions.some(permission => hasPermission(permission))).map((tab) => (
+          <Tabs value={safeSelectedTab} onChange={handleTabChange} aria-label="request type tabs">
+            {visibleTabs.map((tab) => (
               <Tab
                 key={tab.value}
                 icon={tab.icon || undefined}
@@ -273,9 +281,9 @@ function RequestsPage() {
             <Grid size={12}>
               <Box sx={{ textAlign: "center", py: 4 }}>
                 <Typography variant="h6" color="text.secondary">
-                  {selectedTab === 0 
+                  {safeSelectedTab === 0 || !visibleTabs[safeSelectedTab]
                     ? "No support requests found"
-                    : `No ${tabs[selectedTab].label.toLowerCase()} requests found`
+                    : `No ${visibleTabs[safeSelectedTab].label.toLowerCase()} requests found`
                   }
                 </Typography>
                 {/* <Button
@@ -284,9 +292,9 @@ function RequestsPage() {
                   sx={{ mt: 2 }}
                   onClick={() => router.push("/requests/new")}
                 >
-                  {selectedTab === 0 
+                  {safeSelectedTab === 0
                     ? "Create Your First Request"
-                    : `Create ${tabs[selectedTab].label} Request`
+                    : `Create ${visibleTabs[safeSelectedTab].label} Request`
                   }
                 </Button> */}
               </Box>

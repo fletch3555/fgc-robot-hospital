@@ -38,8 +38,27 @@ export default function SoftwareFields({ data, onChange, errors = {} }: Software
           aria-label="programming language"
           fullWidth
           sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: { xs: 1, sm: 2 },
             '& .MuiToggleButton-root': {
-              border: errors.programmingLanguage ? '2px solid #f44336' : undefined,
+              border: '1px solid',
+              borderColor: errors.programmingLanguage ? 'error.main' : 'divider',
+              borderRadius: { xs: 1, sm: 2 },
+              py: 1.5,
+              '&.Mui-selected': {
+                backgroundColor: 'primary.main',
+                color: 'white',
+                borderColor: 'primary.main',
+                '&:hover': {
+                  backgroundColor: 'primary.dark',
+                  borderColor: 'primary.dark',
+                },
+              },
+              '&:hover': {
+                backgroundColor: 'primary.light',
+                borderColor: 'primary.main',
+              },
             }
           }}
         >
@@ -71,8 +90,27 @@ export default function SoftwareFields({ data, onChange, errors = {} }: Software
           aria-label="type"
           fullWidth
           sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: { xs: 1, sm: 2 },
             '& .MuiToggleButton-root': {
-              border: errors.type ? '2px solid #f44336' : undefined,
+              border: '1px solid',
+              borderColor: errors.type ? 'error.main' : 'divider',
+              borderRadius: { xs: 1, sm: 2 },
+              py: 1.5,
+              '&.Mui-selected': {
+                backgroundColor: 'primary.main',
+                color: 'white',
+                borderColor: 'primary.main',
+                '&:hover': {
+                  backgroundColor: 'primary.dark',
+                  borderColor: 'primary.dark',
+                },
+              },
+              '&:hover': {
+                backgroundColor: 'primary.light',
+                borderColor: 'primary.main',
+              },
             }
           }}
         >
