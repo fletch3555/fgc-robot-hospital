@@ -70,16 +70,35 @@ const FGCInventoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<ReviewStatus | null>(null);
   const itemsPerPage = 18;
 
-  // Filter and paginate items based on search
+  // Filter and paginate items based on search and status filter
   const { paginatedItems, pagination } = useMemo(() => {
-    // Filter items based on search term
-    const filtered = kopInventory.filter(item =>
-      item.part_number.toLowerCase().includes(search.toLowerCase()) ||
-      item.description.toLowerCase().includes(search.toLowerCase()) ||
-      item.group_name.toLowerCase().includes(search.toLowerCase())
-    );
+    // Filter items based on search term and status filter
+    const filtered = kopInventory.filter(item => {
+      const matchesSearch = item.part_number.toLowerCase().includes(search.toLowerCase()) ||
+        item.description.toLowerCase().includes(search.toLowerCase()) ||
+        item.group_name.toLowerCase().includes(search.toLowerCase());
+      
+      // If no status filter is selected, show all items
+      if (selectedStatusFilter === null) {
+        return matchesSearch;
+      }
+      
+      // Otherwise, only show items matching the selected status
+      const itemStatus = item.review_status || 'normal';
+      
+      // Special handling for "needs review" - matches both software and hardware review
+      let matchesStatus = false;
+      if (selectedStatusFilter === 'needs_software_review') {
+        matchesStatus = itemStatus === 'needs_software_review' || itemStatus === 'needs_hardware_review';
+      } else {
+        matchesStatus = itemStatus === selectedStatusFilter;
+      }
+      
+      return matchesSearch && matchesStatus;
+    });
 
     // Calculate pagination
     const totalCount = filtered.length;
@@ -99,7 +118,7 @@ const FGCInventoryPage = () => {
         hasPreviousPage: currentPage > 1
       }
     };
-  }, [search, currentPage]);
+  }, [search, currentPage, selectedStatusFilter]);
 
   // Preload images for current page (non-blocking)
   useEffect(() => {
@@ -108,10 +127,10 @@ const FGCInventoryPage = () => {
     }
   }, [paginatedItems]);
 
-  // Reset to first page when search changes
+  // Reset to first page when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, selectedStatusFilter]);
 
   // Simulate loading for smooth UX
   useEffect(() => {
@@ -122,6 +141,12 @@ const FGCInventoryPage = () => {
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(event.target.value);
+  };
+
+  const toggleStatusFilter = (status: ReviewStatus) => {
+    // If clicking the currently selected status, deselect it (show all)
+    // Otherwise, select the clicked status
+    setSelectedStatusFilter(prev => prev === status ? null : status);
   };
 
   return (
@@ -162,7 +187,7 @@ const FGCInventoryPage = () => {
             />
           </Box>
           
-          {/* Status Legend */}
+          {/* Status Legend - Now Interactive Filters */}
           <Box sx={{
             display: 'flex',
             gap: { xs: 1, sm: 2 },
@@ -171,38 +196,78 @@ const FGCInventoryPage = () => {
             justifyContent: { xs: 'flex-start', sm: 'flex-end' }
           }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{
-                padding: { xs: '4px 6px', sm: '6px' },
-                borderRadius: '4px',
-                ...getReviewStatusStyling('normal', mode)
-              }}>
+              <Box
+                onClick={() => toggleStatusFilter('normal')}
+                sx={{
+                  padding: { xs: '4px 6px', sm: '6px' },
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: selectedStatusFilter === null || selectedStatusFilter === 'normal' ? 1 : 0.3,
+                  ...getReviewStatusStyling('normal', mode),
+                  '&:hover': {
+                    transform: 'scale(1.05)',
+                    boxShadow: 2
+                  }
+                }}
+              >
                 <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Normal</Typography>
               </Box>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{
-                padding: { xs: '4px 6px', sm: '6px' },
-                borderRadius: '4px',
-                ...getReviewStatusStyling('needs_software_review', mode)
-              }}>
+              <Box
+                onClick={() => toggleStatusFilter('needs_software_review')}
+                sx={{
+                  padding: { xs: '4px 6px', sm: '6px' },
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: selectedStatusFilter === null || selectedStatusFilter === 'needs_software_review' ? 1 : 0.3,
+                  ...getReviewStatusStyling('needs_software_review', mode),
+                  '&:hover': {
+                    transform: 'scale(1.05)',
+                    boxShadow: 2
+                  }
+                }}
+              >
                 <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Needs Review</Typography>
               </Box>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{
-                padding: { xs: '4px 6px', sm: '6px' },
-                borderRadius: '4px',
-                ...getReviewStatusStyling('approval_needed', mode)
-              }}>
+              <Box
+                onClick={() => toggleStatusFilter('approval_needed')}
+                sx={{
+                  padding: { xs: '4px 6px', sm: '6px' },
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: selectedStatusFilter === null || selectedStatusFilter === 'approval_needed' ? 1 : 0.3,
+                  ...getReviewStatusStyling('approval_needed', mode),
+                  '&:hover': {
+                    transform: 'scale(1.05)',
+                    boxShadow: 2
+                  }
+                }}
+              >
                 <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Approval Needed</Typography>
               </Box>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{
-                padding: { xs: '4px 6px', sm: '6px' },
-                borderRadius: '4px',
-                ...getReviewStatusStyling('do_not_loan', mode)
-              }}>
+              <Box
+                onClick={() => toggleStatusFilter('do_not_loan')}
+                sx={{
+                  padding: { xs: '4px 6px', sm: '6px' },
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: selectedStatusFilter === null || selectedStatusFilter === 'do_not_loan' ? 1 : 0.3,
+                  ...getReviewStatusStyling('do_not_loan', mode),
+                  '&:hover': {
+                    transform: 'scale(1.05)',
+                    boxShadow: 2
+                  }
+                }}
+              >
                 <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Do Not Loan</Typography>
               </Box>
             </Box>

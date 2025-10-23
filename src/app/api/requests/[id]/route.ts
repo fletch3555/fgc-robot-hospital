@@ -68,7 +68,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Request not found" }, { status: 404 });
     }
 
-    return NextResponse.json(updatedRequest, { status: 200 });
+    // Fetch the complete request with joined user names
+    const completeRequest = await Request.findById(params.id);
+
+    return NextResponse.json(completeRequest, { status: 200 });
   } catch (error) {
     console.error(`Error in PATCH /api/requests/${(await context.params).id}:`, error);
     return NextResponse.json(

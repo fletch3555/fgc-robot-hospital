@@ -14,6 +14,10 @@ import {
   Button,
   Tabs,
   Tab,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import {
   BuildRounded,
@@ -101,6 +105,10 @@ function RequestsPage() {
     setSelectedTab(newValue);
   };
 
+  const handleSelectChange = (event: { target: { value: string } }) => {
+    setSelectedTab(Number(event.target.value));
+  };
+
   // Define tab configurations
   const tabs = [
     { label: 'All', value: 'all', icon: null, count: requests.length, permissions: ['hardware.view', 'software.view', 'machine_shop.view', 'battery_charging.view'] },
@@ -176,9 +184,20 @@ function RequestsPage() {
           </Button> */}
         </Box>
 
-        {/* Tabs for filtering by request type */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs value={safeSelectedTab} onChange={handleTabChange} aria-label="request type tabs">
+        {/* Tabs for filtering by request type - Desktop */}
+        <Box sx={{
+          borderBottom: 1,
+          borderColor: 'divider',
+          mb: 3,
+          display: { xs: 'none', sm: 'block' }
+        }}>
+          <Tabs
+            value={safeSelectedTab}
+            onChange={handleTabChange}
+            aria-label="request type tabs"
+            variant="scrollable"
+            scrollButtons="auto"
+          >
             {visibleTabs.map((tab) => (
               <Tab
                 key={tab.value}
@@ -189,6 +208,32 @@ function RequestsPage() {
               />
             ))}
           </Tabs>
+        </Box>
+
+        {/* Select dropdown for filtering by request type - Mobile */}
+        <Box sx={{
+          mb: 3,
+          display: { xs: 'block', sm: 'none' }
+        }}>
+          <FormControl fullWidth>
+            <InputLabel id="request-type-select-label">Request Type</InputLabel>
+            <Select
+              labelId="request-type-select-label"
+              id="request-type-select"
+              value={safeSelectedTab.toString()}
+              label="Request Type"
+              onChange={handleSelectChange}
+            >
+              {visibleTabs.map((tab, index) => (
+                <MenuItem key={tab.value} value={index.toString()}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {tab.icon}
+                    <Typography>{tab.label} ({tab.count})</Typography>
+                  </Box>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Box>
 
         <Grid container spacing={3}>
