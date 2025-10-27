@@ -47,6 +47,12 @@ interface SidebarProps {
   onMobileToggle: () => void;
 }
 
+interface NavItemComponentProps {
+  item: NavItem;
+  level?: number;
+  onMobileToggle?: () => void;
+}
+
 interface NavItem {
   text: string;
   icon: React.ReactNode;
@@ -121,13 +127,6 @@ const navItems: NavItem[] = [
         requiredPermissions: ['requests.view', 'admin.dashboard'],
         requireAnyPermission: true,
       },
-      // {
-      //   text: 'Spare Parts',
-      //   icon: <BuildIcon />,
-      //   href: '/admin/spare-parts',
-      //   requiredPermissions: ['spare_parts.view', 'admin.dashboard'],
-      //   requireAnyPermission: true,
-      // },
     ],
   },
 ];
@@ -166,7 +165,7 @@ const resourcesNavItems: NavItem[] = [
   },
 ];
 
-function NavItemComponent({ item, level = 0 }: { item: NavItem; level?: number }) {
+function NavItemComponent({ item, level = 0, onMobileToggle }: NavItemComponentProps) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const { hasAnyPermission, hasAllPermissions } = usePermissions();
@@ -238,7 +237,7 @@ function NavItemComponent({ item, level = 0 }: { item: NavItem; level?: number }
         <Collapse in={open} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
             {item.children.map((child, index) => (
-              <NavItemComponent key={index} item={child} level={level + 1} />
+              <NavItemComponent key={index} item={child} level={level + 1} onMobileToggle={onMobileToggle} />
             ))}
           </List>
         </Collapse>
@@ -251,6 +250,7 @@ function NavItemComponent({ item, level = 0 }: { item: NavItem; level?: number }
       <ListItemButton
         component={Link}
         href={item.href!}
+        onClick={onMobileToggle}
         sx={{
           minHeight: 48,
           px: 2.5,
@@ -270,7 +270,7 @@ function NavItemComponent({ item, level = 0 }: { item: NavItem; level?: number }
   );
 }
 
-function SidebarContent() {
+function SidebarContent({ onMobileToggle }: { onMobileToggle?: () => void }) {
   const { data: session } = useSession();
 
   const handleSignOut = () => {
@@ -311,7 +311,7 @@ function SidebarContent() {
 
       <List sx={{ flexGrow: 1, py: 1 }}>
         {allNavItems.map((item, index) => (
-          <NavItemComponent key={index} item={item} />
+          <NavItemComponent key={index} item={item} onMobileToggle={onMobileToggle} />
         ))}
       </List>
 
@@ -319,7 +319,7 @@ function SidebarContent() {
       
       <List sx={{ py: 1 }}>
         {resourcesNavItems.map((item, index) => (
-          <NavItemComponent key={`resources-${index}`} item={item} />
+          <NavItemComponent key={`resources-${index}`} item={item} onMobileToggle={onMobileToggle} />
         ))}
       </List>
 
@@ -359,7 +359,7 @@ export default function Sidebar({ mobileOpen, onMobileToggle }: SidebarProps) {
           '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
         }}
       >
-        <SidebarContent />
+        <SidebarContent onMobileToggle={onMobileToggle} />
       </Drawer>
       
       {/* Desktop drawer */}

@@ -109,11 +109,14 @@ export default function SignIn() {
                   />
                 }
                 sx={{
-                  color: '#000',
-                  borderColor: '#ddd',
+                  color: 'text.primary',
+                  borderColor: 'divider',
                   '&:hover': {
                     borderColor: '#1DB954',
-                    backgroundColor: 'rgba(29, 185, 84, 0.04)',
+                    backgroundColor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(29, 185, 84, 0.08)'
+                        : 'rgba(29, 185, 84, 0.04)',
                   },
                 }}
               >
