@@ -12,8 +12,8 @@ export type Role =
   | 'spare_parts_attendant'
   | 'flying_squad_software'
   | 'flying_squad_hardware'
-  | 'robot_inspector'
-  | 'lead_robot_inspector'
+  // | 'robot_inspector'
+  // | 'lead_robot_inspector'
   | 'admin';
 
 export type PermissionCategory =
@@ -23,7 +23,7 @@ export type PermissionCategory =
   | 'machine_shop'
   | 'battery_charging'
   | 'spare_parts'
-  | 'inspection'
+  // | 'inspection'
   | 'admin'
   | 'documentation'
   | 'inventory'

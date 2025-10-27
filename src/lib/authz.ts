@@ -343,18 +343,18 @@ export const ROLE_METADATA: Record<Role, RoleMetadata> = {
     description: 'Hardware troubleshooting and repair specialist',
     color: '#f44336'
   },
-  robot_inspector: {
-    role: 'robot_inspector',
-    displayName: 'Robot Inspector',
-    description: 'Performs robot inspections and quality checks',
-    color: '#795548'
-  },
-  lead_robot_inspector: {
-    role: 'lead_robot_inspector',
-    displayName: 'Lead Robot Inspector',
-    description: 'Lead inspector with advanced permissions',
-    color: '#607d8b'
-  },
+  // robot_inspector: {
+  //   role: 'robot_inspector',
+  //   displayName: 'Robot Inspector',
+  //   description: 'Performs robot inspections and quality checks',
+  //   color: '#795548'
+  // },
+  // lead_robot_inspector: {
+  //   role: 'lead_robot_inspector',
+  //   displayName: 'Lead Robot Inspector',
+  //   description: 'Lead inspector with advanced permissions',
+  //   color: '#607d8b'
+  // },
   admin: {
     role: 'admin',
     displayName: 'Administrator',

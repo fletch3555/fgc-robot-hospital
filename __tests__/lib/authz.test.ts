@@ -340,7 +340,7 @@ describe("Authorization Module", () => {
 
       const result = await getRolesWithPermissions();
 
-      expect(result).toHaveLength(9); // Should return all 9 roles
+      expect(result).toHaveLength(7); // Should return all 7 roles
       expect(result.find(r => r.role === 'guest')).toMatchObject({
         role: 'guest',
         displayName: 'Guest',
