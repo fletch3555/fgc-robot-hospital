@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { WithAuth } from '@/components/auth/WithAuth';
+import { WithPermissions } from '@/components/auth/WithPermissions';
 import {
   Box,
   Typography,
@@ -63,7 +64,7 @@ function TeamsPage() {
     <Container maxWidth="lg">
       <Box sx={{ mt: 4, mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Teams Management (Static)
+          Teams
         </Typography>
         
         <Box sx={{ mb: 3 }}>
@@ -176,11 +177,13 @@ function TeamsPage() {
   );
 }
 
-// Wrap the component with admin authentication protection
+// Wrap the component with permission-based authentication protection
 function TeamsPageWithAuth() {
   return (
-    <WithAuth requiredRole="admin">
-      <TeamsPage />
+    <WithAuth>
+      <WithPermissions requiredPermissions={['teams.view']}>
+        <TeamsPage />
+      </WithPermissions>
     </WithAuth>
   );
 }

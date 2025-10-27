@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { WithAuth } from '@/components/auth/WithAuth';
 import { WithPermissions } from '@/components/auth/WithPermissions';
+import { usePermissions } from '@/contexts/PermissionsContext';
 import { 
   Container, 
   Typography, 
@@ -53,7 +54,8 @@ interface SparePart {
 }
 
 function SparePartsPage() {
-  const { fetchWithAuth, session, isAuthenticated, isLoading } = useAuthenticatedFetch();
+  const { fetchWithAuth, isAuthenticated, isLoading } = useAuthenticatedFetch();
+  const { hasPermission } = usePermissions();
   const [spareParts, setSpareParts] = useState<SparePart[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -249,8 +251,8 @@ function SparePartsPage() {
                         </Box>
                       </TableCell>
                       <TableCell align="center">
-                        {/* Allow editing for parts issued by the current user */}
-                        {part.issued_by_email === session?.user?.email && (
+                        {/* Allow editing for anyone with spare_parts.edit permission */}
+                        {hasPermission('spare_parts.edit') && (
                           <Button
                             size="small"
                             variant="outlined"
@@ -262,12 +264,12 @@ function SparePartsPage() {
                             Edit
                           </Button>
                         )}
-                        {/* Show message for non-editable items */}
-                        {part.issued_by_email !== session?.user?.email && (
+                        {/* Show message for users without edit permission */}
+                        {/* {!hasPermission('spare_parts.edit') && (
                           <Typography variant="caption" color="text.secondary">
-                            Not editable
+                            No edit permission
                           </Typography>
-                        )}
+                        )} */}
                       </TableCell>
                     </TableRow>
                   ))}

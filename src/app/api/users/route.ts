@@ -6,7 +6,9 @@ import { connectToDatabase } from "@/lib/database";
 
 export async function GET(req: NextRequest) {
   try {
-    const authz = await checkPermissions(['users.view']);
+    // This endpoint is used for fetching users to assign to requests
+    // Users with requests.assign or requests.create permissions can view the user list
+    const authz = await checkPermissions(['requests.assign', 'requests.create'], false);
     
     if (!authz.authorized) {
       return authz.response!;

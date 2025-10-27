@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { WithAuth } from '@/components/auth/WithAuth';
+import { WithPermissions } from '@/components/auth/WithPermissions';
 import { IUserAdmin } from '@/lib/types';
 import {
   Box,
@@ -434,11 +435,13 @@ function UsersPage() {
   );
 }
 
-// Wrap the component with authentication protection
+// Wrap the component with authentication and permission protection
 function UsersPageWithAuth() {
   return (
-    <WithAuth requiredRole="admin">
-      <UsersPage />
+    <WithAuth>
+      <WithPermissions requiredPermissions={['admin.users']}>
+        <UsersPage />
+      </WithPermissions>
     </WithAuth>
   );
 }

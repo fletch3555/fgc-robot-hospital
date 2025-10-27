@@ -293,6 +293,7 @@ jest.mock("./src/models/Request", () => ({
     update: jest.fn(),
     delete: jest.fn(),
     findAllForAdmin: jest.fn(),
+    findRecentlyClosed: jest.fn(),
   },
 }));
 

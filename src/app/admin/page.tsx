@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { WithAuth } from '@/components/auth/WithAuth';
+import { WithPermissions } from '@/components/auth/WithPermissions';
 import {
   Grid,
   Card,
@@ -192,11 +193,13 @@ function AdminDashboard() {
   );
 }
 
-// Wrap the component with admin authentication protection
+// Wrap the component with authentication and permission protection
 function AdminDashboardWithAuth() {
   return (
-    <WithAuth requiredRole="admin">
-      <AdminDashboard />
+    <WithAuth>
+      <WithPermissions requiredPermissions={['admin.dashboard']}>
+        <AdminDashboard />
+      </WithPermissions>
     </WithAuth>
   );
 }

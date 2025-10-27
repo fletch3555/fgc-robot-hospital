@@ -16,19 +16,19 @@ export type Role =
   | 'lead_robot_inspector'
   | 'admin';
 
-export type PermissionCategory = 
+export type PermissionCategory =
   | 'requests'
-  | 'hardware' 
+  | 'hardware'
   | 'software'
   | 'machine_shop'
   | 'battery_charging'
   | 'spare_parts'
   | 'inspection'
-  | 'users'
   | 'admin'
   | 'documentation'
   | 'inventory'
-  | 'matches';
+  | 'matches'
+  | 'teams';
 
 export type PermissionName = 
   // Request Management
@@ -70,18 +70,11 @@ export type PermissionName =
   | 'spare_parts.issue'
   | 'spare_parts.receive'
   
-  // Robot Inspection
-  | 'inspection.view'
-  | 'inspection.create'
-  | 'inspection.edit'
-  | 'inspection.approve'
-  
-  // User Management
-  | 'users.view'
-  | 'users.create'
-  | 'users.edit'
-  | 'users.delete'
-  | 'users.role_assign'
+  // // Robot Inspection
+  // | 'inspection.view'
+  // | 'inspection.create'
+  // | 'inspection.edit'
+  // | 'inspection.approve'
   
   // Admin Functions
   | 'admin.dashboard'
@@ -95,7 +88,8 @@ export type PermissionName =
   // Reference & Documentation
   | 'documentation.view'
   | 'inventory.view'
-  | 'matches.view';
+  | 'matches.view'
+  | 'teams.view';
 
 // Database Permission interface (for API compatibility)
 export interface Permission {

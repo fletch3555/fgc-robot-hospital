@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { WithAuth } from '@/components/auth/WithAuth';
+import { WithPermissions } from '@/components/auth/WithPermissions';
 import {
   Box,
   Typography,
@@ -427,11 +428,13 @@ function RoleManagementPage() {
   );
 }
 
-// Wrap the component with admin authentication protection
+// Wrap the component with authentication and permission protection
 function RoleManagementPageWithAuth() {
   return (
-    <WithAuth requiredRole="admin">
-      <RoleManagementPage />
+    <WithAuth>
+      <WithPermissions requiredPermissions={['admin.roles']}>
+        <RoleManagementPage />
+      </WithPermissions>
     </WithAuth>
   );
 }

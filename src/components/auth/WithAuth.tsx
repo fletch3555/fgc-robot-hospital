@@ -7,15 +7,18 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 
 interface WithAuthProps {
   children: ReactNode;
-  requiredRole?: 'admin' | 'volunteer';
   fallbackUrl?: string;
 }
 
 /**
  * Higher-order component that protects pages requiring authentication
+ * Only handles authentication - use WithPermissions for authorization
  */
-export function WithAuth({ children, requiredRole, fallbackUrl = '/auth/signin' }: WithAuthProps) {
-  const { data: session, status } = useSession();
+export function WithAuth({
+  children,
+  fallbackUrl = '/auth/signin'
+}: WithAuthProps) {
+  const { status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
@@ -28,24 +31,16 @@ export function WithAuth({ children, requiredRole, fallbackUrl = '/auth/signin' 
       router.replace(fallbackUrl);
       return;
     }
-
-    if (requiredRole && !session?.user?.roles?.includes(requiredRole)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`User roles ${session?.user?.roles} insufficient for required role ${requiredRole}`);
-      }
-      router.replace('/'); // Redirect to home if insufficient permissions
-      return;
-    }
-  }, [status, session, router, requiredRole, fallbackUrl]);
+  }, [status, router, fallbackUrl]);
 
   // Show loading state
   if (status === 'loading') {
     return (
-      <Box sx={{ 
-        display: 'flex', 
+      <Box sx={{
+        display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center', 
-        alignItems: 'center', 
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         gap: 2
       }}>
@@ -57,11 +52,6 @@ export function WithAuth({ children, requiredRole, fallbackUrl = '/auth/signin' 
 
   // Don't render if not authenticated
   if (status === 'unauthenticated') {
-    return null;
-  }
-
-  // Don't render if insufficient permissions
-  if (requiredRole && !session?.user?.roles?.includes(requiredRole)) {
     return null;
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { WithAuth } from '@/components/auth/WithAuth';
@@ -44,7 +44,12 @@ function CreateRequestPage() {
     type: "",
     country: "",
     status: "new",
+    assignedTo: "",
   });
+
+  // State for users list
+  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   // Separate state objects for each request type
   const [hardwareData, setHardwareData] = useState<HardwareRequestData>({
@@ -73,6 +78,31 @@ function CreateRequestPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+
+  // Fetch users based on request type who can be assigned to requests
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!session || !formData.type) {
+        setUsers([]);
+        return;
+      }
+      
+      setLoadingUsers(true);
+      try {
+        const response = await fetchWithAuth(`/api/users?permissions=${formData.type}.assignee`);
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data);
+        }
+      } catch (err) {
+        console.error('Error fetching users:', err);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, [session, fetchWithAuth, formData.type]);
 
   // Validation functions
   const validateHardwareData = () => {
@@ -288,6 +318,7 @@ function CreateRequestPage() {
         countryCode: string;
         type: string;
         comments?: string;
+        assignedTo?: string;
         // priority?: string;
         hardwareData?: unknown;
         softwareData?: unknown;
@@ -297,37 +328,18 @@ function CreateRequestPage() {
         countryCode: formData.country, // Map country field to countryCode
         type: formData.type,
         comments: formData.comments?.trim() || undefined, // Only include if not empty
+        assignedTo: formData.assignedTo || undefined, // Include assigned user if selected
       };
 
       // Add type-specific data based on request type
       if (formData.type === 'hardware') {
         requestData.hardwareData = hardwareData;
-        // requestData.hardwareData = {
-        //   type: hardwareData.type,
-        //   location: hardwareData.location,
-        // };
       } else if (formData.type === 'software') {
         requestData.softwareData = softwareData;
-        // requestData.softwareData = {
-        //   programmingLanguage: softwareData.programmingLanguage,
-        //   type: softwareData.type,
-        // };
       } else if (formData.type === 'machine_shop') {
         requestData.machineShopData = machineShopData;
-        // requestData.machineShopData = {
-        //   action: machineShopData.action,
-        //   actionOther: machineShopData.actionOther,
-        //   material: machineShopData.material,
-        //   materialOther: machineShopData.materialOther,
-        //   isTeamLabeled: machineShopData.isTeamLabeled,
-        //   isDimensionallyMarked: machineShopData.isDimensionallyMarked,
-        // };
       } else if (formData.type === 'battery_charging') {
         requestData.batteryChargingData = batteryChargingData;
-        // requestData.batteryChargingData = {
-        //   batteryType: batteryChargingData.batteryType,
-        //   initialCharge: batteryChargingData.initialCharge,
-        // };
       }
 
       if (process.env.NODE_ENV === 'development') {
@@ -601,6 +613,62 @@ function CreateRequestPage() {
           </Box>
 
           {getTypeSpecificFields()}
+
+          <Box sx={{ mb: 3 }}>
+            <Autocomplete
+              options={users}
+              getOptionLabel={(option) => `${option.name}`}
+              value={users.find(user => user.id === formData.assignedTo) || null}
+              onChange={(_, newValue) => {
+                setFormData(prev => ({
+                  ...prev,
+                  assignedTo: newValue?.id || "",
+                }));
+              }}
+              loading={loadingUsers}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Assign To (Optional)"
+                  margin="normal"
+                  helperText="Select a person to assign this request to"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: { xs: 1, sm: 2 }
+                    }
+                  }}
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {loadingUsers ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+              renderOption={(props, option) => {
+                const { key, ...otherProps } = props;
+                return (
+                  <Box
+                    component="li"
+                    key={key}
+                    {...otherProps}
+                    sx={{
+                      py: 1.5,
+                      px: 2
+                    }}
+                  >
+                    {/* <Box> */}
+                      <Typography variant="body1">{option.name}</Typography>
+                    {/* </Box> */}
+                  </Box>
+                );
+              }}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+            />
+          </Box>
 
           <TextField
             name="comments"

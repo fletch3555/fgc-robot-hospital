@@ -55,7 +55,14 @@ export const authOptions: NextAuthOptions = {
   providers: [
     SlackProvider({
       clientId: process.env.SLACK_CLIENT_ID || '',
-      clientSecret: process.env.SLACK_CLIENT_SECRET || ''
+      clientSecret: process.env.SLACK_CLIENT_SECRET || '',
+      authorization: {
+        url: "https://slack.com/openid/connect/authorize",
+        params: {
+          scope: "openid profile email",
+          team: process.env.SLACK_TEAM_ID || ''
+        }
+      }
     }),
   ],
   callbacks: {

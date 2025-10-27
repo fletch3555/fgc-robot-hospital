@@ -14,7 +14,8 @@ export async function GET() {
 
     await connectToDatabase();
     
-    const requests = (await Request.findAll()).filter(request => {
+    // Fetch active requests (open and in-progress)
+    const activeRequests = (await Request.findAll()).filter(request => {
       // Filter requests based on type and user permissions
       if (request.type === 'hardware')
         return authz.permissions?.includes('hardware.view');
@@ -28,7 +29,25 @@ export async function GET() {
       return false;
     });
 
-    return NextResponse.json(requests);
+    // Fetch recently closed requests (last 10)
+    const closedRequests = (await Request.findRecentlyClosed(10)).filter(request => {
+      // Filter requests based on type and user permissions
+      if (request.type === 'hardware')
+        return authz.permissions?.includes('hardware.view');
+      if (request.type === 'software')
+        return authz.permissions?.includes('software.view');
+      if (request.type === 'machine_shop')
+        return authz.permissions?.includes('machine_shop.view');
+      if (request.type === 'battery_charging')
+        return authz.permissions?.includes('requests.view');
+
+      return false;
+    });
+
+    return NextResponse.json({
+      active: activeRequests,
+      closed: closedRequests
+    });
   } catch (error) {
     console.error("Error in GET /api/requests:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -45,7 +64,7 @@ export async function POST(req: NextRequest) {
     const { session } = authz;
 
     const body = await req.json();
-    const { countryCode, type, comments, hardwareData, softwareData, machineShopData, batteryChargingData } = body;
+    const { countryCode, type, comments, assignedTo, hardwareData, softwareData, machineShopData, batteryChargingData } = body;
 
     if (!countryCode || !type) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -62,10 +81,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not found in database" }, { status: 400 });
     }
 
+    // Verify assigned user exists if provided
+    if (assignedTo) {
+      const assignedUser = await User.findById(assignedTo);
+      if (!assignedUser) {
+        return NextResponse.json({ error: "Assigned user not found" }, { status: 400 });
+      }
+    }
+
     const newRequest = await Request.create({
       countryCode,
       type,
       comments,
+      assignedTo: assignedTo || undefined,
       // priority: 'medium', // Default priority
       submittedBy: submittedById,
       hardwareData,

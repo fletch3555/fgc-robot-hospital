@@ -35,6 +35,7 @@ import { usePermissions } from '@/contexts/PermissionsContext';
 function RequestsPage() {
   const { fetchWithAuth, isAuthenticated, isLoading } = useAuthenticatedFetch();
   const [requests, setRequests] = useState<IRequest[]>([]);
+  const [closedRequests, setClosedRequests] = useState<IRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -50,7 +51,8 @@ function RequestsPage() {
           throw new Error("Failed to fetch requests");
         }
         const data = await response.json();
-        setRequests(data);
+        setRequests(data.active || []); // Support both old and new API format
+        setClosedRequests(data.closed || []);
       } catch (err) {
         setError("Failed to load requests");
         console.error(err);
@@ -80,8 +82,14 @@ function RequestsPage() {
 
   const handleRequestUpdated = (updatedRequest: IRequest) => {
     setRequests(prev => {
-      // If request is completed, remove it from the list
+      // If request is completed, remove it from active list
       if (updatedRequest.status === 'completed') {
+        // Add to closed requests at the beginning
+        setClosedRequests(prevClosed => {
+          const newClosed = [updatedRequest, ...prevClosed];
+          // Keep only the last 10
+          return newClosed.slice(0, 10);
+        });
         return prev.filter(req => req.id !== updatedRequest.id);
       }
       // Otherwise, update the request in the list and re-sort
@@ -137,6 +145,14 @@ function RequestsPage() {
     ? requests
     : requests.filter(request => request.type === visibleTabs[safeSelectedTab].value);
 
+  // Separate pending (open and unassigned) from other active requests
+  const pendingRequests = filteredRequests.filter(
+    request => request.status === 'open' && !request.assigned_to
+  );
+  const activeAssignedRequests = filteredRequests.filter(
+    request => request.status === 'in-progress' || (request.status === 'open' && request.assigned_to)
+  );
+
   if (isLoading || loading) {
     return (
       <Box
@@ -169,8 +185,7 @@ function RequestsPage() {
 
   return (
     <>
-      <Container maxWidth="lg">
-      <Box sx={{ mt: 4, mb: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom>
             Support Requests
@@ -236,118 +251,272 @@ function RequestsPage() {
           </FormControl>
         </Box>
 
-        <Grid container spacing={3}>
-          {filteredRequests.map((request) => (
-            <Grid size={{ xs: 12, sm: 12, md: 6, lg: 4 }} key={request.id}>
-              <Card
-                sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  cursor: "pointer",
-                  "&:hover": {
-                    boxShadow: 6,
-                  },
-                }}
-                onClick={(e) => handleEditRequest(request, e)}
-              >
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                    <Typography variant="h6" component="h2" gutterBottom>
-                      {request.type.charAt(0).toUpperCase() + request.type.slice(1).replace(/[-_]/g, ' ')} Request
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {getCountryName(request.country_code)}
-                  </Typography>
-                  {request.assigned_to_name && (
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Assigned to: {request.assigned_to_name}
-                    </Typography>
-                  )}
-                  {request.comments && (
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      {request.comments.length > 100 
-                        ? `${request.comments.substring(0, 100)}...` 
-                        : request.comments}
-                    </Typography>
-                  )}
-                  <Box
+        {/* Pending Requests Section */}
+        {pendingRequests.length > 0 && (
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 2, mb: 2 }}>
+              Pending Requests (Unassigned)
+            </Typography>
+            <Grid container spacing={3}>
+              {pendingRequests.map((request) => (
+                <Grid size={{ xs: 12, sm: 12, md: 6, lg: 4 }} key={request.id}>
+                  <Card
                     sx={{
+                      height: "100%",
                       display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      mt: 2,
+                      flexDirection: "column",
+                      cursor: "pointer",
+                      border: '2px solid',
+                      borderColor: 'error.main',
+                      "&:hover": {
+                        boxShadow: 6,
+                      },
                     }}
+                    onClick={(e) => handleEditRequest(request, e)}
                   >
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        px: 1,
-                        py: 0.5,
-                        borderRadius: 1,
-                        backgroundColor: (theme) => {
-                          switch (request.status) {
-                            case "open":
-                              return theme.palette.error.light;
-                            case "in-progress":
-                              return theme.palette.warning.light;
-                            case "completed":
-                              return theme.palette.success.light;
-                            default:
-                              return theme.palette.grey[300];
-                          }
-                        },
-                        color: (theme) => {
-                          switch (request.status) {
-                            case "open":
-                              return theme.palette.error.dark;
-                            case "in-progress":
-                              return theme.palette.warning.dark;
-                            case "completed":
-                              return theme.palette.success.dark;
-                            default:
-                              return theme.palette.grey[900];
-                          }
-                        },
-                      }}
-                    >
-                      {request.status.toUpperCase()}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {formatRequestDate(request.created_at)}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Typography variant="h6" component="h2" gutterBottom>
+                          {request.type.charAt(0).toUpperCase() + request.type.slice(1).replace(/[-_]/g, ' ')} Request
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        {getCountryName(request.country_code)}
+                      </Typography>
+                      {request.comments && (
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          {request.comments.length > 100
+                            ? `${request.comments.substring(0, 100)}...`
+                            : request.comments}
+                        </Typography>
+                      )}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          mt: 2,
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 1,
+                            backgroundColor: (theme) => theme.palette.error.light,
+                            color: (theme) => theme.palette.error.dark,
+                          }}
+                        >
+                          OPEN - UNASSIGNED
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {formatRequestDate(request.created_at)}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
             </Grid>
-          ))}
-          {filteredRequests.length === 0 && (
-            <Grid size={12}>
-              <Box sx={{ textAlign: "center", py: 4 }}>
-                <Typography variant="h6" color="text.secondary">
-                  {safeSelectedTab === 0 || !visibleTabs[safeSelectedTab]
-                    ? "No support requests found"
-                    : `No ${visibleTabs[safeSelectedTab].label.toLowerCase()} requests found`
-                  }
-                </Typography>
-                {/* <Button
-                  variant="contained"
-                  color="primary"
-                  sx={{ mt: 2 }}
-                  onClick={() => router.push("/requests/new")}
-                >
-                  {safeSelectedTab === 0
-                    ? "Create Your First Request"
-                    : `Create ${visibleTabs[safeSelectedTab].label} Request`
-                  }
-                </Button> */}
-              </Box>
+          </Box>
+        )}
+
+        {/* Active Assigned Requests Section */}
+        {activeAssignedRequests.length > 0 && (
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 2, mb: 2 }}>
+              Active Requests
+            </Typography>
+            <Grid container spacing={3}>
+              {activeAssignedRequests.map((request) => (
+                <Grid size={{ xs: 12, sm: 12, md: 6, lg: 4 }} key={request.id}>
+                  <Card
+                    sx={{
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      cursor: "pointer",
+                      "&:hover": {
+                        boxShadow: 6,
+                      },
+                    }}
+                    onClick={(e) => handleEditRequest(request, e)}
+                  >
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Typography variant="h6" component="h2" gutterBottom>
+                          {request.type.charAt(0).toUpperCase() + request.type.slice(1).replace(/[-_]/g, ' ')} Request
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        {getCountryName(request.country_code)}
+                      </Typography>
+                      {request.assigned_to_name && (
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Assigned to: {request.assigned_to_name}
+                        </Typography>
+                      )}
+                      {request.comments && (
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          {request.comments.length > 100 
+                            ? `${request.comments.substring(0, 100)}...` 
+                            : request.comments}
+                        </Typography>
+                      )}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          mt: 2,
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 1,
+                            backgroundColor: (theme) => {
+                              switch (request.status) {
+                                case "open":
+                                  return theme.palette.error.light;
+                                case "in-progress":
+                                  return theme.palette.warning.light;
+                                case "completed":
+                                  return theme.palette.success.light;
+                                default:
+                                  return theme.palette.grey[300];
+                              }
+                            },
+                            color: (theme) => {
+                              switch (request.status) {
+                                case "open":
+                                  return theme.palette.error.dark;
+                                case "in-progress":
+                                  return theme.palette.warning.dark;
+                                case "completed":
+                                  return theme.palette.success.dark;
+                                default:
+                                  return theme.palette.grey[900];
+                              }
+                            },
+                          }}
+                        >
+                          {request.status.toUpperCase()}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {formatRequestDate(request.created_at)}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
             </Grid>
-          )}
-        </Grid>
-      </Box>
-    </Container>
+          </Box>
+        )}
+
+        {/* No requests message */}
+        {filteredRequests.length === 0 && (
+          <Box sx={{ mb: 4, textAlign: "center", py: 4 }}>
+            <Typography variant="h6" color="text.secondary">
+              {safeSelectedTab === 0 || !visibleTabs[safeSelectedTab]
+                ? "No support requests found"
+                : `No ${visibleTabs[safeSelectedTab].label.toLowerCase()} requests found`
+              }
+            </Typography>
+            {/* <Button
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2 }}
+              onClick={() => router.push("/requests/new")}
+            >
+              {safeSelectedTab === 0
+                ? "Create Your First Request"
+                : `Create ${visibleTabs[safeSelectedTab].label} Request`
+              }
+            </Button> */}
+          </Box>
+        )}
+
+        {/* Recently Closed Requests Section */}
+        {closedRequests.length > 0 && (
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 2, mb: 2 }}>
+              Recently Closed Requests
+            </Typography>
+            <Grid container spacing={3}>
+              {closedRequests.map((request) => (
+                <Grid size={{ xs: 12, sm: 12, md: 6, lg: 4 }} key={request.id}>
+                  <Card
+                    sx={{
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      cursor: "pointer",
+                      opacity: 0.8,
+                      "&:hover": {
+                        boxShadow: 6,
+                        opacity: 1,
+                      },
+                    }}
+                    onClick={(e) => handleEditRequest(request, e)}
+                  >
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Typography variant="h6" component="h2" gutterBottom>
+                          {request.type.charAt(0).toUpperCase() + request.type.slice(1).replace(/[-_]/g, ' ')} Request
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        {getCountryName(request.country_code)}
+                      </Typography>
+                      {request.assigned_to_name && (
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Assigned to: {request.assigned_to_name}
+                        </Typography>
+                      )}
+                      {request.comments && (
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          {request.comments.length > 100
+                            ? `${request.comments.substring(0, 100)}...`
+                            : request.comments}
+                        </Typography>
+                      )}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          mt: 2,
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 1,
+                            backgroundColor: (theme) => theme.palette.success.light,
+                            color: (theme) => theme.palette.success.dark,
+                          }}
+                        >
+                          COMPLETED
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {formatRequestDate(request.updated_at || request.created_at)}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        )}
+      </Container>
 
     <EditRequestModal
       open={editModalOpen}

@@ -16,12 +16,12 @@ import { PermissionsProvider } from '../../../src/contexts/PermissionsContext';
 import HomePage from '../../../src/app/page';
 import RequestsPage from '../../../src/app/requests/page';
 import NewRequestPage from '../../../src/app/requests/new/page';
+import SparePartsPage from '../../../src/app/spare-parts/page';
+import TeamsPage from '../../../src/app/teams/page';
 import AdminDashboard from '../../../src/app/admin/page';
 import AdminUsersPage from '../../../src/app/admin/users/page';
 import AdminRolesPage from '../../../src/app/admin/roles/page';
-import AdminTeamsPage from '../../../src/app/admin/teams/page';
 import AdminRequestsPage from '../../../src/app/admin/requests/page';
-import SparePartsPage from '../../../src/app/spare-parts/page';
 
 // Mock Next.js modules
 jest.mock('next-auth/react');
@@ -90,23 +90,59 @@ describe('Page Authentication Tests', () => {
     // Mock fetch for API calls
     global.fetch = jest.fn((url: string) => {
       if (url.includes('/api/permissions')) {
-        // Mock permissions API response
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({
-            permissions: [
-              'requests.view',
-              'spare_parts.view',
-              'spare_parts.create',
-              'spare_parts.edit',
-              'spare_parts.issue',
-              'spare_parts.receive',
-              'inventory.view',
-              'documentation.view'
-            ]
-          }),
-          status: 200,
-        });
+        // Mock permissions API response - return different permissions based on userId
+        const urlObj = new URL(url, 'http://localhost');
+        const userId = urlObj.searchParams.get('userId');
+        
+        if (userId === 'admin-id') {
+          // Admin user gets all admin permissions
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              permissions: [
+                'requests.view',
+                'requests.create',
+                'requests.edit',
+                'requests.delete',
+                'admin.dashboard',
+                'admin.users',
+                'admin.roles',
+                'admin.permissions',
+                'admin.requests',
+                'admin.system',
+                'admin.reports',
+                'spare_parts.view',
+                'spare_parts.create',
+                'spare_parts.edit',
+                'spare_parts.issue',
+                'spare_parts.receive',
+                'inventory.view',
+                'documentation.view'
+              ],
+              roles: ['admin']
+            }),
+            status: 200,
+          });
+        } else {
+          // Volunteer user gets limited permissions
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              permissions: [
+                'requests.view',
+                'spare_parts.view',
+                'spare_parts.create',
+                'spare_parts.edit',
+                'spare_parts.issue',
+                'spare_parts.receive',
+                'inventory.view',
+                'documentation.view'
+              ],
+              roles: ['volunteer', 'spare_parts_attendant']
+            }),
+            status: 200,
+          });
+        }
       }
       
       // Default mock for other API calls
@@ -207,7 +243,7 @@ describe('Page Authentication Tests', () => {
     });
 
     test('should render main dashboard for authenticated volunteers', async () => {
-      render(<HomePage />, { wrapper: TestWrapper });
+      renderWithProviders(<HomePage />);
       
       await waitFor(() => {
         expect(screen.getByText('Robot Hospital Dashboard')).toBeInTheDocument();
@@ -215,7 +251,7 @@ describe('Page Authentication Tests', () => {
     });
 
     test('should render requests page for authenticated volunteers', async () => {
-      render(<RequestsPage />, { wrapper: TestWrapper });
+      renderWithProviders(<RequestsPage />);
       
       await waitFor(() => {
         expect(screen.getByText('Support Requests')).toBeInTheDocument();
@@ -238,8 +274,16 @@ describe('Page Authentication Tests', () => {
       });
     });
 
+    test('should NOT render teams pages for authenticated volunteers', async () => {
+      renderWithProviders(<TeamsPage />);
+      
+      await waitFor(() => {
+        expect(screen.queryByText('Recent Teams Requests')).not.toBeInTheDocument();
+      });
+    });
+
     test('should NOT render admin pages for volunteers', async () => {
-      render(<AdminDashboard />);
+      renderWithProviders(<AdminDashboard />);
       
       await waitFor(() => {
         // WithAuth with requiredRole="admin" should not render for volunteers
@@ -248,7 +292,7 @@ describe('Page Authentication Tests', () => {
     });
 
     test('should NOT render admin users page for volunteers', async () => {
-      render(<AdminUsersPage />);
+      renderWithProviders(<AdminUsersPage />);
       
       await waitFor(() => {
         expect(screen.queryByText('User Management')).not.toBeInTheDocument();
@@ -256,7 +300,7 @@ describe('Page Authentication Tests', () => {
     });
 
     test('should NOT render admin roles page for volunteers', async () => {
-      render(<AdminRolesPage />);
+      renderWithProviders(<AdminRolesPage />);
       
       await waitFor(() => {
         expect(screen.queryByText('Role Management')).not.toBeInTheDocument();
@@ -274,7 +318,7 @@ describe('Page Authentication Tests', () => {
     });
 
     test('should render main dashboard for admins', async () => {
-      render(<HomePage />, { wrapper: TestWrapper });
+      renderWithProviders(<HomePage />);
       
       await waitFor(() => {
         expect(screen.getByText('Robot Hospital Dashboard')).toBeInTheDocument();
@@ -285,12 +329,11 @@ describe('Page Authentication Tests', () => {
       const adminPages = [
         { component: <AdminDashboard />, text: 'Admin Dashboard' },
         { component: <AdminRolesPage />, text: 'Roles & Permissions' },
-        { component: <AdminTeamsPage />, text: 'Teams Management' },
         { component: <AdminRequestsPage />, text: 'Admin - All Requests' },
       ];
 
       for (const { component, text } of adminPages) {
-        const { unmount } = render(component);
+        const { unmount } = renderWithProviders(component);
         
         await waitFor(() => {
           expect(screen.getByText(new RegExp(text, 'i'))).toBeInTheDocument();
@@ -301,7 +344,7 @@ describe('Page Authentication Tests', () => {
     });
 
     test('should render volunteer pages for admins (admins have all access)', async () => {
-      render(<RequestsPage />, { wrapper: TestWrapper });
+      renderWithProviders(<RequestsPage />);
       
       await waitFor(() => {
         expect(screen.getByText('Support Requests')).toBeInTheDocument();
@@ -384,7 +427,7 @@ describe('Page Authentication Tests', () => {
         })
       ) as jest.Mock;
 
-      render(<RequestsPage />, { wrapper: TestWrapper });
+      renderWithProviders(<RequestsPage />);
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith('/api/requests', {
@@ -404,7 +447,7 @@ describe('Page Authentication Tests', () => {
         update: jest.fn(),
       });
 
-      render(<HomePage />, { wrapper: TestWrapper });
+      renderWithProviders(<HomePage />);
 
       await waitFor(() => {
         // Volunteers should not see admin-specific elements
@@ -420,7 +463,7 @@ describe('Page Authentication Tests', () => {
         update: jest.fn(),
       });
 
-      render(<AdminDashboard />);
+      renderWithProviders(<AdminDashboard />);
 
       await waitFor(() => {
         expect(screen.getByText('Admin Dashboard')).toBeInTheDocument();

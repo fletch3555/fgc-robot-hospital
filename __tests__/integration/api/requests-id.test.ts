@@ -142,6 +142,7 @@ describe("/api/requests/[id]", () => {
       };
 
       (Request.update as jest.Mock).mockResolvedValue(mockUpdatedRequest);
+      (Request.findById as jest.Mock).mockResolvedValue(mockUpdatedRequest);
 
       const request = new NextRequest("http://localhost:3000/api/requests/test-request-id", {
         method: "PATCH",

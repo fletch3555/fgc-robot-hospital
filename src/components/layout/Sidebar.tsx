@@ -29,12 +29,10 @@ import {
   ExpandLess,
   ExpandMore,
   Add as AddIcon,
-  List as ListIcon,
   People as UsersIcon,
   Groups as TeamsIcon,
   Security as SecurityIcon,
   Assignment as AssignmentIcon,
-  Build as BuildIcon,
   Logout as LogoutIcon,
   Category as FGCInventoryIcon,
   Schedule as ScheduleIcon,
@@ -59,6 +57,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  // Main Navigation
   {
     text: 'Dashboard',
     icon: <DashboardIcon />,
@@ -66,110 +65,102 @@ const navItems: NavItem[] = [
     // Dashboard available to all authenticated users
   },
   {
-    text: 'Intake Form',
+    text: 'Hospital Intake',
     icon: <AssignmentIcon />,
     href: '/requests/new',
     requiredPermissions: ['requests.create'],
   },
   {
-    text: 'Support Requests',
+    text: 'View Hospital Requests',
     icon: <RequestsIcon />,
     href: '/requests',
     requiredPermissions: ['requests.view'],
   },
   {
-    text: 'Spare Parts',
-    icon: <SparePartsIcon />,
-    requiredPermissions: ['spare_parts.view', 'spare_parts.create'],
-    requireAnyPermission: true, // Show if user can view OR create spare parts
-    children: [
-      { 
-        text: 'View All', 
-        icon: <ListIcon />, 
-        href: '/spare-parts',
-        requiredPermissions: ['spare_parts.view'],
-      },
-      { 
-        text: 'New Request', 
-        icon: <AddIcon />, 
-        href: '/spare-parts/new',
-        requiredPermissions: ['spare_parts.create'],
-      },
-    ],
+    text: 'Spare Parts Intake',
+    icon: <AddIcon />,
+    href: '/spare-parts/new',
+    requiredPermissions: ['spare_parts.create'],
   },
-];
-
-const getAdminNavItems = (): NavItem[] => [
+  {
+    text: 'View Spare Parts',
+    icon: <SparePartsIcon />,
+    href: '/spare-parts',
+    requiredPermissions: ['spare_parts.view'],
+  },
+  
+  // Admin Section
   {
     text: 'Admin',
     icon: <AdminIcon />,
-    requiredPermissions: ['admin.dashboard', 'users.view', 'admin.roles', 'admin.reports'],
+    requiredPermissions: ['admin.dashboard', 'admin.users', 'admin.roles', 'admin.reports'],
     requireAnyPermission: true, // Show if user has any admin permission
     children: [
-      { 
-        text: 'Dashboard', 
-        icon: <DashboardIcon />, 
+      {
+        text: 'Dashboard',
+        icon: <DashboardIcon />,
         href: '/admin',
         requiredPermissions: ['admin.dashboard'],
       },
-      { 
-        text: 'Users', 
-        icon: <UsersIcon />, 
+      {
+        text: 'Users',
+        icon: <UsersIcon />,
         href: '/admin/users',
-        requiredPermissions: ['users.view'],
+        requiredPermissions: ['admin.users'],
       },
-      { 
-        text: 'Teams', 
-        icon: <TeamsIcon />, 
-        href: '/admin/teams',
-        requiredPermissions: ['admin.dashboard'], // Teams management part of admin dashboard
-      },
-      { 
-        text: 'Roles & Permissions', 
-        icon: <SecurityIcon />, 
+      {
+        text: 'Roles & Permissions',
+        icon: <SecurityIcon />,
         href: '/admin/roles',
         requiredPermissions: ['admin.roles'],
       },
-      { 
-        text: 'Requests', 
-        icon: <AssignmentIcon />, 
+      {
+        text: 'Requests',
+        icon: <AssignmentIcon />,
         href: '/admin/requests',
         requiredPermissions: ['requests.view', 'admin.dashboard'],
         requireAnyPermission: true,
       },
-      { 
-        text: 'Spare Parts', 
-        icon: <BuildIcon />, 
-        href: '/admin/spare-parts',
-        requiredPermissions: ['spare_parts.view', 'admin.dashboard'],
-        requireAnyPermission: true,
-      },
+      // {
+      //   text: 'Spare Parts',
+      //   icon: <BuildIcon />,
+      //   href: '/admin/spare-parts',
+      //   requiredPermissions: ['spare_parts.view', 'admin.dashboard'],
+      //   requireAnyPermission: true,
+      // },
     ],
   },
 ];
 
-const getResourcesNavItems = (): NavItem[] => [
-  { 
-    text: 'Match Schedule', 
-    icon: <ScheduleIcon />, 
+// Resources section - kept separate to float to bottom
+const resourcesNavItems: NavItem[] = [
+  {
+    text: 'Teams',
+    icon: <TeamsIcon />,
+    href: '/teams',
+    requiredPermissions: ['teams.view'],
+  },
+  {
+    text: 'Match Schedule',
+    icon: <ScheduleIcon />,
     href: '/matches',
     requiredPermissions: ['matches.view'],
   },
-  { 
-    text: 'Servo Gear Swap', 
-    icon: <ServoIcon />, 
+  {
+    text: 'Servo Gear Swap',
+    icon: <ServoIcon />,
     href: '/servo-gears',
     requiredPermissions: ['documentation.view'], // Servo guides are documentation
   },
-  { 
-    text: 'Servo Programming', 
-    icon: <ServoProgrammingIcon />, 
+  {
+    text: 'Servo Programming',
+    icon: <ServoProgrammingIcon />,
     href: '/servo-programming',
     requiredPermissions: ['documentation.view'], // Programming guides are documentation
   },
-  { 
-    text: 'Kit of Parts Inventory', 
-    icon: <FGCInventoryIcon />, 
+  {
+    text: 'Kit of Parts Inventory',
+    icon: <FGCInventoryIcon />,
     href: '/fgc-inventory',
     requiredPermissions: ['inventory.view'],
   },
@@ -281,24 +272,13 @@ function NavItemComponent({ item, level = 0 }: { item: NavItem; level?: number }
 
 function SidebarContent() {
   const { data: session } = useSession();
-  const { hasAnyPermission } = usePermissions();
 
   const handleSignOut = () => {
     signOut({ callbackUrl: '/' });
   };
 
-  // Combine nav items with admin items if user has any admin permissions
-  const allNavItems = React.useMemo(() => {
-    const items = [...navItems];
-    
-    // Check if user has any admin permissions before adding admin nav items
-    const adminPermissions: PermissionName[] = ['admin.dashboard', 'users.view', 'admin.roles', 'admin.reports'];
-    if (hasAnyPermission(adminPermissions)) {
-      items.push(...getAdminNavItems());
-    }
-    
-    return items;
-  }, [hasAnyPermission]);
+  // No need to combine items anymore - navItems already includes admin section
+  const allNavItems = navItems;
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -338,7 +318,7 @@ function SidebarContent() {
       <Divider />
       
       <List sx={{ py: 1 }}>
-        {getResourcesNavItems().map((item, index) => (
+        {resourcesNavItems.map((item, index) => (
           <NavItemComponent key={`resources-${index}`} item={item} />
         ))}
       </List>

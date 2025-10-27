@@ -87,6 +87,27 @@ export class Request {
       throw error;
     }
   }
+  static async findRecentlyClosed(limit: number = 10): Promise<IRequest[]> {
+    try {
+      const result = await query(
+        `SELECT r.*, 
+                u1.name as submitted_by_name, u1.email as submitted_by_email,
+                u2.name as assigned_to_name, u2.email as assigned_to_email
+         FROM requests r
+         LEFT JOIN users u1 ON r.submitted_by = u1.id
+         LEFT JOIN users u2 ON r.assigned_to = u2.id
+         WHERE r.status = 'completed'
+         ORDER BY r.updated_at DESC
+         LIMIT $1`,
+        [limit]
+      );
+      return result.rows;
+    } catch (error) {
+      console.error('Error finding recently closed requests:', error);
+      throw error;
+    }
+  }
+
 
   static async findAllForAdmin(): Promise<IRequest[]> {
     try {
@@ -117,6 +138,7 @@ export class Request {
     countryCode: string;
     type: RequestType; // 'hardware' | 'software' | 'machine_shop' | 'battery_charging';
     comments?: string;
+    assignedTo?: string;
     // priority: 'low' | 'medium' | 'high' | 'urgent';
     submittedBy: string;
     hardwareData?: HardwareRequestData;
@@ -130,16 +152,17 @@ export class Request {
       
       const result = await query(
         `INSERT INTO requests (
-           id, country_code, type, comments, 
+           id, country_code, type, comments, assigned_to,
            status, submitted_by, hardware_data, software_data, machine_shop_data, battery_charging_data,
            created_at, updated_at
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          RETURNING *`,
         [
           id,
           requestData.countryCode.toUpperCase(),
           requestData.type,
           requestData.comments || null,
+          requestData.assignedTo || null,
           // requestData.priority,
           'open',
           requestData.submittedBy,

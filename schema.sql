@@ -177,33 +177,32 @@ INSERT INTO role_permissions (role, permission_name) VALUES
 ('flying_squad_hardware', 'inventory.view')
 ON CONFLICT DO NOTHING;
 
--- Robot Inspector - inspection focused
-INSERT INTO role_permissions (role, permission_name) VALUES
-('robot_inspector', 'requests.view'),
-('robot_inspector', 'inspection.view'),
-('robot_inspector', 'inspection.create'),
-('robot_inspector', 'inspection.edit'),
-('robot_inspector', 'hardware.view'),
-('robot_inspector', 'software.view'),
-('robot_inspector', 'documentation.view'),
-('robot_inspector', 'matches.view')
-ON CONFLICT DO NOTHING;
+-- -- Robot Inspector - inspection focused
+-- INSERT INTO role_permissions (role, permission_name) VALUES
+-- ('robot_inspector', 'requests.view'),
+-- ('robot_inspector', 'inspection.view'),
+-- ('robot_inspector', 'inspection.create'),
+-- ('robot_inspector', 'inspection.edit'),
+-- ('robot_inspector', 'hardware.view'),
+-- ('robot_inspector', 'software.view'),
+-- ('robot_inspector', 'documentation.view'),
+-- ('robot_inspector', 'matches.view')
+-- ON CONFLICT DO NOTHING;
 
--- Lead Robot Inspector - senior inspection role
-INSERT INTO role_permissions (role, permission_name) VALUES
-('lead_robot_inspector', 'requests.view'),
-('lead_robot_inspector', 'requests.assign'),
-('lead_robot_inspector', 'inspection.view'),
-('lead_robot_inspector', 'inspection.create'),
-('lead_robot_inspector', 'inspection.edit'),
-('lead_robot_inspector', 'inspection.approve'),
-('lead_robot_inspector', 'hardware.view'),
-('lead_robot_inspector', 'software.view'),
-('lead_robot_inspector', 'users.view'),
-('lead_robot_inspector', 'documentation.view'),
-('lead_robot_inspector', 'inventory.view'),
-('lead_robot_inspector', 'matches.view')
-ON CONFLICT DO NOTHING;
+-- -- Lead Robot Inspector - senior inspection role
+-- INSERT INTO role_permissions (role, permission_name) VALUES
+-- ('lead_robot_inspector', 'requests.view'),
+-- ('lead_robot_inspector', 'requests.assign'),
+-- ('lead_robot_inspector', 'inspection.view'),
+-- ('lead_robot_inspector', 'inspection.create'),
+-- ('lead_robot_inspector', 'inspection.edit'),
+-- ('lead_robot_inspector', 'inspection.approve'),
+-- ('lead_robot_inspector', 'hardware.view'),
+-- ('lead_robot_inspector', 'software.view'),
+-- ('lead_robot_inspector', 'documentation.view'),
+-- ('lead_robot_inspector', 'inventory.view'),
+-- ('lead_robot_inspector', 'matches.view')
+-- ON CONFLICT DO NOTHING;
 
 -- Admin - full access
 INSERT INTO role_permissions (role, permission_name) VALUES
@@ -228,15 +227,10 @@ INSERT INTO role_permissions (role, permission_name) VALUES
 ('admin', 'spare_parts.edit'),
 ('admin', 'spare_parts.issue'),
 ('admin', 'spare_parts.receive'),
-('admin', 'inspection.view'),
-('admin', 'inspection.create'),
-('admin', 'inspection.edit'),
-('admin', 'inspection.approve'),
-('admin', 'users.view'),
-('admin', 'users.create'),
-('admin', 'users.edit'),
-('admin', 'users.delete'),
-('admin', 'users.role_assign'),
+-- ('admin', 'inspection.view'),
+-- ('admin', 'inspection.create'),
+-- ('admin', 'inspection.edit'),
+-- ('admin', 'inspection.approve'),
 ('admin', 'admin.dashboard'),
 ('admin', 'admin.roles'),
 ('admin', 'admin.permissions'),

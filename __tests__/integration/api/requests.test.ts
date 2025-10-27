@@ -54,7 +54,7 @@ describe("/api/requests", () => {
       setupAuthMock(mockSession);
       setupUserPermissionsMock(['hardware.view']); // User has hardware view permission
 
-      const mockRequests = [
+      const mockActiveRequests = [
         {
           id: "1",
           type: "hardware",
@@ -62,20 +62,37 @@ describe("/api/requests", () => {
           country_code: "US",
           country_name: "United States",
           comments: "Test request",
-          // priority: "medium",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
       ];
 
-      (Request.findAll as jest.Mock).mockResolvedValue(mockRequests);
+      const mockClosedRequests = [
+        {
+          id: "2",
+          type: "hardware",
+          status: "closed",
+          country_code: "US",
+          country_name: "United States",
+          comments: "Closed request",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ];
+
+      (Request.findAll as jest.Mock).mockResolvedValue(mockActiveRequests);
+      (Request.findRecentlyClosed as jest.Mock).mockResolvedValue(mockClosedRequests);
 
       const response = await GET();
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data).toEqual(mockRequests);
+      expect(data).toEqual({
+        active: mockActiveRequests,
+        closed: mockClosedRequests
+      });
       expect(Request.findAll).toHaveBeenCalledTimes(1);
+      expect(Request.findRecentlyClosed).toHaveBeenCalledWith(10);
     });
 
     it("should handle database errors gracefully", async () => {

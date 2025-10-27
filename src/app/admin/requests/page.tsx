@@ -2,6 +2,7 @@
 
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { WithAuth } from '@/components/auth/WithAuth';
+import { WithPermissions } from '@/components/auth/WithPermissions';
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -255,11 +256,13 @@ function AdminRequestsPage() {
   );
 }
 
-// Wrap the component with admin authentication protection  
+// Wrap the component with authentication and permission protection
 function AdminRequestsPageWithAuth() {
   return (
-    <WithAuth requiredRole="admin">
-      <AdminRequestsPage />
+    <WithAuth>
+      <WithPermissions requiredPermissions={['admin.requests']}>
+        <AdminRequestsPage />
+      </WithPermissions>
     </WithAuth>
   );
 }

@@ -60,7 +60,7 @@ describe("/api/users", () => {
 
     it("should return all users when no roles filter is provided", async () => {
       setupAuthMock(mockSession);
-      setupUserPermissionsMock(['users.view']); // User has users view permission
+      setupUserPermissionsMock(['requests.assign']); // User has requests assign permission
 
       const mockUsers = [
         {
@@ -88,7 +88,7 @@ describe("/api/users", () => {
 
     it("should return filtered users when roles parameter is provided", async () => {
       setupAuthMock(mockSession);
-      setupUserPermissionsMock(['users.view']); // User has users view permission
+      setupUserPermissionsMock(['requests.assign']); // User has requests assign permission
 
       const mockFilteredUsers = [
         {
@@ -111,7 +111,7 @@ describe("/api/users", () => {
 
     it("should handle single role filter", async () => {
       setupAuthMock(mockSession);
-      setupUserPermissionsMock(['users.view']); // User has users view permission
+      setupUserPermissionsMock(['requests.assign']); // User has requests assign permission
 
       const mockFilteredUsers = [
         {
@@ -134,7 +134,7 @@ describe("/api/users", () => {
 
     it("should handle database errors gracefully", async () => {
       setupAuthMock(mockSession);
-      setupUserPermissionsMock(['users.view']); // User has users view permission
+      setupUserPermissionsMock(['requests.assign']); // User has requests assign permission
       (User.findAll as jest.Mock).mockRejectedValue(new Error("Database error"));
 
       const request = new NextRequest("http://localhost:3000/api/users");
@@ -147,7 +147,7 @@ describe("/api/users", () => {
 
     it("should sanitize user data to exclude sensitive information", async () => {
       setupAuthMock(mockSession);
-      setupUserPermissionsMock(['users.view']); // User has users view permission
+      setupUserPermissionsMock(['requests.assign']); // User has requests assign permission
 
       const mockUsersWithSensitiveData = [
         {

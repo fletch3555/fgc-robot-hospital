@@ -164,54 +164,27 @@ export const PERMISSIONS: Record<PermissionName, Permission> = {
     category: 'spare_parts'
   },
 
-  // Robot Inspection
-  'inspection.view': {
-    name: 'inspection.view',
-    description: 'View inspection reports',
-    category: 'inspection'
-  },
-  'inspection.create': {
-    name: 'inspection.create',
-    description: 'Create inspection reports',
-    category: 'inspection'
-  },
-  'inspection.edit': {
-    name: 'inspection.edit',
-    description: 'Edit inspection reports',
-    category: 'inspection'
-  },
-  'inspection.approve': {
-    name: 'inspection.approve',
-    description: 'Approve inspection reports',
-    category: 'inspection'
-  },
-
-  // User Management
-  'users.view': {
-    name: 'users.view',
-    description: 'View user list',
-    category: 'users'
-  },
-  'users.create': {
-    name: 'users.create',
-    description: 'Create new users',
-    category: 'users'
-  },
-  'users.edit': {
-    name: 'users.edit',
-    description: 'Edit user information',
-    category: 'users'
-  },
-  'users.delete': {
-    name: 'users.delete',
-    description: 'Delete users',
-    category: 'users'
-  },
-  'users.role_assign': {
-    name: 'users.role_assign',
-    description: 'Assign roles to users',
-    category: 'users'
-  },
+  // // Robot Inspection
+  // 'inspection.view': {
+  //   name: 'inspection.view',
+  //   description: 'View inspection reports',
+  //   category: 'inspection'
+  // },
+  // 'inspection.create': {
+  //   name: 'inspection.create',
+  //   description: 'Create inspection reports',
+  //   category: 'inspection'
+  // },
+  // 'inspection.edit': {
+  //   name: 'inspection.edit',
+  //   description: 'Edit inspection reports',
+  //   category: 'inspection'
+  // },
+  // 'inspection.approve': {
+  //   name: 'inspection.approve',
+  //   description: 'Approve inspection reports',
+  //   category: 'inspection'
+  // },
 
   // Admin Functions
   'admin.dashboard': {
@@ -265,6 +238,11 @@ export const PERMISSIONS: Record<PermissionName, Permission> = {
     name: 'matches.view',
     description: 'View match schedules',
     category: 'matches'
+  },
+  'teams.view': {
+    name: 'teams.view',
+    description: 'View team information',
+    category: 'teams'
   }
 };
 
@@ -913,13 +891,12 @@ async function canAccessUser(targetUserId: string, action: string, currentUserId
 
   const userPermissions = await getUserPermissions(currentUserId);
   
+  // User management is handled by admin.users permission
   switch (action) {
     case 'read':
-      return userPermissions.includes('users.read') || userPermissions.includes('users.read_all');
     case 'write':
-      return userPermissions.includes('users.write') || userPermissions.includes('users.write_all');
     case 'delete':
-      return userPermissions.includes('users.delete') || userPermissions.includes('users.delete_all');
+      return userPermissions.includes('admin.users');
     default:
       return false;
   }
