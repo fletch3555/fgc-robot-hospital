@@ -346,16 +346,16 @@ export default function Sidebar({ mobileOpen, onMobileToggle }: SidebarProps) {
   return (
     <Box
       component="nav"
-      sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+      sx={{ width: { lg: drawerWidth }, flexShrink: { lg: 0 } }}
     >
-      {/* Mobile drawer */}
+      {/* Mobile and tablet drawer */}
       <Drawer
         variant="temporary"
         open={mobileOpen}
         onClose={onMobileToggle}
         ModalProps={{ keepMounted: true }}
         sx={{
-          display: { xs: 'block', sm: 'none' },
+          display: { xs: 'block', lg: 'none' },
           '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
         }}
       >
@@ -366,7 +366,7 @@ export default function Sidebar({ mobileOpen, onMobileToggle }: SidebarProps) {
       <Drawer
         variant="permanent"
         sx={{
-          display: { xs: 'none', sm: 'block' },
+          display: { xs: 'none', lg: 'block' },
           '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
         }}
         open

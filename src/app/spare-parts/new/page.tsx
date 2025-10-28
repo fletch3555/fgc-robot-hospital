@@ -24,15 +24,20 @@ import {
   TableHead,
   TableRow,
   IconButton,
+  Chip,
 } from '@mui/material';
 import {
   Save as SaveIcon,
   ArrowBack as ArrowBackIcon,
   Add as AddIcon,
   Remove as RemoveIcon,
+  Warning as WarningIcon,
+  Build as BuildIcon,
+  Code as CodeIcon,
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { kopInventory } from '@/data/kop-inventory';
+import { ReviewStatus } from '@/lib/types';
 
 interface FGCInventoryItem {
   id: string;
@@ -40,6 +45,7 @@ interface FGCInventoryItem {
   part_number: string;
   description: string;
   quantity: number;
+  review_status: ReviewStatus;
   image_url?: string;
 }
 
@@ -70,20 +76,60 @@ function NewSparePart() {
     }] as RequestedItem[],
   });
 
-  // Load FGC inventory items from static data
+  // Load FGC inventory items from static data, filtering out "do not loan" items
   useEffect(() => {
     try {
-      // Sort items by group name for better organization
-      const sortedItems = [...kopInventory].sort((a, b) => 
-        a.group_name.localeCompare(b.group_name)
-      );
-      setFgcInventory(sortedItems);
+      // Filter out items that should not be loaned and sort by group name
+      const loanableItems = kopInventory
+        .filter(item => item.review_status !== 'do_not_loan')
+        .sort((a, b) => a.group_name.localeCompare(b.group_name));
+      setFgcInventory(loanableItems);
     } catch (error) {
       console.error('Error loading FGC inventory:', error);
     } finally {
       setLoadingInventory(false);
     }
   }, []);
+
+  // Helper function to get review status chip
+  const getReviewStatusChip = (status: ReviewStatus) => {
+    switch (status) {
+      case 'approval_needed':
+        return (
+          <Chip
+            icon={<WarningIcon />}
+            label="Approval Required"
+            color="error"
+            size="small"
+            sx={{ ml: 1 }}
+          />
+        );
+      case 'needs_hardware_review':
+        return (
+          <Chip
+            icon={<BuildIcon />}
+            label="Hardware Review"
+            color="warning"
+            size="small"
+            sx={{ ml: 1 }}
+          />
+        );
+      case 'needs_software_review':
+        return (
+          <Chip
+            icon={<CodeIcon />}
+            label="Software Review"
+            color="info"
+            size="small"
+            sx={{ ml: 1 }}
+          />
+        );
+      case 'normal':
+        return null;
+      default:
+        return null;
+    }
+  };
 
   const addRequestedItem = (afterIndex: number) => {
     setFormData(prev => {
@@ -280,40 +326,48 @@ function NewSparePart() {
                           {formData.requestedItems.map((item, index) => (
                             <TableRow key={`item-${index}`}>
                               <TableCell>
-                                <Autocomplete
-                                  options={fgcInventory}
-                                  getOptionLabel={(option) => `${option.description} - ${option.part_number}`}
-                                  groupBy={(option) => option.group_name}
-                                  value={fgcInventory.find(inv => inv.id === item.fgcInventoryId) || null}
-                                  onChange={(_, newValue) => {
-                                    handleInventoryItemSelect(index, newValue);
-                                  }}
-                                  renderInput={(params) => (
-                                    <TextField
-                                      {...params}
-                                      size="small"
-                                      placeholder="Search FGC inventory..."
-                                      required
-                                    />
-                                  )}
-                                  renderOption={(props, option) => {
-                                    const { key, ...otherProps } = props;
-                                    return (
-                                      <Box component="li" key={key} {...otherProps}>
-                                        <Box>
-                                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                                            {option.description}
-                                          </Typography>
-                                          <Typography variant="caption" color="text.secondary">
-                                            Part #: {option.part_number}
-                                          </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                  <Autocomplete
+                                    options={fgcInventory}
+                                    getOptionLabel={(option) => `${option.description} - ${option.part_number}`}
+                                    groupBy={(option) => option.group_name}
+                                    value={fgcInventory.find(inv => inv.id === item.fgcInventoryId) || null}
+                                    onChange={(_, newValue) => {
+                                      handleInventoryItemSelect(index, newValue);
+                                    }}
+                                    renderInput={(params) => (
+                                      <TextField
+                                        {...params}
+                                        size="small"
+                                        placeholder="Search FGC inventory..."
+                                        required
+                                      />
+                                    )}
+                                    renderOption={(props, option) => {
+                                      const { key, ...otherProps } = props;
+                                      return (
+                                        <Box component="li" key={key} {...otherProps}>
+                                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                            <Box sx={{ flexGrow: 1 }}>
+                                              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                                {option.description}
+                                              </Typography>
+                                              <Typography variant="caption" color="text.secondary">
+                                                Part #: {option.part_number}
+                                              </Typography>
+                                            </Box>
+                                            {getReviewStatusChip(option.review_status)}
+                                          </Box>
                                         </Box>
-                                      </Box>
-                                    );
-                                  }}
-                                  disabled={loadingInventory}
-                                  sx={{ minWidth: 300 }}
-                                />
+                                      );
+                                    }}
+                                    disabled={loadingInventory}
+                                    sx={{ flexGrow: 1, minWidth: 300 }}
+                                  />
+                                  {item.fgcInventoryId && fgcInventory.find(inv => inv.id === item.fgcInventoryId) &&
+                                    getReviewStatusChip(fgcInventory.find(inv => inv.id === item.fgcInventoryId)!.review_status)
+                                  }
+                                </Box>
                               </TableCell>
                               <TableCell align="center">
                                 <TextField

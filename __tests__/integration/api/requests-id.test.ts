@@ -126,11 +126,19 @@ describe("/api/requests/[id]", () => {
 
     it("should update request successfully", async () => {
       setupAuthMock(mockSession);
-      setupUserPermissionsMock(['requests.edit']); // User has requests edit permission
+      // User needs both requests.view (for initial auth) and requests.edit (for update)
+      setupUserPermissionsMock(['requests.view', 'requests.edit']);
 
       const updateData = {
         status: "in-progress",
         comments: "Updated comments",
+      };
+
+      const mockExistingRequest = {
+        id: "test-request-id",
+        type: "hardware",
+        status: "open",
+        comments: "Original comments",
       };
 
       const mockUpdatedRequest = {
@@ -141,8 +149,11 @@ describe("/api/requests/[id]", () => {
         updated_at: new Date().toISOString(),
       };
 
+      // Mock the initial findById call to get request type, then the final findById call
+      (Request.findById as jest.Mock)
+        .mockResolvedValueOnce(mockExistingRequest)
+        .mockResolvedValueOnce(mockUpdatedRequest);
       (Request.update as jest.Mock).mockResolvedValue(mockUpdatedRequest);
-      (Request.findById as jest.Mock).mockResolvedValue(mockUpdatedRequest);
 
       const request = new NextRequest("http://localhost:3000/api/requests/test-request-id", {
         method: "PATCH",
@@ -159,8 +170,11 @@ describe("/api/requests/[id]", () => {
 
     it("should return 404 when updating non-existent request", async () => {
       setupAuthMock(mockSession);
-      setupUserPermissionsMock(['requests.edit']); // User has requests edit permission
-      (Request.update as jest.Mock).mockResolvedValue(null);
+      // User needs both requests.view (for initial auth) and requests.edit (for update)
+      setupUserPermissionsMock(['requests.view', 'requests.edit']);
+      
+      // Mock the initial findById to return null (request not found)
+      (Request.findById as jest.Mock).mockResolvedValue(null);
 
       const updateData = { status: "in-progress" };
       const request = new NextRequest("http://localhost:3000/api/requests/test-request-id", {
@@ -177,7 +191,16 @@ describe("/api/requests/[id]", () => {
 
     it("should handle database errors during update", async () => {
       setupAuthMock(mockSession);
-      setupUserPermissionsMock(['requests.edit']); // User has requests edit permission
+      // User needs both requests.view (for initial auth) and requests.edit (for update)
+      setupUserPermissionsMock(['requests.view', 'requests.edit']);
+      
+      const mockExistingRequest = {
+        id: "test-request-id",
+        type: "hardware",
+        status: "open",
+      };
+      
+      (Request.findById as jest.Mock).mockResolvedValue(mockExistingRequest);
       (Request.update as jest.Mock).mockRejectedValue(new Error("Database error"));
 
       const updateData = { status: "in-progress" };

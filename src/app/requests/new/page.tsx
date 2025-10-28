@@ -595,7 +595,7 @@ function CreateRequestPage() {
                     </Box>
                   </ToggleButton>
                 )}
-                {canAccess('spare_parts', 'create') && (
+                {canAccess('battery_charging', 'create') && (
                   <ToggleButton value="battery_charging" aria-label="battery charging">
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
                       <BatteryChargingFullRounded />

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/database";
 import { Request } from "@/models/Request";
 import { checkPermissions } from "@/lib/authz";
+import { PermissionName } from "@/lib/auth-types";
 
 export async function GET(
   req: NextRequest,
@@ -37,13 +38,29 @@ export async function PATCH(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const authz = await checkPermissions(['requests.edit']);
-  if (!authz.authorized) {
-    return authz.response!;
+  // First check if user is authenticated
+  const authCheck = await checkPermissions(['requests.view']);
+  if (!authCheck.authorized) {
+    return authCheck.response!;
   }
 
   try {
     const params = await context.params;
+
+    // Get the request to determine its type
+    await connectToDatabase();
+    const existingRequest = await Request.findById(params.id);
+    
+    if (!existingRequest) {
+      return NextResponse.json({ error: "Request not found" }, { status: 404 });
+    }
+
+    // Check for type-specific edit permission based on request type
+    const typeSpecificPermission = `${existingRequest.type}.edit` as PermissionName;
+    const authz = await checkPermissions([typeSpecificPermission, 'requests.edit'], false);
+    if (!authz.authorized) {
+      return authz.response!;
+    }
 
     const body = await req.json();
     const updateData: Record<string, unknown> = {};
