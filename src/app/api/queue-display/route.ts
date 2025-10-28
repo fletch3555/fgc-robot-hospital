@@ -35,10 +35,12 @@ export async function GET() {
       
       const type = request.type as keyof typeof groupedRequests;
       if (groupedRequests[type]) {
-        if (request.status === 'open') {
+        // A request is "open" (unassigned) only if status is 'open' AND no one is assigned
+        // A request is "in progress" if it has someone assigned OR status is 'in-progress'
+        if (request.status === 'open' && !request.assigned_to) {
           groupedRequests[type].open.push(enrichedRequest);
           totalOpen++;
-        } else if (request.status === 'in-progress') {
+        } else if (request.status === 'in-progress' || (request.status === 'open' && request.assigned_to)) {
           groupedRequests[type].inProgress.push(enrichedRequest);
           totalInProgress++;
         }

@@ -277,10 +277,6 @@ export default function QueueDisplayPage() {
           {Object.entries(queueData.requests).map(([type, typeData]) => {
             const totalForType = typeData.open.length + typeData.inProgress.length;
 
-            if (totalForType === 0) {
-              return null;
-            }
-
             const colors = TYPE_COLORS[type];
 
             return (
@@ -383,7 +379,7 @@ export default function QueueDisplayPage() {
                                   </Typography>
                                 </Stack>
                               </Stack>
-                              {request.comments && (
+                              {/* {request.comments && (
                                 <Typography
                                   variant="body2"
                                   sx={{
@@ -397,7 +393,7 @@ export default function QueueDisplayPage() {
                                 >
                                   {request.comments}
                                 </Typography>
-                              )}
+                              )} */}
                             </CardContent>
                           </Card>
                         ))}
@@ -456,7 +452,7 @@ export default function QueueDisplayPage() {
                                   </Typography>
                                 </Stack>
                               </Stack>
-                              {request.comments && (
+                              {/* {request.comments && (
                                 <Typography
                                   variant="body2"
                                   sx={{
@@ -470,7 +466,7 @@ export default function QueueDisplayPage() {
                                 >
                                   {request.comments}
                                 </Typography>
-                              )}
+                              )} */}
                             </CardContent>
                           </Card>
                         ))}
