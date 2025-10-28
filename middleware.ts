@@ -8,6 +8,11 @@ export default withAuth(
       return NextResponse.next();
     }
 
+    // Allow access to queue display page without authentication
+    if (req.nextUrl.pathname.startsWith('/display-queue-monitor')) {
+      return NextResponse.next();
+    }
+
     // Check if user has required role for admin pages
     if (req.nextUrl.pathname.startsWith('/admin/')) {
       const roles = req.nextauth.token?.roles as string[] | undefined;
@@ -26,6 +31,11 @@ export default withAuth(
           return true;
         }
         
+        // Allow access to queue display page without token
+        if (req.nextUrl.pathname.startsWith('/display-queue-monitor')) {
+          return true;
+        }
+        
         // Require token for all other pages
         return !!token;
       },
@@ -38,12 +48,13 @@ export const config = {
     /*
      * Match all request paths except for the ones starting with:
      * - api/auth (auth endpoints)
+     * - api/queue-display (unauthenticated queue display API)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - sw.js (service worker)
      * - images (public images)
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|sw.js|images).*)',
+    '/((?!api/auth|api/queue-display|_next/static|_next/image|favicon.ico|sw.js|images).*)',
   ],
 };
