@@ -6,7 +6,7 @@ import { kopInventory } from '@/data/kop-inventory';
 
 export async function POST(request: NextRequest) {
   try {
-    const authz = await checkPermissions(['spare_parts.issue']);
+    const authz = await checkPermissions(['spare_parts.create']);
     
     if (!authz.authorized) {
       return authz.response!;

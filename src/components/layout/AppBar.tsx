@@ -32,7 +32,7 @@ export default function TopAppBar({ onMobileMenuToggle }: AppBarProps) {
           aria-label="open drawer"
           edge="start"
           onClick={onMobileMenuToggle}
-          sx={{ mr: 2, display: { sm: 'none' } }}
+          sx={{ mr: 2, display: { lg: 'none' } }}
         >
           <MenuIcon />
         </IconButton>

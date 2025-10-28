@@ -159,6 +159,7 @@ INSERT INTO role_permissions (role, permission_name) VALUES
 ('flying_squad_software', 'software.edit'),
 ('flying_squad_software', 'software.assignee'),
 ('flying_squad_software', 'spare_parts.view'),
+('flying_squad_software', 'spare_parts.create'),
 ('flying_squad_software', 'documentation.view'),
 ('flying_squad_software', 'inventory.view')
 ON CONFLICT DO NOTHING;
