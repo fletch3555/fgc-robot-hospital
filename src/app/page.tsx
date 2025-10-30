@@ -137,12 +137,16 @@ interface AnalyticsData {
     completedThisWeek: number;
     completedThisMonth: number;
     activeRequests: number;
-    averageResolutionHours: number;
+    averageResolutionMinutes: number;
   };
   averageResolutionTime: Array<{
     type: string;
-    averageHours: number;
+    averageMinutes: number;
     completedCount: number;
+  }>;
+  completedByDay: Array<{
+    date: string;
+    count: number;
   }>;
   // priorityDistribution: Array<{
   //   priority: string;
@@ -309,7 +313,7 @@ function Home() {
             <WithPermissions requiredPermissions={['requests.view']}>
               <GridItem size={{ xs: 12, sm: 6, md: 3 }}>
                 <AnalyticsWidget
-                  title="Completed Today"
+                  title="Completed Requests"
                   icon={<TrendingUpRounded />}
                   color="success"
                   primaryMetric={{
@@ -321,16 +325,14 @@ function Home() {
                       timeframe: "vs yesterday"
                     }
                   }}
-                  secondaryMetrics={[
-                    {
-                      value: analyticsData.performanceMetrics?.completedThisWeek || 0,
-                      label: "This Week"
-                    },
-                    {
-                      value: analyticsData.performanceMetrics?.completedThisMonth || 0,
-                      label: "This Month"
-                    }
-                  ]}
+                  secondaryMetrics={analyticsData.completedByDay?.slice(0, 5).map(day => {
+                    const date = new Date(day.date);
+                    const dayName = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                    return {
+                      value: day.count,
+                      label: dayName
+                    };
+                  }) || []}
                 />
               </GridItem>
             </WithPermissions>
@@ -343,11 +345,11 @@ function Home() {
                   icon={<AccessTimeRounded />}
                   color="info"
                   primaryMetric={{
-                    value: Math.round(analyticsData.performanceMetrics?.averageResolutionHours || 0),
-                    label: "Avg Hours"
+                    value: Math.round(analyticsData.performanceMetrics?.averageResolutionMinutes || 0),
+                    label: "Avg Minutes"
                   }}
                   secondaryMetrics={analyticsData.averageResolutionTime?.map(type => ({
-                    value: Math.round(type.averageHours),
+                    value: Math.round(type.averageMinutes),
                     label: `${type.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} (${type.completedCount})`
                   }))}
                 />
@@ -362,17 +364,17 @@ function Home() {
                   icon={<InventoryRounded />}
                   color="secondary"
                   primaryMetric={{
-                    value: analyticsData.sparePartsStats?.pendingRequests || 0,
-                    label: "Pending Requests"
+                    value: analyticsData.sparePartsStats?.currentlyLoaned || 0,
+                    label: "Currently Loaned"
                   }}
                   secondaryMetrics={[
                     {
-                      value: analyticsData.sparePartsStats?.currentlyLoaned || 0,
-                      label: "Currently Loaned"
-                    },
-                    {
                       value: analyticsData.sparePartsStats?.totalIssued || 0,
                       label: "Total Issued"
+                    },
+                    {
+                      value: analyticsData.sparePartsStats?.totalReturned || 0,
+                      label: "Total Returned"
                     }
                   ]}
                 />
@@ -519,7 +521,7 @@ function Home() {
                       title="Hardware Support"
                       action={
                         <Chip
-                          label={`${dashboardData.hardware.pending} Pending`}
+                          label={`${dashboardData.hardware.pending} Unassigned`}
                           color="warning"
                           size="small"
                         />
@@ -554,7 +556,7 @@ function Home() {
                       title="Software Support"
                       action={
                         <Chip
-                          label={`${dashboardData.software.pending} Pending`}
+                          label={`${dashboardData.software.pending} Unassigned`}
                           color="warning"
                           size="small"
                         />
@@ -589,7 +591,7 @@ function Home() {
                       title="Machine Shop"
                       action={
                         <Chip
-                          label={`${dashboardData.machine_shop.pending} Pending`}
+                          label={`${dashboardData.machine_shop.pending} Unassigned`}
                           color="warning"
                           size="small"
                         />
@@ -624,7 +626,7 @@ function Home() {
                       title="Battery & Parts"
                       action={
                         <Chip
-                          label={`${dashboardData.battery_charging.pending + dashboardData.spare_parts.pending} Pending`}
+                          label={`${dashboardData.battery_charging.pending + dashboardData.spare_parts.pending} Unassigned`}
                           color="warning"
                           size="small"
                         />
@@ -669,7 +671,7 @@ function Home() {
                     <CardHeader
                       avatar={<BuildRounded />}
                       title="Hardware Support Requests"
-                      subheader="Pending and In-Progress"
+                      subheader="Unassigned and In-Progress"
                     />
                     <CardContent>
                       {dashboardData.hardware.requests.length > 0 ? (
@@ -693,7 +695,7 @@ function Home() {
                         </List>
                       ) : (
                         <Typography variant="body2" color="text.secondary">
-                          No pending or in-progress hardware requests
+                          No unassigned or in-progress hardware requests
                         </Typography>
                       )}
                     </CardContent>
@@ -707,7 +709,7 @@ function Home() {
                     <CardHeader
                       avatar={<ComputerRounded />}
                       title="Software Support Requests"
-                      subheader="Pending and In-Progress"
+                      subheader="Unassigned and In-Progress"
                     />
                     <CardContent>
                       {dashboardData.software.requests.length > 0 ? (
@@ -731,7 +733,7 @@ function Home() {
                         </List>
                       ) : (
                         <Typography variant="body2" color="text.secondary">
-                          No pending or in-progress software requests
+                          No unassigned or in-progress software requests
                         </Typography>
                       )}
                     </CardContent>

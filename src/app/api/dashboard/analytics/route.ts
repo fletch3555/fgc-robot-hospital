@@ -20,6 +20,7 @@ export async function GET() {
       sparePartsStats,
       performanceMetrics,
       averageResolutionTime,
+      completedByDay,
       // priorityDistribution
     ] = await Promise.all([
       getRequestsByStatus(),
@@ -29,6 +30,7 @@ export async function GET() {
       getSparePartsStats(),
       getPerformanceMetrics(),
       getAverageResolutionTime(),
+      getCompletedByDay(),
       // getPriorityDistribution()
     ]);
 
@@ -40,6 +42,7 @@ export async function GET() {
       sparePartsStats,
       performanceMetrics,
       averageResolutionTime,
+      completedByDay,
       // priorityDistribution
     });
   } catch (error: unknown) {
@@ -206,13 +209,13 @@ async function getSparePartsStats() {
 
 async function getPerformanceMetrics() {
   const result = await query(`
-    SELECT 
+    SELECT
       COUNT(*) FILTER (WHERE status = 'completed') as total_completed,
       COUNT(*) FILTER (WHERE status = 'completed' AND updated_at >= CURRENT_DATE) as completed_today,
       COUNT(*) FILTER (WHERE status = 'completed' AND updated_at >= CURRENT_DATE - INTERVAL '7 days') as completed_week,
       COUNT(*) FILTER (WHERE status = 'completed' AND updated_at >= CURRENT_DATE - INTERVAL '30 days') as completed_month,
       COUNT(*) FILTER (WHERE status IN ('open', 'in-progress')) as active_requests,
-      AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/3600) FILTER (WHERE status = 'completed') as avg_resolution_hours
+      AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/60) FILTER (WHERE status = 'completed') as avg_resolution_minutes
     FROM requests
   `);
 
@@ -222,7 +225,7 @@ async function getPerformanceMetrics() {
     completed_week?: string;
     completed_month?: string;
     active_requests?: string;
-    avg_resolution_hours?: string;
+    avg_resolution_minutes?: string;
   };
   return {
     totalCompleted: parseInt(row.total_completed || '0'),
@@ -230,15 +233,15 @@ async function getPerformanceMetrics() {
     completedThisWeek: parseInt(row.completed_week || '0'),
     completedThisMonth: parseInt(row.completed_month || '0'),
     activeRequests: parseInt(row.active_requests || '0'),
-    averageResolutionHours: parseFloat(row.avg_resolution_hours || '0')
+    averageResolutionMinutes: parseFloat(row.avg_resolution_minutes || '0')
   };
 }
 
 async function getAverageResolutionTime() {
   const result = await query(`
-    SELECT 
+    SELECT
       type,
-      AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/3600) as avg_hours,
+      AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/60) as avg_minutes,
       COUNT(*) as completed_count
     FROM requests
     WHERE status = 'completed'
@@ -246,10 +249,28 @@ async function getAverageResolutionTime() {
     GROUP BY type
   `);
 
-  return result.rows.map((row: {type: string; avg_hours: string; completed_count: string}) => ({
+  return result.rows.map((row: {type: string; avg_minutes: string; completed_count: string}) => ({
     type: row.type,
-    averageHours: parseFloat(row.avg_hours || '0'),
+    averageMinutes: parseFloat(row.avg_minutes || '0'),
     completedCount: parseInt(row.completed_count)
+  }));
+}
+
+async function getCompletedByDay() {
+  const result = await query(`
+    SELECT
+      DATE(updated_at) as date,
+      COUNT(*) as count
+    FROM requests
+    WHERE status = 'completed'
+      AND updated_at >= CURRENT_DATE - INTERVAL '5 days'
+    GROUP BY DATE(updated_at)
+    ORDER BY date DESC
+  `);
+
+  return result.rows.map((row: {date: Date; count: string}) => ({
+    date: row.date.toISOString().split('T')[0],
+    count: parseInt(row.count)
   }));
 }
 

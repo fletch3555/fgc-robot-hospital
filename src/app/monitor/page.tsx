@@ -52,6 +52,7 @@ export default function QueueDisplayPage() {
   const [queueData, setQueueData] = useState<QueueData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     const fetchQueueData = async () => {
@@ -75,6 +76,24 @@ export default function QueueDisplayPage() {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      // second: '2-digit',
+      hour12: false,
+    });
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -260,6 +279,39 @@ export default function QueueDisplayPage() {
                       In Progress
                     </Typography>
                   </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Box>
+          {/* Time Widget */}
+          <Box sx={{ flex: 1 }}>
+            <Card
+              elevation={8}
+              sx={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                height: '100%',
+              }}
+            >
+              <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                <Stack spacing={0.5} alignItems="center" justifyContent="center">
+                  <Typography
+                    variant="h2"
+                    sx={{
+                      fontWeight: 'bold',
+                      color: 'white',
+                      fontFamily: 'monospace',
+                      lineHeight: 1,
+                    }}
+                  >
+                    {formatTime(currentTime)}
+                  </Typography>
+                  <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)', mt: 0.5 }}>
+                    {currentTime.toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </Typography>
                 </Stack>
               </CardContent>
             </Card>

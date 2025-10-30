@@ -167,7 +167,7 @@ export const countries: CountryInfo[] = [
   { code: 'VIN', name: 'Saint Vincent and the Grenadines' },
   // { code: 'SAM', name: 'Samoa' },
   { code: 'SMR', name: 'San Marino' },
-  // { code: 'STP', name: 'São Tomé and Príncipe' },
+  { code: 'STP', name: 'São Tomé and Príncipe' },
   { code: 'KSA', name: 'Saudi Arabia' },
   { code: 'SEN', name: 'Senegal' },
   { code: 'SRB', name: 'Serbia' },
