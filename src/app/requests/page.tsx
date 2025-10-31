@@ -18,6 +18,8 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import {
   BuildRounded,
@@ -33,7 +35,7 @@ import { PermissionName } from '@/lib/auth-types';
 import { usePermissions } from '@/contexts/PermissionsContext';
 
 function RequestsPage() {
-  const { fetchWithAuth, isAuthenticated, isLoading } = useAuthenticatedFetch();
+  const { fetchWithAuth, isAuthenticated, isLoading, session } = useAuthenticatedFetch();
   const [requests, setRequests] = useState<IRequest[]>([]);
   const [closedRequests, setClosedRequests] = useState<IRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +43,7 @@ function RequestsPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<IRequest | null>(null);
   const [selectedTab, setSelectedTab] = useState(0);
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
   const { hasPermission } = usePermissions();
 
   useEffect(() => {
@@ -140,10 +143,15 @@ function RequestsPage() {
   // Ensure selectedTab is within bounds of visible tabs
   const safeSelectedTab = Math.min(selectedTab, Math.max(0, visibleTabs.length - 1));
 
-  // Filter requests based on selected tab
-  const filteredRequests = safeSelectedTab === 0 || !visibleTabs[safeSelectedTab]
+  // Filter requests based on selected tab and "Only mine" filter
+  let filteredRequests = safeSelectedTab === 0 || !visibleTabs[safeSelectedTab]
     ? requests
     : requests.filter(request => request.type === visibleTabs[safeSelectedTab].value);
+
+  // Apply "Only mine" filter if enabled
+  if (showOnlyMine && session?.user?.id) {
+    filteredRequests = filteredRequests.filter(request => request.assigned_to === session.user.id);
+  }
 
   // Separate pending (open and unassigned) from other active requests
   const pendingRequests = filteredRequests.filter(
@@ -197,6 +205,20 @@ function RequestsPage() {
           >
             New Request
           </Button> */}
+        </Box>
+
+        {/* Filter Controls */}
+        <Box sx={{ mb: 3 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showOnlyMine}
+                onChange={(e) => setShowOnlyMine(e.target.checked)}
+                color="primary"
+              />
+            }
+            label="Only mine"
+          />
         </Box>
 
         {/* Tabs for filtering by request type - Desktop */}
