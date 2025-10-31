@@ -43,7 +43,7 @@ interface ApiMatch {
   field: number;
   played: boolean;
   participants: Array<{
-    country: string;
+    countryCode: string;
   }>;
 }
 
@@ -118,12 +118,12 @@ const MatchSchedulePage: React.FC = () => {
           return {
             id: match.id,
             label: match.id,
-            red1: fetchCountry(match.participants[0]?.country) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
-            red2: fetchCountry(match.participants[1]?.country) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
-            red3: fetchCountry(match.participants[2]?.country) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
-            blue1: fetchCountry(match.participants[3]?.country) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
-            blue2: fetchCountry(match.participants[4]?.country) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
-            blue3: fetchCountry(match.participants[5]?.country) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
+            red1: fetchCountry(match.participants[0]?.countryCode) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
+            red2: fetchCountry(match.participants[1]?.countryCode) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
+            red3: fetchCountry(match.participants[2]?.countryCode) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
+            blue1: fetchCountry(match.participants[3]?.countryCode) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
+            blue2: fetchCountry(match.participants[4]?.countryCode) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
+            blue3: fetchCountry(match.participants[5]?.countryCode) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
             scheduledTime: moment(match.scheduledTime).format('H:mm ddd'),
             field: match.field,
           };
