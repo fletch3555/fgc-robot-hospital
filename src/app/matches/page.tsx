@@ -49,10 +49,10 @@ interface ApiMatch {
 
 // Flag component for rendering country flags
 const Flag: React.FC<{ country: Country; size?: number }> = ({ country, size = 24 }) => {
-  const flagUrl = `https://results.first.global/_next/image?url=/static/flags/4x3/${country.short.toLowerCase()}.svg&w=16&q=10`;
+  const flagUrl = `https://flagcdn.com/w40/${country.short.toLowerCase()}.png`;
   
   return (
-    <Image
+    <img
       src={flagUrl}
       alt={`${country.code} flag`}
       width={size}
@@ -61,6 +61,7 @@ const Flag: React.FC<{ country: Country; size?: number }> = ({ country, size = 2
         marginRight: 8,
         borderRadius: 2,
         backgroundColor: '#ffffff',
+        objectFit: 'cover',
       }}
       onError={(e) => {
         // Fallback to a placeholder or hide if flag not found
@@ -201,6 +202,18 @@ const MatchSchedulePage: React.FC = () => {
     );
   };
 
+  // Field color mapping
+  const getFieldColor = (fieldNumber: number): string => {
+    const colorMap: { [key: number]: string } = {
+      1: '#FFD700', // yellow
+      2: '#4CAF50', // green
+      3: '#00BCD4', // teal
+      4: '#2196F3', // blue
+      5: '#FF9800', // orange
+    };
+    return colorMap[fieldNumber] || '#757575'; // default gray
+  };
+
   // Define DataGrid columns (matching original template)
   const columns: GridColDef[] = [
     {
@@ -212,12 +225,34 @@ const MatchSchedulePage: React.FC = () => {
       sortable: false,
     },
     {
+      field: 'scheduledTime',
+      headerName: 'Time',
+      flex: 0.7,
+      align: 'center',
+      headerAlign: 'center',
+      sortable: false,
+    },
+    {
       field: 'field',
       headerName: 'Field',
       flex: 0.5,
       align: 'center',
       headerAlign: 'center',
       sortable: false,
+      renderCell: (params) => (
+        <Box
+          sx={{
+            backgroundColor: getFieldColor(params.value as number),
+            color: '#000',
+            fontWeight: 'bold',
+            padding: '4px 12px',
+            borderRadius: '4px',
+            display: 'inline-block',
+          }}
+        >
+          {params.value}
+        </Box>
+      ),
     },
     {
       field: 'red1',
@@ -269,14 +304,6 @@ const MatchSchedulePage: React.FC = () => {
       headerName: '',
       flex: 0.5,
       renderCell: renderFlag,
-      align: 'center',
-      headerAlign: 'center',
-      sortable: false,
-    },
-    {
-      field: 'scheduledTime',
-      headerName: 'Time',
-      flex: 0.7,
       align: 'center',
       headerAlign: 'center',
       sortable: false,
