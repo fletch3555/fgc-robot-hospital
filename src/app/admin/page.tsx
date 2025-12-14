@@ -166,6 +166,12 @@ function AdminDashboard() {
                     onClick={() => window.location.href = '/admin/roles'}
                   />
                   <Chip
+                    label="View Reports"
+                    clickable
+                    color="info"
+                    onClick={() => window.location.href = '/admin/reports'}
+                  />
+                  <Chip
                     label="View Pending Requests"
                     clickable
                     color="warning"

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, SyntheticEvent } from 'react';
-import Image from 'next/image';
 import {
   Box,
   Typography,
@@ -43,14 +42,14 @@ interface ApiMatch {
   field: number;
   played: boolean;
   participants: Array<{
-    countryCode: string;
+    country: string;
   }>;
 }
 
 // Flag component for rendering country flags
 const Flag: React.FC<{ country: Country; size?: number }> = ({ country, size = 24 }) => {
-  const flagUrl = `https://flagcdn.com/w40/${country.short.toLowerCase()}.png`;
-  
+  // const flagUrl = `https://flagcdn.com/w40/${country.short.toLowerCase()}.png`;
+  const flagUrl = `https://results.first.global/_next/image?url=%2Fstatic%2Fflags%2F4x3%2F${country.short.toLowerCase()}.svg&w=16&q=75`;
   return (
     <img
       src={flagUrl}
@@ -118,12 +117,12 @@ const MatchSchedulePage: React.FC = () => {
           return {
             id: match.id,
             label: match.id,
-            red1: fetchCountry(match.participants[0]?.countryCode) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
-            red2: fetchCountry(match.participants[1]?.countryCode) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
-            red3: fetchCountry(match.participants[2]?.countryCode) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
-            blue1: fetchCountry(match.participants[3]?.countryCode) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
-            blue2: fetchCountry(match.participants[4]?.countryCode) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
-            blue3: fetchCountry(match.participants[5]?.countryCode) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
+            red1: fetchCountry(match.participants[0]?.country) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
+            red2: fetchCountry(match.participants[1]?.country) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
+            red3: fetchCountry(match.participants[2]?.country) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
+            blue1: fetchCountry(match.participants[3]?.country) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
+            blue2: fetchCountry(match.participants[4]?.country) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
+            blue3: fetchCountry(match.participants[5]?.country) || { code: 'UNK', name: 'Unknown', value: 'unk', label: 'Unknown', short: 'unk' },
             scheduledTime: moment(match.scheduledTime).format('H:mm ddd'),
             field: match.field,
           };
