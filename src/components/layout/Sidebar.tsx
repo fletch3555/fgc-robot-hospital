@@ -38,6 +38,7 @@ import {
   Schedule as ScheduleIcon,
   Settings as ServoIcon,
   Code as ServoProgrammingIcon,
+  Assessment as ReportsIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 280;
@@ -106,6 +107,12 @@ const navItems: NavItem[] = [
         text: 'Dashboard',
         icon: <DashboardIcon />,
         href: '/admin',
+        requiredPermissions: ['admin.dashboard'],
+      },
+      {
+        text: 'Reports',
+        icon: <ReportsIcon />,
+        href: '/admin/reports',
         requiredPermissions: ['admin.dashboard'],
       },
       {

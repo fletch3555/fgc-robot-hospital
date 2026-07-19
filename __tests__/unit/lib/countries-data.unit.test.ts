@@ -19,6 +19,8 @@ describe('Countries Data Unit Tests', () => {
       expect(country).toHaveProperty('code');
       expect(country).toHaveProperty('name');
       expect(typeof country.code).toBe('string');
+      expect(typeof country.alpha2).toBe('string');
+      expect(typeof country.alpha3).toBe('string');
       expect(typeof country.name).toBe('string');
     });
 
@@ -28,10 +30,32 @@ describe('Countries Data Unit Tests', () => {
       expect(uniqueCodes.size).toBe(codes.length);
     });
 
+    it('should have unique alpha2 codes', () => {
+      const codes = countries.map(country => country.alpha2);
+      const uniqueCodes = new Set(codes);
+      
+      const dupes = codes.filter((item, index) => codes.indexOf(item) !== index);
+      expect(dupes).toEqual([]);
+
+      expect(uniqueCodes.size).toBe(codes.length);
+    });
+
+    it('should have unique alpha3 codes', () => {
+      const codes = countries.map(country => country.alpha3);
+      const uniqueCodes = new Set(codes);
+      
+      const dupes = codes.filter((item, index) => codes.indexOf(item) !== index);
+      expect(dupes).toEqual([]);
+      
+      expect(uniqueCodes.size).toBe(codes.length);
+    });
+
     it('should have non-empty country names', () => {
       countries.forEach(country => {
         expect(country.name.trim()).toBeTruthy();
         expect(country.code.trim()).toBeTruthy();
+        expect(country.alpha2.trim()).toBeTruthy();
+        expect(country.alpha3.trim()).toBeTruthy();
       });
     });
   });

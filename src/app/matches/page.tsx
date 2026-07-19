@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, SyntheticEvent } from 'react';
-import Image from 'next/image';
 import {
   Box,
   Typography,
@@ -49,8 +48,8 @@ interface ApiMatch {
 
 // Flag component for rendering country flags
 const Flag: React.FC<{ country: Country; size?: number }> = ({ country, size = 24 }) => {
-  const flagUrl = `https://flagcdn.com/w40/${country.short.toLowerCase()}.png`;
-  
+  // const flagUrl = `https://flagcdn.com/w40/${country.short.toLowerCase()}.png`;
+  const flagUrl = `https://results.first.global/_next/image?url=%2Fstatic%2Fflags%2F4x3%2F${country.short.toLowerCase()}.svg&w=16&q=75`;
   return (
     <img
       src={flagUrl}
