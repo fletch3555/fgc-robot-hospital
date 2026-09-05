@@ -246,7 +246,7 @@ export default function QueueDisplayPage() {
               }}
             >
               <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
+                <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'center' }}>
                   <HourglassEmpty sx={{ fontSize: 40, color: 'white' }} />
                   <Box>
                     <Typography variant="h2" sx={{ fontWeight: 'bold', color: 'white', lineHeight: 1 }}>
@@ -269,7 +269,7 @@ export default function QueueDisplayPage() {
               }}
             >
               <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
+                <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'center' }}>
                   <CheckCircle sx={{ fontSize: 40, color: 'white' }} />
                   <Box>
                     <Typography variant="h2" sx={{ fontWeight: 'bold', color: 'white', lineHeight: 1 }}>
@@ -293,7 +293,7 @@ export default function QueueDisplayPage() {
               }}
             >
               <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Stack spacing={0.5} alignItems="center" justifyContent="center">
+                <Stack spacing={0.5} sx={{ alignItems: 'center', justifyContent: 'center' }}>
                   <Typography
                     variant="h2"
                     sx={{
@@ -340,7 +340,7 @@ export default function QueueDisplayPage() {
                 }}
               >
                 <CardContent>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+                  <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                     <Typography
                       variant="h4"
                       sx={{
@@ -369,7 +369,7 @@ export default function QueueDisplayPage() {
                   {/* In Progress Requests */}
                   {typeData.inProgress.length > 0 && (
                     <Box sx={{ mb: 4 }}>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, pb: 1, borderBottom: '2px solid rgba(255,183,77,0.3)' }}>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2, pb: 1, borderBottom: '2px solid rgba(255,183,77,0.3)' }}>
                         <Box
                           sx={{
                             width: 12,
@@ -399,7 +399,7 @@ export default function QueueDisplayPage() {
                             }}
                           >
                             <CardContent sx={{ py: 2 }}>
-                              <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+                              <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Typography
                                   variant="h6"
                                   sx={{
@@ -411,7 +411,7 @@ export default function QueueDisplayPage() {
                                   {request.country_name || request.country_code}
                                 </Typography>
                                 {request.assigned_to_name && (
-                                  <Stack direction="row" spacing={0.5} alignItems="center">
+                                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
                                     <Person sx={{ fontSize: 20, color: 'white' }} />
                                     <Typography
                                       variant="body1"
@@ -424,7 +424,7 @@ export default function QueueDisplayPage() {
                                     </Typography>
                                   </Stack>
                                 )}
-                                <Stack direction="row" spacing={0.5} alignItems="center">
+                                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
                                   <AccessTime sx={{ fontSize: 18, color: 'rgba(255,255,255,0.7)' }} />
                                   <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
                                     {formatDate(request.created_at.toString())}
@@ -456,7 +456,7 @@ export default function QueueDisplayPage() {
                   {/* Open Requests */}
                   {typeData.open.length > 0 && (
                     <Box>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2, pb: 1, borderBottom: '2px solid rgba(100,181,246,0.3)' }}>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2, pb: 1, borderBottom: '2px solid rgba(100,181,246,0.3)' }}>
                         <Box
                           sx={{
                             width: 12,
@@ -486,7 +486,7 @@ export default function QueueDisplayPage() {
                             }}
                           >
                             <CardContent sx={{ py: 2 }}>
-                              <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+                              <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Typography
                                   variant="h6"
                                   sx={{
@@ -497,7 +497,7 @@ export default function QueueDisplayPage() {
                                 >
                                   {request.country_name || request.country_code}
                                 </Typography>
-                                <Stack direction="row" spacing={0.5} alignItems="center">
+                                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
                                   <AccessTime sx={{ fontSize: 18, color: 'rgba(255,255,255,0.7)' }} />
                                   <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
                                     {formatDate(request.created_at.toString())}
@@ -544,7 +544,7 @@ export default function QueueDisplayPage() {
             backdropFilter: 'blur(10px)',
           }}
         >
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             <Box
               sx={{
                 width: 10,

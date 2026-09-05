@@ -325,7 +325,7 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
 
   if (authLoading || isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
         <CircularProgress />
       </Box>
     );
@@ -358,8 +358,8 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
   }
 
   return (
-    <Box py={4}>
-      <Box display="flex" alignItems="center" mb={4}>
+    <Box sx={{ py: 4 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
         <Button
           component={Link}
           href="/spare-parts"
@@ -495,12 +495,12 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
                               value={item.requestedQuantity}
                               onChange={(e) => handleRequestedItemChange(index, 'requestedQuantity', parseInt(e.target.value) || 1)}
                               required
-                              inputProps={{ min: 1, style: { textAlign: 'center' } }}
+                              slotProps={{ htmlInput: { min: 1, style: { textAlign: 'center' } } }}
                               sx={{ width: 80 }}
                             />
                           </TableCell>
                           <TableCell align="center">
-                            <Box display="flex" gap={1} justifyContent="center">
+                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                               <IconButton
                                 onClick={() => addRequestedItem(index)}
                                 size="small"
@@ -539,7 +539,7 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
 
               <Grid size={12}>
                 <Divider sx={{ my: 2 }} />
-                <Box display="flex" justifyContent="flex-end" gap={2}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                   <Button
                     component={Link}
                     href="/spare-parts"

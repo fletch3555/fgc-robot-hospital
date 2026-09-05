@@ -27,6 +27,7 @@ const mockRouter = {
   forward: jest.fn(),
   refresh: jest.fn(),
   prefetch: jest.fn(),
+  bfcacheId: 'test-bfcache-id',
 };
 
 // Mock fetch globally

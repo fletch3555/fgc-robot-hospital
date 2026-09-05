@@ -124,7 +124,7 @@ function SparePartsPage() {
   if (isLoading || loading) {
     return (
       <Container>
-        <Box display="flex" justifyContent="center" mt={4}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <CircularProgress />
         </Box>
       </Container>
@@ -134,7 +134,7 @@ function SparePartsPage() {
   if (error) {
     return (
       <Container>
-        <Box mt={4}>
+        <Box sx={{ mt: 4 }}>
           <Alert severity="error">{error}</Alert>
         </Box>
       </Container>
@@ -143,8 +143,8 @@ function SparePartsPage() {
 
   return (
     <Container maxWidth="lg">
-      <Box py={4}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+      <Box sx={{ py: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Typography variant="h4" component="h1">
             Recent Spare Parts Requests
           </Typography>
@@ -161,11 +161,11 @@ function SparePartsPage() {
         {spareParts.length === 0 ? (
           <Card>
             <CardContent>
-              <Box textAlign="center" py={4}>
+              <Box sx={{ textAlign: 'center', py: 4 }}>
                 <Typography variant="h6" color="text.secondary" gutterBottom>
                   No spare parts found
                 </Typography>
-                <Typography variant="body2" color="text.secondary" mb={3}>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
                   Get started by issuing your first spare part to a team.
                 </Typography>
                 <Button
@@ -181,7 +181,7 @@ function SparePartsPage() {
           </Card>
         ) : (
           <>
-            <Typography variant="body2" color="text.secondary" mb={2}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
               Showing {spareParts.length} most recent part(s) issued
             </Typography>
             <TableContainer component={Paper}>
@@ -201,7 +201,7 @@ function SparePartsPage() {
                     <TableRow key={part.id} hover>
                       <TableCell>
                         <Box>
-                          <Typography variant="body2" fontWeight="medium">
+                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
                             {part.fgc_details?.item_description || part.item_name}
                           </Typography>
                           {part.fgc_details && (
@@ -227,15 +227,15 @@ function SparePartsPage() {
                         </Box>
                       </TableCell>
                       <TableCell align="center">
-                        <Typography variant="body2" fontWeight="medium">
+                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
                           {part.quantity}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Typography 
-                          variant="body2" 
+                        <Typography
+                          variant="body2"
                           color={part.status === 'issued' ? 'warning.main' : 'success.main'}
-                          fontWeight="medium"
+                          sx={{ fontWeight: 'medium' }}
                         >
                           {part.status.toUpperCase()}
                         </Typography>

@@ -240,8 +240,8 @@ function UsersPage() {
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
         
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box display="flex" gap={2} alignItems="center">
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <TextField
             placeholder="Search users..."
             value={searchTerm}
@@ -253,7 +253,7 @@ function UsersPage() {
             <SearchIcon />
           </IconButton>
         </Box>
-        <Box display="flex" gap={2}>
+        <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             variant="outlined"
             startIcon={<RefreshIcon />}
@@ -359,7 +359,7 @@ function UsersPage() {
           {editingUser ? 'Edit User' : 'Add New User'}
         </DialogTitle>
         <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2} mt={1}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField
               label="Name"
               value={formData.name}

@@ -73,7 +73,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           </Typography>
         </Box>
         
-        <Box display="flex" gap={3}>
+        <Box sx={{ display: 'flex', gap: 3 }}>
           {/* Sidebar Navigation */}
           <Card sx={{ width: 280, height: 'fit-content', position: 'sticky', top: 24 }}>
             <CardContent sx={{ p: 2 }}>
@@ -105,12 +105,16 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
                         <ListItemIcon sx={{ minWidth: 36 }}>
                           <Icon color={isActive ? 'primary' : 'inherit'} fontSize="small" />
                         </ListItemIcon>
-                        <ListItemText 
-                          primary={item.label} 
-                          primaryTypographyProps={{
-                            color: isActive ? 'primary' : 'inherit',
-                            fontWeight: isActive ? 600 : 400,
-                            fontSize: '0.875rem',
+                        <ListItemText
+                          primary={item.label}
+                          slotProps={{
+                            primary: {
+                              color: isActive ? 'primary' : 'inherit',
+                              sx: {
+                                fontWeight: isActive ? 600 : 400,
+                                fontSize: '0.875rem',
+                              },
+                            },
                           }}
                         />
                       </ListItemButton>
@@ -122,7 +126,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
           </Card>
 
           {/* Main Content */}
-          <Box flex={1}>
+          <Box sx={{ flex: 1 }}>
             {children}
           </Box>
         </Box>

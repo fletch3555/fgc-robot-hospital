@@ -72,7 +72,7 @@ function AdminDashboard() {
   }) => (
     <Card elevation={2}>
       <CardContent>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box>
             <Typography color="textSecondary" gutterBottom variant="body2">
               {title}
@@ -146,7 +146,7 @@ function AdminDashboard() {
                 <Typography variant="h6" gutterBottom>
                   Quick Actions
                 </Typography>
-                <Box display="flex" gap={1} flexWrap="wrap">
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Chip
                     label="Manage Users"
                     clickable

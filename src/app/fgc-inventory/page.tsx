@@ -177,12 +177,14 @@ const FGCInventoryPage = () => {
               value={search}
               onChange={handleSearchChange}
               placeholder="Search by part number or description"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                )
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  )
+                }
               }}
             />
           </Box>
@@ -396,8 +398,8 @@ const FGCInventoryPage = () => {
                     {/* Part Number */}
                     <Typography
                       variant="body2"
-                      fontFamily="monospace"
                       sx={{
+                        fontFamily: 'monospace',
                         mb: 2,
                         color: 'primary.main',
                         fontWeight: 'medium',
@@ -424,7 +426,7 @@ const FGCInventoryPage = () => {
                     <Typography variant="body2" color="text.secondary">
                       Quantity in Kit:
                     </Typography>
-                    <Typography variant="h6" fontWeight="bold" color="secondary.main">
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'secondary.main' }}>
                       {item.quantity}
                     </Typography>
                   </Box>
@@ -438,7 +440,7 @@ const FGCInventoryPage = () => {
 
       {/* Pagination */}
       {!loading && (
-        <Stack spacing={2} alignItems="center">
+        <Stack spacing={2} sx={{ alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Typography variant="body2" color="text.secondary">
               Showing {Math.min((pagination.currentPage - 1) * pagination.limit + 1, pagination.totalCount)} - {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)} of {pagination.totalCount} items
