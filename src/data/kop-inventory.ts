@@ -29,6 +29,15 @@ export const kopInventory: IKoPItem[] = [
     image_url: "/images/Visual_BOM_2025/REV-21-2540-PK10.webp"
   },
   {
+    id: "REV-21-6564",
+    group_name: "Motion",
+    part_number: "REV-21-6564",
+    description: "Cone Wheel - 2in to 3in - MAXSpline - Medium",
+    quantity: 4,
+    review_status: 'normal' as ReviewStatus,
+    image_url: "/images/Visual_BOM_2026/REV-21-6564.png"
+  },
+  {
     id: "REV-31-1108",
     group_name: "Motors & Servos",
     part_number: "REV-31-1108",
@@ -780,7 +789,7 @@ export const kopInventory: IKoPItem[] = [
     group_name: "Motion",
     part_number: "REV-41-1350-PK4",
     description: "60mm Traction Wheel - 4 Pack",
-    quantity: 1,
+    quantity: 2,
     review_status: 'normal' as ReviewStatus,
     image_url: "/images/Visual_BOM_2025/REV-41-1354-PK2.webp"
   },
@@ -1244,6 +1253,15 @@ export const kopInventory: IKoPItem[] = [
     image_url: "/images/Visual_BOM_2025/REV-41-2702-PK4.webp"
   },
   {
+    id: "REV-41-2703",
+    group_name: "Motion",
+    part_number: "REV-41-2703-PK4",
+    description: "Flap Wheel - 4in - 5mm Hex - 2F - Hard - 4 Pack",
+    quantity: 2,
+    review_status: 'needs_hardware_review' as ReviewStatus,
+    image_url: "/images/Visual_BOM_2026/REV-41-2703-PK4.webp"
+  },
+  {
     id: "REV-41-3049",
     group_name: "Structure",
     part_number: "REV-41-3049",
@@ -1271,49 +1289,31 @@ export const kopInventory: IKoPItem[] = [
     image_url: "/images/Visual_BOM_2025/REV-41-3337.webp"
   },
   {
-    id: "REV-41-3681",
+    id: "REV-41-3694",
     group_name: "Game Specific",
-    part_number: "REV-41-3681",
-    description: "FGC25 - Swivel Mount",
+    part_number: "REV-41-3694",
+    description: "FGC26 - Wildfire Balls - Game Piece A",
+    quantity: 6,
+    review_status: 'do_not_loan' as ReviewStatus,
+    image_url: "/images/Visual_BOM_2026/REV-41-3694.png"
+  },
+  {
+    id: "REV-41-3697",
+    group_name: "Game Specific",
+    part_number: "REV-41-3697",
+    description: "FGC26 - Climbing Brace - Field Element A",
     quantity: 1,
     review_status: 'do_not_loan' as ReviewStatus,
-    image_url: "/images/Visual_BOM_2025/REV-41-3681.png"
+    image_url: "/images/Visual_BOM_2026/REV-41-3697.png"
   },
   {
-    id: "REV-41-3683",
+    id: "REV-41-3698",
     group_name: "Game Specific",
-    part_number: "REV-41-3683",
-    description: "FGC25 - Rope",
+    part_number: "REV-41-3698",
+    description: "FGC26 - Heat Shrink - Field Element B",
     quantity: 1,
     review_status: 'do_not_loan' as ReviewStatus,
-    image_url: "/images/Visual_BOM_2025/REV-41-3683.png"
-  },
-  {
-    id: "REV-41-3684",
-    group_name: "Game Specific",
-    part_number: "REV-41-3684",
-    description: "FG25 - Gamepiece A",
-    quantity: 4,
-    review_status: 'do_not_loan' as ReviewStatus,
-    image_url: "/images/Visual_BOM_2025/REV-41-3684.png"
-  },
-  {
-    id: "REV-41-3685",
-    group_name: "Game Specific",
-    part_number: "REV-41-3685",
-    description: "FG25 - Gamepiece B",
-    quantity: 2,
-    review_status: 'do_not_loan' as ReviewStatus,
-    image_url: "/images/Visual_BOM_2025/REV-41-3685.png"
-  },
-  {
-    id: "REV-41-3686",
-    group_name: "Game Specific",
-    part_number: "REV-41-3686",
-    description: "FGC25 - Flow Controller Wheel",
-    quantity: 1,
-    review_status: 'do_not_loan' as ReviewStatus,
-    image_url: "/images/Visual_BOM_2025/REV-41-3686.png"
+    image_url: "/images/Visual_BOM_2026/REV-41-3698.jpg"
   },
   {
     id: "REV-42-1442",
@@ -1323,15 +1323,6 @@ export const kopInventory: IKoPItem[] = [
     quantity: 1,
     review_status: 'do_not_loan' as ReviewStatus,
     image_url: "/images/Visual_BOM_2025/REV-42-1442.webp"
-  },
-  {
-    id: "REV-42-3247",
-    group_name: "Game Specific",
-    part_number: "REV-42-3247",
-    description: "FIRST Global - Ball Pump",
-    quantity: 1,
-    review_status: 'do_not_loan' as ReviewStatus,
-    image_url: "/images/Visual_BOM_2025/REV-42-3247.png"
   },
   {
     id: "REV-45-1259",
