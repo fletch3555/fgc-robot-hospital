@@ -34,6 +34,7 @@ import {
   Security as SecurityIcon,
   Assignment as AssignmentIcon,
   Logout as LogoutIcon,
+  Password as PasswordIcon,
   Category as FGCInventoryIcon,
   Schedule as ScheduleIcon,
   Settings as ServoIcon,
@@ -326,7 +327,18 @@ function SidebarContent({ onMobileToggle }: { onMobileToggle?: () => void }) {
       <Divider />
       
       {session?.user && (
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Button
+            fullWidth
+            variant="outlined"
+            component={Link}
+            href="/account/change-password"
+            startIcon={<PasswordIcon />}
+            onClick={onMobileToggle}
+            color="inherit"
+          >
+            Change Password
+          </Button>
           <Button
             fullWidth
             variant="outlined"

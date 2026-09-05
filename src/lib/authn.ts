@@ -10,7 +10,7 @@ import type { NextAuthOptions, Session, User as NextAuthUser, Account } from "ne
 import { JWT } from "next-auth/jwt";
 import { getServerSession } from "next-auth/next";
 import { signOut } from 'next-auth/react';
-import SlackProvider from "next-auth/providers/slack";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { NextResponse } from "next/server";
 import { User } from "@/models/User";
 import { connectToDatabase } from "@/lib/database";
@@ -53,47 +53,42 @@ export interface AuthErrorContext {
  */
 export const authOptions: NextAuthOptions = {
   providers: [
-    SlackProvider({
-      clientId: process.env.SLACK_CLIENT_ID || '',
-      clientSecret: process.env.SLACK_CLIENT_SECRET || '',
-      authorization: {
-        url: "https://slack.com/openid/connect/authorize",
-        params: {
-          scope: "openid profile email",
-          team: process.env.SLACK_TEAM_ID || ''
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
         }
-      }
+
+        try {
+          await connectToDatabase();
+          const dbUser = await User.findByEmail(credentials.email);
+          if (!dbUser) {
+            return null;
+          }
+
+          const isValid = await User.comparePassword(credentials.password, dbUser.password);
+          if (!isValid) {
+            return null;
+          }
+
+          return {
+            id: dbUser.id,
+            name: dbUser.name,
+            email: dbUser.email,
+          };
+        } catch (error) {
+          console.error('Credentials authorize error:', error);
+          return null;
+        }
+      },
     }),
   ],
   callbacks: {
-    async signIn({ user, account }: { user: NextAuthUser; account: Account | null }) {
-      try {
-        await connectToDatabase();
-        
-        if (account?.provider === 'slack') {
-          const existingUser = await User.findByEmail(user.email!);
-          
-          if (!existingUser) {
-            // Create new user with default guest role
-            const newUser = await User.create({
-              name: user.name!,
-              email: user.email!,
-              password: '', // OAuth users don't need passwords
-              roles: ['guest'] // Start with guest role, can be promoted later
-            });
-            user.id = newUser.id;
-          } else {
-            user.id = existingUser.id;
-          }
-        }
-        
-        return true;
-      } catch (error) {
-        console.error('Authentication sign-in error:', error);
-        return false;
-      }
-    },
-    
     async jwt({ token, user, account }: { token: JWT; user?: NextAuthUser; account?: Account | null }) {
       // On initial sign in, add user info to token
       if (user && account) {
