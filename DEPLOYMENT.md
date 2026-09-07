@@ -26,10 +26,12 @@ inlines env vars into the browser bundle when the name is literally prefixed
 environments: `EVENT_SEASON`.
 
 The Supabase integration only connects to one project, so **Preview** (see below) gets all
-of its vars set by hand, scoped to Preview (and Development, for local `.env`):
+of its vars set by hand, scoped to Preview (and Development, for local `.env`). Use
+`POSTGRES_URL` (not `DATABASE_URL`) so the naming matches Production's integration-managed
+variable — `DATABASE_URL` is reserved as a local-only override for non-Supabase setups:
 
 ```
-DATABASE_URL=postgresql://username:password@host:port/database
+POSTGRES_URL=postgresql://username:password@host:port/database
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
@@ -50,7 +52,7 @@ environments") for why. Requires manual setup, once:
    integration only connects to one project at a time). Note its Postgres connection string
    and its Settings > API values (URL, anon key, service role key).
 2. In Vercel: Project Settings > Environment Variables > add entries scoped to **Preview**
-   (and **Development**, so local dev uses it too) for `DATABASE_URL`,
+   (and **Development**, so local dev uses it too) for `POSTGRES_URL`,
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
    `SUPABASE_SERVICE_ROLE_KEY`, all pointing at the new project. Leave the existing
    **Production**-scoped entries (integration-managed, plus the manually-added
@@ -105,13 +107,14 @@ nobody can sign in to `/admin/users` to create the first one. Bootstrap it once:
 - Verify TypeScript compilation with `npm run build` locally
 
 ### Database Connection Issues
-- Verify `DATABASE_URL` (or, for Production, the integration-managed `POSTGRES_URL`) is correct
+- Verify `POSTGRES_URL` is correct for that environment (`DATABASE_URL` only matters if
+  you're deliberately overriding it locally)
 - Ensure your database allows connections from Vercel's IP ranges
 - Check SSL settings (production databases usually require SSL)
 
 ### Authentication Issues
 - Verify `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` match the same
-  Supabase project as `DATABASE_URL`/`POSTGRES_URL` for that environment
+  Supabase project as `POSTGRES_URL` for that environment
 - Verify `SUPABASE_SERVICE_ROLE_KEY` is set — admin user creation/deletion fails without it
 - Confirm you're not accidentally using Production's Supabase values in Preview or local dev
 

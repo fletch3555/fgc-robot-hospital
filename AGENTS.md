@@ -48,20 +48,22 @@ branch. `vercel.json` and `DEPLOYMENT.md` cover the rest.
 ## Database environments — Production and Preview are separate databases
 
 **Production** and **Preview** deployments use two different Supabase
-Postgres databases, via Vercel's per-environment `DATABASE_URL`/`POSTGRES_URL`
-scoping (Project Settings → Environment Variables). Local development should
+Postgres databases, via Vercel's per-environment `POSTGRES_URL` scoping
+(Project Settings → Environment Variables). Local development should
 point at the **Preview** database too — never point a local `.env` at
 the Production connection string.
 
 The app and `scripts/migrate.js` both read `DATABASE_URL`, falling back to
-`POSTGRES_URL` if unset (see `src/lib/database.ts`). The Supabase Vercel
-integration only manages one project's vars and sets `POSTGRES_URL`, not
-`DATABASE_URL` — it's currently connected to the **Production** project, so
-Production gets its connection string from the integration (`POSTGRES_URL`)
-while Preview's is set manually as `DATABASE_URL` (see `DEPLOYMENT.md`).
-Don't manually add a `DATABASE_URL` override in Production's scope — that
-would create a second, unrotated copy of a secret the integration already
-manages, and it'd take precedence over the integration's value.
+`POSTGRES_URL` if unset (see `src/lib/database.ts`). `POSTGRES_URL` is the
+standard name in both environments: the Supabase Vercel integration only
+manages one project's vars and auto-sets `POSTGRES_URL` for the
+**Production** project it's connected to, and Preview's connection string
+is set manually using that same name (see `DEPLOYMENT.md`) so both
+environments read the same variable. `DATABASE_URL` is reserved as a
+local-only override (e.g. a non-Supabase docker-compose setup) — don't set
+it in Vercel for either environment, since it would shadow `POSTGRES_URL`
+and, for Production, create a second, unrotated copy of a secret the
+integration already manages.
 
 This wasn't always true: earlier in this project's life, local dev and
 every Preview deployment shared the single Production database directly.
@@ -111,7 +113,7 @@ these rules for **any** change to `schema.sql` or a new file under
 `scripts/migrate.js` runs as part of `npm run build`, which Vercel invokes
 for every deployment. It applies pending migrations whenever
 `VERCEL_ENV` is `production` or `preview` — each against that
-environment's own `DATABASE_URL`, tracked in a `schema_migrations` table
+environment's own `POSTGRES_URL`, tracked in a `schema_migrations` table
 so a given migration only runs once per database. Local/non-Vercel builds
 skip it by default. **This means merging a new file under `migrations/`
 to a branch that gets a Preview deployment (or to `main`) applies it to
