@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase, query } from "@/lib/database";
 import { Request } from "@/models/Request";
 import { requireAuthentication } from "@/lib/authn";
+import { getCurrentSeason } from "@/lib/season";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +14,8 @@ export async function GET(request: NextRequest) {
     await connectToDatabase();
 
     const isDashboard = request.nextUrl.searchParams.get('dashboard') === 'true';
+    const allSeasons = request.nextUrl.searchParams.get('allSeasons') === 'true';
+    const season = allSeasons ? 'all' : undefined;
 
     if (isDashboard) {
       // Get counts and requests for each request type
@@ -23,11 +26,11 @@ export async function GET(request: NextRequest) {
         batteryChargingData,
         recentRequests
       ] = await Promise.all([
-        getRequestsAndCounts('hardware'),
-        getRequestsAndCounts('software'),
-        getRequestsAndCounts('machine_shop'),
-        getRequestsAndCounts('battery_charging'),
-        Request.findAll()
+        getRequestsAndCounts('hardware', season),
+        getRequestsAndCounts('software', season),
+        getRequestsAndCounts('machine_shop', season),
+        getRequestsAndCounts('battery_charging', season),
+        Request.findAll({ season })
       ]);
 
       // Get only the 10 most recent requests
@@ -43,7 +46,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Regular requests listing
-    const requests = await Request.findAll();
+    const requests = await Request.findAll({ season });
 
     return NextResponse.json(requests);
   } catch (error: unknown) {
@@ -55,14 +58,18 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function getRequestsAndCounts(type: string) {
+async function getRequestsAndCounts(type: string, season: 'all' | undefined) {
+  const seasonValue = season === 'all' ? 'all' : getCurrentSeason();
+  const seasonClause = seasonValue === 'all' ? '' : 'AND season = $2';
+  const seasonValues = seasonValue === 'all' ? [type] : [type, seasonValue];
+
   // Get counts by status for the specific type
   const countsResult = await query(`
     SELECT status, COUNT(*) as count
-    FROM requests 
-    WHERE type = $1
+    FROM requests
+    WHERE type = $1 ${seasonClause}
     GROUP BY status
-  `, [type]);
+  `, seasonValues);
 
   // Get specific requests for the type (pending and in-progress for most, all for machine shop)
   let requestsResult;
@@ -71,25 +78,25 @@ async function getRequestsAndCounts(type: string) {
     requestsResult = await query(`
       SELECT *
       FROM requests
-      WHERE type = $1
+      WHERE type = $1 ${seasonClause}
       ORDER BY created_at DESC
-    `, [type]);
+    `, seasonValues);
   } else if (type === 'battery_charging') {
     // For battery charging: get in-progress and completed requests
     requestsResult = await query(`
       SELECT *
       FROM requests
-      WHERE type = $1 AND status IN ('in-progress', 'completed')
+      WHERE type = $1 AND status IN ('in-progress', 'completed') ${seasonClause}
       ORDER BY created_at DESC
-    `, [type]);
+    `, seasonValues);
   } else {
     // For hardware/software: get pending and in-progress requests
     requestsResult = await query(`
       SELECT *
       FROM requests
-      WHERE type = $1 AND status IN ('open', 'in-progress')
+      WHERE type = $1 AND status IN ('open', 'in-progress') ${seasonClause}
       ORDER BY created_at DESC
-    `, [type]);
+    `, seasonValues);
   }
 
   // Process counts into the expected format

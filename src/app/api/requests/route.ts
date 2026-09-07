@@ -4,18 +4,21 @@ import { Request } from "@/models/Request";
 import { User } from "@/models/User";
 import { checkPermissions } from "@/lib/authz";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const authz = await checkPermissions(['requests.view', 'hardware.view', 'software.view', 'machine_shop.view'], false);
-    
+
     if (!authz.authorized) {
       return authz.response!;
     }
 
     await connectToDatabase();
-    
+
+    const allSeasons = req.nextUrl.searchParams.get('allSeasons') === 'true';
+    const season = allSeasons ? 'all' : undefined;
+
     // Fetch active requests (open and in-progress)
-    const activeRequests = (await Request.findAll()).filter(request => {
+    const activeRequests = (await Request.findAll({ season })).filter(request => {
       // Filter requests based on type and user permissions
       if (request.type === 'hardware')
         return authz.permissions?.includes('hardware.view');
@@ -30,7 +33,7 @@ export async function GET() {
     });
 
     // Fetch recently closed requests (last 10)
-    const closedRequests = (await Request.findRecentlyClosed(10)).filter(request => {
+    const closedRequests = (await Request.findRecentlyClosed(10, season)).filter(request => {
       // Filter requests based on type and user permissions
       if (request.type === 'hardware')
         return authz.permissions?.includes('hardware.view');
