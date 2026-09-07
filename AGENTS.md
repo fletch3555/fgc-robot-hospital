@@ -53,17 +53,12 @@ Postgres databases, via Vercel's per-environment `POSTGRES_URL` scoping
 point at the **Preview** database too — never point a local `.env` at
 the Production connection string.
 
-The app and `scripts/migrate.js` both read `DATABASE_URL`, falling back to
-`POSTGRES_URL` if unset (see `src/lib/database.ts`). `POSTGRES_URL` is the
-standard name in both environments: the Supabase Vercel integration only
-manages one project's vars and auto-sets `POSTGRES_URL` for the
-**Production** project it's connected to, and Preview's connection string
-is set manually using that same name (see `DEPLOYMENT.md`) so both
-environments read the same variable. `DATABASE_URL` is reserved as a
-local-only override (e.g. a non-Supabase docker-compose setup) — don't set
-it in Vercel for either environment, since it would shadow `POSTGRES_URL`
-and, for Production, create a second, unrotated copy of a secret the
-integration already manages.
+The app and `scripts/migrate.js` both read `POSTGRES_URL` directly (see
+`src/lib/database.ts`). The Supabase Vercel integration only manages
+one project's vars and auto-sets `POSTGRES_URL` for the **Production**
+project it's connected to, and Preview's connection string is set manually
+using that same name (see `DEPLOYMENT.md`) so both environments read the
+same variable.
 
 This wasn't always true: earlier in this project's life, local dev and
 every Preview deployment shared the single Production database directly.
@@ -131,10 +126,9 @@ afterward:
   land it once the schema change is final.
 - If you want to test a migration without pushing at all, use
   `node scripts/migrate.js --force` against a database you specify via
-  `DATABASE_URL` in your shell — never pass `--force` with `DATABASE_URL`
-  (or `POSTGRES_URL`) set to the Production connection string without the
-  user's explicit confirmation, since that bypasses every safeguard above
-  at once.
+  `POSTGRES_URL` in your shell — never pass `--force` with `POSTGRES_URL`
+  set to the Production connection string without the user's explicit
+  confirmation, since that bypasses every safeguard above at once.
 
 ## Season scoping
 

@@ -16,19 +16,16 @@
 **Production** is managed by the Supabase Vercel integration (Vercel dashboard > Integrations
 > Supabase), connected to the Production Supabase project. It auto-sets, scoped to
 Production only: `SUPABASE_URL`, `POSTGRES_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
-`SUPABASE_SERVICE_ROLE_KEY`. The app reads `DATABASE_URL`, falling back to `POSTGRES_URL`
-if unset (see `src/lib/database.ts`), so no manual `DATABASE_URL` is needed for Production —
-**don't add one**, since it would shadow the integration-managed value and go stale on
-rotation. One var the integration can't provide still needs adding manually, scoped to
-Production: `NEXT_PUBLIC_SUPABASE_URL` (copy the value from `SUPABASE_URL`) — Next.js only
-inlines env vars into the browser bundle when the name is literally prefixed
-`NEXT_PUBLIC_`, which no integration can satisfy for you. Also add, scoped to all
-environments: `EVENT_SEASON`.
+`SUPABASE_SERVICE_ROLE_KEY`. The app reads `POSTGRES_URL` directly (see
+`src/lib/database.ts`), so no other database env var is needed for Production. One var
+the integration can't provide still needs adding manually, scoped to Production:
+`NEXT_PUBLIC_SUPABASE_URL` (copy the value from `SUPABASE_URL`) — Next.js only inlines env
+vars into the browser bundle when the name is literally prefixed `NEXT_PUBLIC_`, which no
+integration can satisfy for you. Also add, scoped to all environments: `EVENT_SEASON`.
 
 The Supabase integration only connects to one project, so **Preview** (see below) gets all
-of its vars set by hand, scoped to Preview (and Development, for local `.env`). Use
-`POSTGRES_URL` (not `DATABASE_URL`) so the naming matches Production's integration-managed
-variable — `DATABASE_URL` is reserved as a local-only override for non-Supabase setups:
+of its vars set by hand, scoped to Preview (and Development, for local `.env`), using the
+same `POSTGRES_URL` name so both environments read the same variable:
 
 ```
 POSTGRES_URL=postgresql://username:password@host:port/database
@@ -107,8 +104,7 @@ nobody can sign in to `/admin/users` to create the first one. Bootstrap it once:
 - Verify TypeScript compilation with `npm run build` locally
 
 ### Database Connection Issues
-- Verify `POSTGRES_URL` is correct for that environment (`DATABASE_URL` only matters if
-  you're deliberately overriding it locally)
+- Verify `POSTGRES_URL` is correct for that environment
 - Ensure your database allows connections from Vercel's IP ranges
 - Check SSL settings (production databases usually require SSL)
 

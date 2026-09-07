@@ -1,14 +1,13 @@
 #!/usr/bin/env node
-// Applies any not-yet-applied migrations/*.sql files to POSTGRES_URL (or
-// DATABASE_URL, if set — see below), in order, tracking what's been
-// applied in a schema_migrations table.
+// Applies any not-yet-applied migrations/*.sql files to POSTGRES_URL, in
+// order, tracking what's been applied in a schema_migrations table.
 //
 // Runs automatically as part of `npm run build`, but only actually does
 // anything when VERCEL_ENV is "production" or "preview" — each against
 // that environment's own POSTGRES_URL (see AGENTS.md: Database
 // environments). Local/non-Vercel builds skip by default. Pass --force to
 // run anyway (e.g. to apply migrations locally, or outside Vercel
-// entirely) against whatever connection string is currently set.
+// entirely) against whatever POSTGRES_URL is currently set.
 //
 // See migrations/README.md and AGENTS.md for the rules new migrations
 // must follow (additive-only).
@@ -29,12 +28,10 @@ async function main() {
     return;
   }
 
-  // POSTGRES_URL is what the Supabase Vercel integration sets automatically;
-  // DATABASE_URL remains the override for local/non-Supabase setups.
-  const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  const connectionString = process.env.POSTGRES_URL;
 
   if (!connectionString) {
-    console.log('Skipping migrations: neither DATABASE_URL nor POSTGRES_URL is set');
+    console.log('Skipping migrations: POSTGRES_URL is not set');
     return;
   }
 

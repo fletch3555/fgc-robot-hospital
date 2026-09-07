@@ -30,9 +30,9 @@ npm run migrate -- --force
 node scripts/migrate.js --force
 ```
 
-`--force` runs against whatever `DATABASE_URL` (or `POSTGRES_URL`, if
-`DATABASE_URL` is unset) is currently set to, so double-check it before
-using this against a database you didn't mean to touch.
+`--force` runs against whatever `POSTGRES_URL` is currently set to, so
+double-check it before using this against a database you didn't mean to
+touch.
 
 `0001_init.sql` is a frozen copy of `schema.sql` as it existed before this
 directory was introduced, included so the runner can bootstrap a genuinely
