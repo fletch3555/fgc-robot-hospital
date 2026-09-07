@@ -60,8 +60,6 @@ CREATE TABLE IF NOT EXISTS requests (
     software_data JSONB,
     machine_shop_data JSONB,
     battery_charging_data JSONB,
-    -- Event year this request belongs to; see migrations/README.md
-    season INTEGER NOT NULL DEFAULT 2026,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -78,8 +76,6 @@ CREATE TABLE IF NOT EXISTS spare_parts (
     submitted_by UUID NOT NULL REFERENCES users(id), -- Attendant who issued the part
     handled_by UUID REFERENCES users(id), -- Attendant who handled return (if applicable)
     notes TEXT[],
-    -- Event year this record belongs to; see migrations/README.md
-    season INTEGER NOT NULL DEFAULT 2026,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -260,8 +256,6 @@ CREATE INDEX IF NOT EXISTS idx_spare_parts_status ON spare_parts(status);
 CREATE INDEX IF NOT EXISTS idx_spare_parts_country_code ON spare_parts(country_code);
 CREATE INDEX IF NOT EXISTS idx_spare_parts_submitted_by ON spare_parts(submitted_by);
 CREATE INDEX IF NOT EXISTS idx_spare_parts_fgc_part_number ON spare_parts(fgc_part_number);
-CREATE INDEX IF NOT EXISTS idx_requests_season ON requests(season);
-CREATE INDEX IF NOT EXISTS idx_spare_parts_season ON spare_parts(season);
 CREATE INDEX IF NOT EXISTS idx_teams_country_code ON teams(country_code);
 CREATE INDEX IF NOT EXISTS idx_role_permissions_role ON role_permissions(role);
 CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_name ON role_permissions(permission_name);

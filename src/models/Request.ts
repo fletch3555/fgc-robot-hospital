@@ -9,6 +9,7 @@ import {
   RequestType
 } from '@/lib/types';
 import { getCurrentUTCTimestamp } from '@/lib/dateUtils';
+import { getCurrentSeason } from '@/lib/season';
 
 export class Request {
   static async findById(id: string): Promise<IRequest | null> {
@@ -36,12 +37,18 @@ export class Request {
     submittedBy?: string;
     assignedTo?: string;
     countryCode?: string;
+    season?: number | 'all';
   } = {}): Promise<IRequest[]> {
     try {
       let whereClause = 'WHERE 1=1';
       const values: unknown[] = [];
       let paramCount = 0;
 
+      const season = filters.season === undefined ? getCurrentSeason() : filters.season;
+      if (season !== 'all') {
+        whereClause += ` AND r.season = $${++paramCount}`;
+        values.push(season);
+      }
       if (filters.status) {
         whereClause += ` AND r.status = $${++paramCount}`;
         values.push(filters.status);
@@ -87,19 +94,26 @@ export class Request {
       throw error;
     }
   }
-  static async findRecentlyClosed(limit: number = 10): Promise<IRequest[]> {
+  static async findRecentlyClosed(limit: number = 10, season: number | 'all' = getCurrentSeason()): Promise<IRequest[]> {
     try {
+      const values: unknown[] = [limit];
+      let seasonClause = '';
+      if (season !== 'all') {
+        seasonClause = ' AND r.season = $2';
+        values.push(season);
+      }
+
       const result = await query(
-        `SELECT r.*, 
+        `SELECT r.*,
                 u1.name as submitted_by_name, u1.email as submitted_by_email,
                 u2.name as assigned_to_name, u2.email as assigned_to_email
          FROM requests r
          LEFT JOIN users u1 ON r.submitted_by = u1.id
          LEFT JOIN users u2 ON r.assigned_to = u2.id
-         WHERE r.status = 'completed'
+         WHERE r.status = 'completed'${seasonClause}
          ORDER BY r.updated_at DESC
          LIMIT $1`,
-        [limit]
+        values
       );
       return result.rows;
     } catch (error) {
@@ -154,8 +168,8 @@ export class Request {
         `INSERT INTO requests (
            id, country_code, type, comments, assigned_to,
            status, submitted_by, hardware_data, software_data, machine_shop_data, battery_charging_data,
-           created_at, updated_at
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+           season, created_at, updated_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          RETURNING *`,
         [
           id,
@@ -170,6 +184,7 @@ export class Request {
           requestData.softwareData ? JSON.stringify(requestData.softwareData) : null,
           requestData.machineShopData ? JSON.stringify(requestData.machineShopData) : null,
           requestData.batteryChargingData ? JSON.stringify(requestData.batteryChargingData) : null,
+          getCurrentSeason(),
           utcTimestamp,
           utcTimestamp
         ]
@@ -240,19 +255,26 @@ export class Request {
     }
   }
 
-  static async findByUser(userId: string, role: 'submitted' | 'assigned' = 'submitted'): Promise<IRequest[]> {
+  static async findByUser(userId: string, role: 'submitted' | 'assigned' = 'submitted', season: number | 'all' = getCurrentSeason()): Promise<IRequest[]> {
     try {
       const column = role === 'submitted' ? 'submitted_by' : 'assigned_to';
+      const values: unknown[] = [userId];
+      let seasonClause = '';
+      if (season !== 'all') {
+        seasonClause = ' AND r.season = $2';
+        values.push(season);
+      }
+
       const result = await query(
-        `SELECT r.*, 
+        `SELECT r.*,
                 u1.name as submitted_by_name, u1.email as submitted_by_email,
                 u2.name as assigned_to_name, u2.email as assigned_to_email
          FROM requests r
          LEFT JOIN users u1 ON r.submitted_by = u1.id
          LEFT JOIN users u2 ON r.assigned_to = u2.id
-         WHERE r.${column} = $1
+         WHERE r.${column} = $1${seasonClause}
          ORDER BY r.created_at DESC`,
-        [userId]
+        values
       );
       return result.rows;
     } catch (error) {
