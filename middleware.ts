@@ -1,53 +1,34 @@
-import { withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from 'next/server';
+import { updateSession } from '@/lib/supabase/middleware';
 
-export default withAuth(
-  function middleware(req) {
-    // Allow access to auth pages regardless of auth status
-    if (req.nextUrl.pathname.startsWith('/auth/')) {
-      return NextResponse.next();
-    }
-
-    // Allow access to queue display page without authentication
-    if (req.nextUrl.pathname.startsWith('/display-queue-monitor')) {
-      return NextResponse.next();
-    }
-
-    // Check if user has required role for admin pages
-    if (req.nextUrl.pathname.startsWith('/admin/')) {
-      const roles = req.nextauth.token?.roles as string[] | undefined;
-      if (!roles?.includes('admin')) {
-        return NextResponse.redirect(new URL('/', req.url));
-      }
-    }
-
+export async function middleware(request: NextRequest) {
+  // Allow access to auth pages regardless of auth status
+  if (request.nextUrl.pathname.startsWith('/auth/')) {
     return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        // Allow access to auth pages without token
-        if (req.nextUrl.pathname.startsWith('/auth/')) {
-          return true;
-        }
-        
-        // Allow access to queue display page without token
-        if (req.nextUrl.pathname.startsWith('/display-queue-monitor')) {
-          return true;
-        }
-        
-        // Require token for all other pages
-        return !!token;
-      },
-    },
   }
-);
+
+  // Allow access to queue display page without authentication
+  if (request.nextUrl.pathname.startsWith('/display-queue-monitor')) {
+    return NextResponse.next();
+  }
+
+  // Refresh the Supabase session cookie and check there's a valid user.
+  // Role-based gating (e.g. /admin/*) happens server-side per route
+  // (checkPermissions) and client-side (AdminProtection), not here.
+  const { response, claims } = await updateSession(request);
+
+  if (!claims) {
+    return NextResponse.redirect(new URL('/auth/signin', request.url));
+  }
+
+  return response;
+}
 
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api/auth (auth endpoints)
+     * - api/auth (session-check endpoint; must stay reachable when unauthenticated)
      * - api/queue-display (unauthenticated queue display API)
      * - _next/static (static files)
      * - _next/image (image optimization files)

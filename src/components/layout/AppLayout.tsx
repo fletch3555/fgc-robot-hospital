@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/contexts/SessionContext';
 import { Box, Toolbar, Container } from '@mui/material';
 import Sidebar from './Sidebar';
 import TopAppBar from './AppBar';

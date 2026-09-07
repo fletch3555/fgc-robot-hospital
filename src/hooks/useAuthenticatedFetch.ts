@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/contexts/SessionContext';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import { authenticatedFetch, handleAuthError } from '@/lib/auth-client';

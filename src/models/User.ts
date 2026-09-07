@@ -1,5 +1,3 @@
-import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
 import { query } from '@/lib/database';
 import { IUser } from '@/lib/types';
 
@@ -47,21 +45,20 @@ export class User {
   }
 
   static async create(userData: {
+    id: string; // Must be an existing Supabase Auth user id (auth.users.id)
     email: string;
-    password: string;
     name: string;
     roles?: string[]; // Array of role IDs
   }): Promise<IUser> {
     try {
-      const id = uuidv4();
-      const hashedPassword = await bcrypt.hash(userData.password, 12);
-      
+      const { id } = userData;
+
       // Create user without roles first
       const result = await query(
-        `INSERT INTO users (id, email, password, name) 
-         VALUES ($1, $2, $3, $4) 
+        `INSERT INTO users (id, email, name)
+         VALUES ($1, $2, $3)
          RETURNING *`,
-        [id, userData.email.toLowerCase(), hashedPassword, userData.name]
+        [id, userData.email.toLowerCase(), userData.name]
       );
       
       const user = result.rows[0];
@@ -152,14 +149,6 @@ export class User {
       console.error('Error updating user:', error);
       throw error;
     }
-  }
-
-  static async comparePassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
-    return bcrypt.compare(plainPassword, hashedPassword);
-  }
-
-  static async hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, 12);
   }
 
   static async findAll(): Promise<IUser[]> {

@@ -20,7 +20,6 @@ export interface IUserRole {
 export interface IUser {
   id: string;
   email: string;
-  password: string;
   name: string;
   roles?: UserRole[]; // Array of roles for multi-role support
   created_at: Date;
@@ -48,6 +47,7 @@ export interface IRequest {
   software_data?: SoftwareRequestData;
   machine_shop_data?: MachineShopRequestData;
   battery_charging_data?: BatteryChargingRequestData;
+  season: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -65,6 +65,7 @@ export interface ISparePart {
   submitted_by: string; // UUID reference to users.id
   handled_by?: string; // UUID reference to users.id
   notes?: string[];
+  season: number;
   created_at: Date;
   updated_at: Date;
 }

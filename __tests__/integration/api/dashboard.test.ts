@@ -117,6 +117,7 @@ describe("/api/dashboard", () => {
           country_code: "US",
           // priority: "medium" as const,
           submitted_by: "user-1",
+          season: 2026,
           created_at: new Date("2025-10-05T13:47:15.022Z"),
           updated_at: new Date("2025-10-05T13:47:15.022Z"),
         },
@@ -149,6 +150,7 @@ describe("/api/dashboard", () => {
           country_code: "US",
           // priority: "medium",
           submitted_by: "user-1",
+          season: 2026,
           created_at: "2025-10-05T13:47:15.022Z",
           updated_at: "2025-10-05T13:47:15.022Z",
         },
@@ -201,6 +203,7 @@ describe("/api/dashboard", () => {
         country_code: "US",
         // priority: "medium" as const,
         submitted_by: "user-1",
+        season: 2026,
         created_at: new Date(),
         updated_at: new Date(),
       }));

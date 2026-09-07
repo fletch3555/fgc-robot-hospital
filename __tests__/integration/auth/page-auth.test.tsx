@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/contexts/SessionContext';
 import { useRouter } from 'next/navigation';
 import '@testing-library/jest-dom';
 import { PermissionsProvider } from '../../../src/contexts/PermissionsContext';
@@ -24,7 +24,7 @@ import AdminRolesPage from '../../../src/app/admin/roles/page';
 import AdminRequestsPage from '../../../src/app/admin/requests/page';
 
 // Mock Next.js modules
-jest.mock('next-auth/react');
+jest.mock('@/contexts/SessionContext');
 jest.mock('next/navigation');
 jest.mock('next/image', () => ({
   __esModule: true,
@@ -164,7 +164,6 @@ describe('Page Authentication Tests', () => {
       mockUseSession.mockReturnValue({
         data: null,
         status: 'unauthenticated',
-        update: jest.fn(),
       });
     });
 
@@ -210,7 +209,6 @@ describe('Page Authentication Tests', () => {
       mockUseSession.mockReturnValue({
         data: null,
         status: 'loading',
-        update: jest.fn(),
       });
     });
 
@@ -239,7 +237,6 @@ describe('Page Authentication Tests', () => {
       mockUseSession.mockReturnValue({
         data: mockVolunteerSession,
         status: 'authenticated',
-        update: jest.fn(),
       });
     });
 
@@ -314,7 +311,6 @@ describe('Page Authentication Tests', () => {
       mockUseSession.mockReturnValue({
         data: mockAdminSession,
         status: 'authenticated',
-        update: jest.fn(),
       });
     });
 
@@ -359,7 +355,6 @@ describe('Page Authentication Tests', () => {
       mockUseSession.mockReturnValue({
         data: mockVolunteerSession,
         status: 'authenticated',
-        update: jest.fn(),
       });
 
       const { rerender } = render(<HomePage />);
@@ -368,7 +363,6 @@ describe('Page Authentication Tests', () => {
       mockUseSession.mockReturnValue({
         data: null,
         status: 'unauthenticated',
-        update: jest.fn(),
       });
 
       rerender(<HomePage />);
@@ -385,7 +379,6 @@ describe('Page Authentication Tests', () => {
       mockUseSession.mockReturnValue({
         data: mockVolunteerSession,
         status: 'authenticated',
-        update: jest.fn(),
       });
     });
 
@@ -445,7 +438,6 @@ describe('Page Authentication Tests', () => {
       mockUseSession.mockReturnValue({
         data: mockVolunteerSession,
         status: 'authenticated',
-        update: jest.fn(),
       });
 
       renderWithProviders(<HomePage />);
@@ -461,7 +453,6 @@ describe('Page Authentication Tests', () => {
       mockUseSession.mockReturnValue({
         data: mockAdminSession,
         status: 'authenticated',
-        update: jest.fn(),
       });
 
       renderWithProviders(<AdminDashboard />);

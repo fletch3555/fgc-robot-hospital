@@ -119,3 +119,19 @@ export interface AuthenticatedUser {
   roles: Role[];
   permissions: string[];
 }
+
+/**
+ * Session shape used throughout the app, sourced from Supabase Auth
+ * (see src/lib/supabase/session.ts) plus this app's own user_roles lookup.
+ * Deliberately mirrors next-auth's old Session shape so existing consumers
+ * (checkPermissions, requireAuth, client components) didn't need to change.
+ */
+export interface AppSession {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    roles: string[];
+  };
+  expires: string;
+}

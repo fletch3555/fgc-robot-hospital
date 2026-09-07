@@ -3,7 +3,9 @@
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useSession } from '@/contexts/SessionContext';
+import { createClient } from '@/lib/supabase/client';
 import { usePermissions } from '@/contexts/PermissionsContext';
 import { PermissionName } from '@/lib/auth-types';
 import {
@@ -273,9 +275,11 @@ function NavItemComponent({ item, level = 0, onMobileToggle }: NavItemComponentP
 
 function SidebarContent({ onMobileToggle }: { onMobileToggle?: () => void }) {
   const { data: session } = useSession();
+  const router = useRouter();
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/' });
+  const handleSignOut = async () => {
+    await createClient().auth.signOut();
+    router.replace('/');
   };
 
   // No need to combine items anymore - navItems already includes admin section
@@ -290,8 +294,7 @@ function SidebarContent({ onMobileToggle }: { onMobileToggle?: () => void }) {
       {session?.user && (
         <>
           <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar 
-              src={(session.user as { image?: string }).image || undefined}
+            <Avatar
               alt={session.user.name || 'User'}
               sx={{ width: 40, height: 40 }}
             >

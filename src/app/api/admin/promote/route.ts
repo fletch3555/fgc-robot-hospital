@@ -7,10 +7,14 @@ export async function POST() {
   try {
     const authResult = await requireAuthentication();
 
+    if (!authResult.authenticated || !authResult.user) {
+      return authResult.response!;
+    }
+
     await connectToDatabase();
 
     // Find user by email and promote to admin
-    const user = await User.findByEmail(authResult.user!.email);
+    const user = await User.findByEmail(authResult.user.email);
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });

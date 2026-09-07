@@ -2,7 +2,7 @@
 
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { SessionProvider } from 'next-auth/react';
+import { SessionProvider } from '@/contexts/SessionContext';
 import { useState, useEffect } from 'react';
 import { PermissionsProvider } from '@/contexts/PermissionsContext';
 
@@ -44,10 +44,7 @@ export default function Providers({
   const theme = createAppTheme(isDark);
 
   return (
-    <SessionProvider 
-      refetchInterval={5 * 60} // Refetch session every 5 minutes
-      refetchOnWindowFocus={true} // Refetch when window gains focus
-    >
+    <SessionProvider>
       <PermissionsProvider>
         <ThemeProvider theme={theme}>
           <CssBaseline />

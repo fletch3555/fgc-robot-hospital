@@ -1,20 +1,17 @@
 /**
- * Authentication Module - Consolidated NextAuth and Session Management
- * 
- * This module provides a unified interface for all authentication-related functionality
- * including NextAuth configuration, session management, user authentication, and 
- * client-side authentication utilities.
+ * Authentication Module - Session Management
+ *
+ * Unified interface for session/authentication helpers. Identity comes from
+ * Supabase Auth (see src/lib/supabase/session.ts); this module wraps that in
+ * the app's existing AuthenticationResult/AuthenticatedUser shapes so
+ * callers didn't need to change when NextAuth was replaced.
  */
 
-import type { NextAuthOptions, Session, User as NextAuthUser, Account } from "next-auth";
-import { JWT } from "next-auth/jwt";
-import { getServerSession } from "next-auth/next";
-import { signOut } from 'next-auth/react';
-import CredentialsProvider from "next-auth/providers/credentials";
 import { NextResponse } from "next/server";
 import { User } from "@/models/User";
 import { connectToDatabase } from "@/lib/database";
-import { UserRole } from "@/lib/types";
+import type { AppSession } from "@/lib/auth-types";
+import { getCurrentUserWithRoles } from "@/lib/supabase/session";
 // Import client-side authentication utilities
 import { authenticatedFetch, handleAuthError } from "./auth-client";
 
@@ -34,7 +31,7 @@ export interface AuthenticatedUser {
 
 export interface AuthenticationResult {
   authenticated: boolean;
-  session?: Session;
+  session?: AppSession;
   user?: AuthenticatedUser;
   response?: NextResponse;
 }
@@ -45,121 +42,14 @@ export interface AuthErrorContext {
 }
 
 // =============================================================================
-// NextAuth Configuration
-// =============================================================================
-
-/**
- * NextAuth configuration options
- */
-export const authOptions: NextAuthOptions = {
-  providers: [
-    CredentialsProvider({
-      name: 'Credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        try {
-          await connectToDatabase();
-          const dbUser = await User.findByEmail(credentials.email);
-          if (!dbUser) {
-            return null;
-          }
-
-          const isValid = await User.comparePassword(credentials.password, dbUser.password);
-          if (!isValid) {
-            return null;
-          }
-
-          return {
-            id: dbUser.id,
-            name: dbUser.name,
-            email: dbUser.email,
-          };
-        } catch (error) {
-          console.error('Credentials authorize error:', error);
-          return null;
-        }
-      },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user, account }: { token: JWT; user?: NextAuthUser; account?: Account | null }) {
-      // On initial sign in, add user info to token
-      if (user && account) {
-        try {
-          await connectToDatabase();
-          const dbUser = await User.findByEmail(user.email!);
-          if (dbUser) {
-            token.id = dbUser.id;
-            token.roles = dbUser.roles || ['guest'];
-          }
-        } catch (error) {
-          console.error('JWT callback error:', error);
-          // Fallback to basic user info
-          token.id = user.id;
-          token.roles = ['guest'];
-        }
-      }
-      
-      // Refresh user data on token refresh (every 2 hours)
-      if (token.id && !user) {
-        try {
-          await connectToDatabase();
-          const dbUser = await User.findById(token.id as string);
-          if (dbUser) {
-            token.roles = dbUser.roles || ['guest'];
-          }
-        } catch (error) {
-          console.error('Token refresh error:', error);
-          // Keep existing token data
-        }
-      }
-      
-      return token;
-    },
-    
-    async session({ session, token }: { session: Session; token: JWT }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.roles = token.roles as string[];
-      }
-      return session;
-    },
-  },
-  pages: {
-    signIn: '/auth/signin',
-    error: '/auth/error',
-  },
-  session: {
-    strategy: 'jwt',
-    maxAge: 8 * 60 * 60, // 8 hours
-    updateAge: 2 * 60 * 60, // Update session every 2 hours
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
-};
-
-// =============================================================================
 // Server-Side Authentication
 // =============================================================================
 
 /**
  * Get the current authenticated session (server-side)
  */
-export async function getAuthenticatedSession(): Promise<Session | null> {
-  try {
-    const session = await getServerSession(authOptions);
-    return session;
-  } catch (error) {
-    console.error('Error getting authenticated session:', error);
-    return null;
-  }
+export async function getAuthenticatedSession(): Promise<AppSession | null> {
+  return getCurrentUserWithRoles();
 }
 
 /**
@@ -168,7 +58,7 @@ export async function getAuthenticatedSession(): Promise<Session | null> {
  */
 export async function requireAuthentication(): Promise<AuthenticationResult> {
   const session = await getAuthenticatedSession();
-  
+
   if (!session || !session.user?.id) {
     return {
       authenticated: false,
@@ -201,7 +91,7 @@ export async function hasValidSession(): Promise<boolean> {
  */
 export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> {
   const session = await getAuthenticatedSession();
-  
+
   if (!session?.user?.id) {
     return null;
   }
@@ -217,11 +107,11 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
 /**
  * Refresh user data in the current session
  */
-export async function refreshUserSession(userId: string): Promise<Session | null> {
+export async function refreshUserSession(userId: string): Promise<AppSession | null> {
   try {
     await connectToDatabase();
     const dbUser = await User.findById(userId);
-    
+
     if (!dbUser) {
       return null;
     }
@@ -240,42 +130,6 @@ export async function refreshUserSession(userId: string): Promise<Session | null
   }
 }
 
-// =============================================================================
-// Client-Side Authentication Utilities
-// =============================================================================
-
-/**
- * Session refresh helper for client-side
- */
-export async function refreshSession(): Promise<Session | null> {
-  try {
-    const response = await fetch('/api/auth/session');
-    if (!response.ok) {
-      throw new Error('Session refresh failed');
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Failed to refresh session:', error);
-    return null;
-  }
-}
-
-/**
- * Sign out user with proper cleanup
- */
-export async function signOutUser(callbackUrl: string = '/auth/signin'): Promise<void> {
-  try {
-    await signOut({ 
-      callbackUrl, 
-      redirect: true 
-    });
-  } catch (error) {
-    console.error('Error during sign out:', error);
-    // Force redirect on error
-    window.location.href = callbackUrl;
-  }
-}
-
 /**
  * Check if error is authentication-related
  */
@@ -285,7 +139,7 @@ export function isAuthenticationError(error: unknown): boolean {
   }
 
   const errorObj = error as Record<string, unknown>;
-  
+
   return (
     errorObj.status === 401 ||
     errorObj.statusCode === 401 ||
@@ -298,85 +152,6 @@ export function isAuthenticationError(error: unknown): boolean {
 }
 
 // =============================================================================
-// User Management Integration
-// =============================================================================
-
-/**
- * Create a new user account
- */
-export async function createUserAccount(userData: {
-  name: string;
-  email: string;
-  password?: string;
-  roles?: string[];
-}): Promise<AuthenticatedUser | null> {
-  try {
-    await connectToDatabase();
-    
-    const newUser = await User.create({
-      name: userData.name,
-      email: userData.email,
-      password: userData.password || '',
-      roles: userData.roles || ['guest']
-    });
-
-    return {
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      roles: newUser.roles || ['guest']
-    };
-  } catch (error) {
-    console.error('Error creating user account:', error);
-    return null;
-  }
-}
-
-/**
- * Update user roles
- */
-export async function updateUserRoles(userId: string, roles: string[]): Promise<boolean> {
-  try {
-    await connectToDatabase();
-    
-    const user = await User.findById(userId);
-    if (!user) {
-      return false;
-    }
-
-    await User.update(userId, { roles: roles as UserRole[] });
-    return true;
-  } catch (error) {
-    console.error('Error updating user roles:', error);
-    return false;
-  }
-}
-
-/**
- * Get user by email
- */
-export async function getUserByEmail(email: string): Promise<AuthenticatedUser | null> {
-  try {
-    await connectToDatabase();
-    
-    const user = await User.findByEmail(email);
-    if (!user) {
-      return null;
-    }
-
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      roles: user.roles || ['guest']
-    };
-  } catch (error) {
-    console.error('Error getting user by email:', error);
-    return null;
-  }
-}
-
-// =============================================================================
 // Authentication Guards and Middleware Helpers
 // =============================================================================
 
@@ -386,7 +161,7 @@ export async function getUserByEmail(email: string): Promise<AuthenticatedUser |
 export function createAuthGuard(requiredRoles?: string[]) {
   return async (): Promise<AuthenticationResult> => {
     const authResult = await requireAuthentication();
-    
+
     if (!authResult.authenticated) {
       return authResult;
     }
@@ -395,14 +170,14 @@ export function createAuthGuard(requiredRoles?: string[]) {
     if (requiredRoles && requiredRoles.length > 0) {
       const userRoles = (authResult.user?.roles && authResult.user.roles.length > 0) ? authResult.user.roles : ['guest'];
       const hasRequiredRole = requiredRoles.some(role => userRoles.includes(role));
-      
+
       if (!hasRequiredRole) {
         return {
           authenticated: false,
-          response: NextResponse.json({ 
+          response: NextResponse.json({
             error: 'Insufficient permissions',
             required: requiredRoles,
-            userRoles 
+            userRoles
           }, { status: 403 })
         };
       }
@@ -417,36 +192,16 @@ export function createAuthGuard(requiredRoles?: string[]) {
 // =============================================================================
 
 /**
- * Validate session integrity
- */
-export async function validateSession(session: Session): Promise<boolean> {
-  try {
-    if (!session?.user?.id) {
-      return false;
-    }
-
-    // Check if user still exists in database
-    await connectToDatabase();
-    const user = await User.findById(session.user.id);
-    
-    return !!user;
-  } catch (error) {
-    console.error('Session validation error:', error);
-    return false;
-  }
-}
-
-/**
  * Check if session is expired
  */
-export function isSessionExpired(session: Session): boolean {
+export function isSessionExpired(session: AppSession): boolean {
   if (!session?.expires) {
     return true;
   }
 
   const now = new Date();
   const expires = new Date(session.expires);
-  
+
   return now >= expires;
 }
 
@@ -470,7 +225,7 @@ export function getSecurityHeaders(): HeadersInit {
 /**
  * Create a mock session for testing (development only)
  */
-export function createMockSession(userData: Partial<AuthenticatedUser>): Session {
+export function createMockSession(userData: Partial<AuthenticatedUser>): AppSession {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('Mock sessions are not allowed in production');
   }
@@ -484,23 +239,4 @@ export function createMockSession(userData: Partial<AuthenticatedUser>): Session
     },
     expires: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString() // 8 hours from now
   };
-}
-
-/**
- * Debug authentication state (development only)
- */
-export async function debugAuthState(): Promise<void> {
-  if (process.env.NODE_ENV !== 'development') {
-    return;
-  }
-
-  const session = await getAuthenticatedSession();
-  if (process.env.NODE_ENV === 'development') {
-    console.log('=== Authentication Debug ===');
-    console.log('Session:', session);
-    console.log('User ID:', session?.user?.id);
-    console.log('User Roles:', session?.user?.roles);
-    console.log('Session Expires:', session?.expires);
-    console.log('=== End Debug ===');
-  }
 }

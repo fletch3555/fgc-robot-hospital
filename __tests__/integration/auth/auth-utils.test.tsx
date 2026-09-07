@@ -1,23 +1,26 @@
 /**
  * Authentication Utilities Tests
- * 
+ *
  * Tests for auth utilities, hooks, and HOCs
  */
 
 import { renderHook } from '@testing-library/react';
-import { useSession, signOut } from 'next-auth/react';
-import { Session } from 'next-auth';
+import { useSession } from '@/contexts/SessionContext';
+import { createClient } from '@/lib/supabase/client';
+import { AppSession } from '@/lib/auth-types';
 import { useRouter } from 'next/navigation';
 import { useAuthenticatedFetch } from '../../../src/hooks/useAuthenticatedFetch';
-import { authenticatedFetch, handleAuthError, refreshSession } from '../../../src/lib/authn';
+import { authenticatedFetch, handleAuthError } from '../../../src/lib/authn';
 import { IUserSummary } from '@/lib/types';
 
 // Mock dependencies
-jest.mock('next-auth/react');
+jest.mock('@/contexts/SessionContext');
+jest.mock('@/lib/supabase/client');
 jest.mock('next/navigation');
 
 const mockUseSession = useSession as jest.MockedFunction<typeof useSession>;
-const mockSignOut = signOut as jest.MockedFunction<typeof signOut>;
+const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
+const mockSignOut = jest.fn();
 const mockUseRouter = useRouter as jest.MockedFunction<typeof useRouter>;
 
 const mockRouter = {
@@ -38,6 +41,11 @@ describe('Authentication Utilities Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseRouter.mockReturnValue(mockRouter);
+    mockSignOut.mockResolvedValue({ error: null });
+    mockCreateClient.mockReturnValue({
+      auth: { signOut: mockSignOut },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
   });
 
   afterEach(() => {
@@ -70,14 +78,9 @@ describe('Authentication Utilities Tests', () => {
         json: () => Promise.resolve({ error: 'Unauthorized' }),
       });
 
-      mockSignOut.mockResolvedValueOnce(undefined);
-
       await expect(authenticatedFetch('/api/test')).rejects.toThrow('Authentication expired');
 
-      expect(mockSignOut).toHaveBeenCalledWith({
-        callbackUrl: '/auth/signin',
-        redirect: true,
-      });
+      expect(mockSignOut).toHaveBeenCalled();
     });
 
     test('should pass through non-401 errors', async () => {
@@ -130,10 +133,7 @@ describe('Authentication Utilities Tests', () => {
       const result = handleAuthError(error);
 
       expect(result).toBe(true);
-      expect(mockSignOut).toHaveBeenCalledWith({
-        callbackUrl: '/auth/signin',
-        redirect: true,
-      });
+      expect(mockSignOut).toHaveBeenCalled();
     });
 
     test('should handle Unauthorized message', () => {
@@ -154,49 +154,14 @@ describe('Authentication Utilities Tests', () => {
     });
   });
 
-  describe('refreshSession utility', () => {
-    test('should successfully refresh session', async () => {
-      const mockSessionData = { user: { id: '1', role: 'admin' } };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockSessionData),
-      });
-
-      const result = await refreshSession();
-
-      expect(mockFetch).toHaveBeenCalledWith('/api/auth/session');
-      expect(result).toEqual(mockSessionData);
-    });
-
-    test('should handle refresh failure', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-      });
-
-      const result = await refreshSession();
-
-      expect(result).toBeNull();
-    });
-
-    test('should handle network errors', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
-
-      const result = await refreshSession();
-
-      expect(result).toBeNull();
-    });
-  });
-
   describe('useAuthenticatedFetch hook', () => {
     test('should provide authenticated fetch function for authenticated users', async () => {
       mockUseSession.mockReturnValue({
         data: {
-          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] } as IUserSummary,
+          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] },
           expires: '2025-12-31',
         },
         status: 'authenticated',
-        update: jest.fn(),
       });
 
       mockFetch.mockResolvedValueOnce({
@@ -220,7 +185,6 @@ describe('Authentication Utilities Tests', () => {
       mockUseSession.mockReturnValue({
         data: null,
         status: 'unauthenticated',
-        update: jest.fn(),
       });
 
       const { result } = renderHook(() => useAuthenticatedFetch());
@@ -237,7 +201,6 @@ describe('Authentication Utilities Tests', () => {
       mockUseSession.mockReturnValue({
         data: null,
         status: 'loading',
-        update: jest.fn(),
       });
 
       const { result } = renderHook(() => useAuthenticatedFetch());
@@ -252,11 +215,10 @@ describe('Authentication Utilities Tests', () => {
     test('should handle 401 responses in fetchWithAuth', async () => {
       mockUseSession.mockReturnValue({
         data: {
-          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] } as IUserSummary,
+          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] },
           expires: '2025-12-31',
         },
         status: 'authenticated',
-        update: jest.fn(),
       });
 
       mockFetch.mockResolvedValueOnce({
@@ -268,22 +230,18 @@ describe('Authentication Utilities Tests', () => {
       const { result } = renderHook(() => useAuthenticatedFetch());
 
       await expect(result.current.fetchWithAuth('/api/test')).rejects.toThrow('Authentication expired');
-      
+
       // The 401 response triggers signOut rather than router.replace
-      expect(mockSignOut).toHaveBeenCalledWith({
-        callbackUrl: '/auth/signin',
-        redirect: true,
-      });
+      expect(mockSignOut).toHaveBeenCalled();
     });
 
     test('should preserve fetch options', async () => {
       mockUseSession.mockReturnValue({
         data: {
-          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] } as IUserSummary,
+          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] },
           expires: '2025-12-31',
         },
         status: 'authenticated',
-        update: jest.fn(),
       });
 
       mockFetch.mockResolvedValueOnce({
@@ -315,11 +273,10 @@ describe('Authentication Utilities Tests', () => {
     test('should handle network errors gracefully', async () => {
       mockUseSession.mockReturnValue({
         data: {
-          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] } as IUserSummary,
+          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] },
           expires: '2025-12-31',
         },
         status: 'authenticated',
-        update: jest.fn(),
       });
 
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
@@ -331,9 +288,8 @@ describe('Authentication Utilities Tests', () => {
 
     test('should handle malformed session data', () => {
       mockUseSession.mockReturnValue({
-        data: { user: null, expires: new Date().toISOString() } as unknown as Session, // Malformed session
+        data: { user: null, expires: new Date().toISOString() } as unknown as AppSession, // Malformed session
         status: 'authenticated',
-        update: jest.fn(),
       });
 
       const { result } = renderHook(() => useAuthenticatedFetch());
@@ -349,7 +305,6 @@ describe('Authentication Utilities Tests', () => {
       mockUseSession.mockReturnValue({
         data: null,
         status: 'unauthenticated',
-        update: jest.fn(),
       });
 
       const { result, rerender } = renderHook(() => useAuthenticatedFetch());
@@ -359,11 +314,10 @@ describe('Authentication Utilities Tests', () => {
       // Change to authenticated
       mockUseSession.mockReturnValue({
         data: {
-          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] } as IUserSummary,
+          user: { id: '1', email: 'user@example.com', name: 'Test User', roles: ['volunteer'] },
           expires: '2025-12-31',
         },
         status: 'authenticated',
-        update: jest.fn(),
       });
 
       rerender();
@@ -384,11 +338,10 @@ describe('Authentication Utilities Tests', () => {
       testCases.forEach(({ role, expected }) => {
         mockUseSession.mockReturnValue({
           data: {
-            user: { id: '1', email: 'user@example.com', name: 'Test User', roles: [role] } as IUserSummary,
+            user: { id: '1', email: 'user@example.com', name: 'Test User', roles: [role] },
             expires: '2025-12-31',
           },
           status: 'authenticated',
-          update: jest.fn(),
         });
 
         const { result } = renderHook(() => useAuthenticatedFetch());

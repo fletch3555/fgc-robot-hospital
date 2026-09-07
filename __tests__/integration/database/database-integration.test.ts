@@ -51,7 +51,7 @@ function createAuthenticatedRequest(url: string, options: RequestInit = {}) {
   // Helper to create requests with valid test authentication
   const headers = new Headers(options.headers);
   headers.set('Authorization', 'Bearer test-jwt-token');
-  headers.set('Cookie', 'next-auth.session-token=test-session');
+  headers.set('Cookie', 'sb-test-project-auth-token=test-session'); // Supabase Auth cookie naming
   
   // Create a clean RequestInit object that's compatible with NextRequest
   const cleanOptions: RequestInit = {

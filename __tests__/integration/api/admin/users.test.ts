@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { GET, POST } from "../../../../src/app/api/admin/users/route";
 import { User } from "../../../../src/models/User";
 import { query } from "../../../../src/lib/database";
+import { createAdminClient } from "../../../../src/lib/supabase/admin";
 import {
   setupAuthMock,
   setupDatabaseMock,
@@ -10,8 +11,13 @@ import {
   mockAdminSession,
 } from "../../../helpers/test-utils";
 
+jest.mock("../../../../src/lib/supabase/admin");
+
 // Mock database query
 const mockQuery = query as jest.MockedFunction<typeof query>;
+const mockCreateAdminClient = createAdminClient as jest.MockedFunction<typeof createAdminClient>;
+const mockCreateUser = jest.fn();
+const mockDeleteUser = jest.fn();
 
 function setupUserPermissionsMock(userPermissions: string[] = []) {
   mockQuery.mockImplementation((sql: string) => {
@@ -35,6 +41,12 @@ describe("/api/admin/users", () => {
     resetMocks();
     setupDatabaseMock();
     mockQuery.mockReset();
+    mockCreateUser.mockReset();
+    mockDeleteUser.mockReset();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockCreateAdminClient.mockReturnValue({
+      auth: { admin: { createUser: mockCreateUser, deleteUser: mockDeleteUser } },
+    } as any);
   });
 
   describe("GET", () => {
@@ -180,6 +192,7 @@ describe("/api/admin/users", () => {
         updated_at: new Date().toISOString(),
       };
 
+      mockCreateUser.mockResolvedValue({ data: { user: { id: "new-user-id" } }, error: null });
       (User.create as jest.Mock).mockResolvedValue(mockCreatedUser);
 
       const request = new NextRequest("http://localhost:3000/api/admin/users", {
@@ -231,6 +244,8 @@ describe("/api/admin/users", () => {
     it("should handle database errors during user creation", async () => {
       setupAuthMock(mockAdminSession);
       setupUserPermissionsMock(['admin.users']); // Admin has admin users permission
+      mockCreateUser.mockResolvedValue({ data: { user: { id: "new-user-id" } }, error: null });
+      mockDeleteUser.mockResolvedValue({ error: null });
       (User.create as jest.Mock).mockRejectedValue(new Error("Database error"));
 
       const request = new NextRequest("http://localhost:3000/api/admin/users", {

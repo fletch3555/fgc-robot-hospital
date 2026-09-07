@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from "react";
-import { useSession, signIn } from "next-auth/react";
+import { useSession } from "@/contexts/SessionContext";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import {
@@ -40,13 +41,10 @@ export default function SignIn() {
     setSubmitting(true);
 
     try {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      });
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
-      if (result?.error) {
+      if (signInError) {
         setError('Invalid email or password');
         setSubmitting(false);
         return;

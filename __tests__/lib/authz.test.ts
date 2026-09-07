@@ -6,8 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { Session } from "next-auth";
+import { getCurrentUserWithRoles } from "../../src/lib/supabase/session";
 import {
   checkPermissions,
   hasPermission,
@@ -27,11 +26,11 @@ import { Permission, Role } from "@/lib/auth-types";
 // Type definitions for testing
 
 // Mock dependencies
-jest.mock("next-auth/next");
+jest.mock("../../src/lib/supabase/session");
 jest.mock("../../src/lib/database");
 jest.mock("next/server");
 
-const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getServerSession>;
+const mockGetCurrentUserWithRoles = getCurrentUserWithRoles as jest.MockedFunction<typeof getCurrentUserWithRoles>;
 const mockQuery = query as jest.MockedFunction<typeof query>;
 const mockNextResponse = NextResponse as jest.Mocked<typeof NextResponse>;
 
@@ -141,7 +140,7 @@ beforeEach(() => {
 describe("Authorization Module", () => {
   describe("checkPermissions", () => {
     it("should return unauthorized when no session", async () => {
-      mockGetServerSession.mockResolvedValueOnce(null);
+      mockGetCurrentUserWithRoles.mockResolvedValueOnce(null);
 
       const result = await checkPermissions(["requests.view"]);
 
@@ -153,7 +152,7 @@ describe("Authorization Module", () => {
     });
 
     it("should return unauthorized when no user ID", async () => {
-      mockGetServerSession.mockResolvedValueOnce({ user: null, expires: "" } as unknown as Session);
+      mockGetCurrentUserWithRoles.mockResolvedValueOnce({ user: { id: "", email: "", name: "", roles: [] }, expires: "" });
 
       const result = await checkPermissions(["requests.view"]);
 
@@ -165,7 +164,7 @@ describe("Authorization Module", () => {
     });
 
     it("should authorize admin users for any permission", async () => {
-      mockGetServerSession.mockResolvedValueOnce(mockAdminSession as Session);
+      mockGetCurrentUserWithRoles.mockResolvedValueOnce(mockAdminSession);
 
       const result = await checkPermissions(["requests.view"]);
 
@@ -176,7 +175,7 @@ describe("Authorization Module", () => {
     });
 
     it("should check user permissions when requireAll is true (default)", async () => {
-      mockGetServerSession.mockResolvedValueOnce(mockSession as Session);
+      mockGetCurrentUserWithRoles.mockResolvedValueOnce(mockSession);
       mockQuery.mockResolvedValueOnce({
         rows: [{ permission_name: "requests.view" }, { permission_name: "requests.create" }]
       });
@@ -189,7 +188,7 @@ describe("Authorization Module", () => {
     });
 
     it("should check user permissions when requireAll is false", async () => {
-      mockGetServerSession.mockResolvedValueOnce(mockSession as Session);
+      mockGetCurrentUserWithRoles.mockResolvedValueOnce(mockSession);
       mockQuery.mockResolvedValueOnce({
         rows: [{ permission_name: "requests.view" }]
       });
@@ -201,7 +200,7 @@ describe("Authorization Module", () => {
     });
 
     it("should return insufficient permissions when user lacks required permissions (requireAll=true)", async () => {
-      mockGetServerSession.mockResolvedValueOnce(mockSession as Session);
+      mockGetCurrentUserWithRoles.mockResolvedValueOnce(mockSession);
       mockQuery.mockResolvedValueOnce({
         rows: [{ permission_name: "requests.view" }]
       });
@@ -221,7 +220,7 @@ describe("Authorization Module", () => {
     });
 
     it("should return insufficient permissions when user lacks any required permissions (requireAll=false)", async () => {
-      mockGetServerSession.mockResolvedValueOnce(mockSession as Session);
+      mockGetCurrentUserWithRoles.mockResolvedValueOnce(mockSession);
       mockQuery.mockResolvedValueOnce({
         rows: [{ permission_name: "requests.edit" }]
       });
@@ -241,7 +240,7 @@ describe("Authorization Module", () => {
     });
 
     it("should handle database errors gracefully", async () => {
-      mockGetServerSession.mockResolvedValueOnce(mockSession as Session);
+      mockGetCurrentUserWithRoles.mockResolvedValueOnce(mockSession);
       mockQuery.mockRejectedValueOnce(new Error("Database error"));
 
       const result = await checkPermissions(["requests.view"]);

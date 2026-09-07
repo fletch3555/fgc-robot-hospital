@@ -5,13 +5,13 @@
 
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/contexts/SessionContext';
 import { WithPermissions } from '@/components/auth/WithPermissions';
 import { usePermissions } from '@/contexts/PermissionsContext';
 import { PermissionName, Role } from '@/lib/auth-types';
 
-// Mock next-auth
-jest.mock('next-auth/react');
+// Mock the session context
+jest.mock('@/contexts/SessionContext');
 const mockUseSession = useSession as jest.MockedFunction<typeof useSession>;
 
 // Mock the permissions hook
@@ -89,7 +89,6 @@ describe('RBAC Permission System Integration', () => {
               expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
             },
             status: 'authenticated',
-            update: jest.fn()
           });
 
           // Mock permissions hook with correct interface
@@ -137,7 +136,6 @@ describe('RBAC Permission System Integration', () => {
           expires: new Date().toISOString()
         },
         status: 'authenticated',
-        update: jest.fn()
       });
 
       mockUsePermissions.mockReturnValue({
@@ -171,7 +169,6 @@ describe('RBAC Permission System Integration', () => {
           expires: new Date().toISOString()
         },
         status: 'authenticated',
-        update: jest.fn()
       });
 
       mockUsePermissions.mockReturnValue({

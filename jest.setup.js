@@ -260,24 +260,13 @@ jest.mock('next/server', () => {
   };
 });
 
-// Global mocks that need to be set up before any imports
-jest.mock("next-auth", () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
-    GET: jest.fn(),
-    POST: jest.fn(),
-  })),
-  getServerSession: jest.fn(),
-}));
-
-jest.mock("next-auth/next", () => ({
-  __esModule: true,
-  getServerSession: jest.fn(),
-}));
-
-jest.mock("next-auth/providers/slack", () => ({
-  __esModule: true,
-  default: jest.fn(() => ({})),
+// Global mocks that need to be set up before any imports.
+// getCurrentUserWithRoles is the single place authz.ts/authn.ts ask "who is
+// logged in" (see src/lib/supabase/session.ts) — mocking it here controls
+// the session for every test without needing to mock the Supabase client
+// itself.
+jest.mock("./src/lib/supabase/session", () => ({
+  getCurrentUserWithRoles: jest.fn(),
 }));
 
 jest.mock("./src/lib/database", () => ({

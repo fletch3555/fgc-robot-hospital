@@ -1,6 +1,8 @@
 import { Pool, Client } from 'pg';
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://robot_hospital_user:robot_hospital_password@localhost:5432/robot_hospital';
+// POSTGRES_URL is what the Supabase Vercel integration sets automatically;
+// DATABASE_URL remains the override for local/non-Supabase setups.
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL || 'postgresql://robot_hospital_user:robot_hospital_password@localhost:5432/robot_hospital';
 
 // Global variable to reuse connection in serverless environment
 let globalPool: Pool | null = null;

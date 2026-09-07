@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkPermissions } from '@/lib/authz';
 import { User } from '@/models/User';
 import { connectToDatabase } from '@/lib/database';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET() {
   try {
@@ -54,18 +55,36 @@ export async function POST(request: NextRequest) {
 
     await connectToDatabase();
 
-    // Check if user with email already exists
+    // Cheap pre-check; Supabase Auth's own uniqueness check below is authoritative.
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
       return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
     }
 
-    const newUser = await User.create({
-      name,
+    const admin = createAdminClient();
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
       email,
       password,
-      roles
+      email_confirm: true, // admin-provisioned accounts are usable immediately
     });
+
+    if (createError || !created.user) {
+      return NextResponse.json({ error: createError?.message || 'Failed to create user' }, { status: 400 });
+    }
+
+    let newUser;
+    try {
+      newUser = await User.create({
+        id: created.user.id,
+        name,
+        email,
+        roles
+      });
+    } catch (error) {
+      // Compensate: don't leave an orphaned Supabase Auth identity with no app profile.
+      await admin.auth.admin.deleteUser(created.user.id);
+      throw error;
+    }
 
     return NextResponse.json({
       _id: newUser.id,

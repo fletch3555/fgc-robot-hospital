@@ -1,11 +1,9 @@
-import { getServerSession } from "next-auth";
-import { getServerSession as getServerSessionNext } from "next-auth/next";
+import { getCurrentUserWithRoles } from "../../src/lib/supabase/session";
 import { connectToDatabase } from "../../src/lib/database";
 import { Pool } from "pg";
 
-// These are already mocked in jest.setup.js, just import the types here
-export const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getServerSession>;
-export const mockGetServerSessionNext = getServerSessionNext as jest.MockedFunction<typeof getServerSessionNext>;
+// Already mocked in jest.setup.js, just import the types here
+export const mockGetCurrentUserWithRoles = getCurrentUserWithRoles as jest.MockedFunction<typeof getCurrentUserWithRoles>;
 export const mockConnectToDatabase = connectToDatabase as jest.MockedFunction<typeof connectToDatabase>;
 
 export const mockSession = {
@@ -35,11 +33,11 @@ export const mockLeadInspectorSession = {
     email: "inspector@example.com",
     roles: ["lead_robot_inspector"],
   },
+  expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
 };
 
 export function setupAuthMock(session: unknown = null) {
-  mockGetServerSession.mockResolvedValue(session);
-  mockGetServerSessionNext.mockResolvedValue(session);
+  mockGetCurrentUserWithRoles.mockResolvedValue(session as Awaited<ReturnType<typeof getCurrentUserWithRoles>>);
 }
 
 export function setupDatabaseMock() {
