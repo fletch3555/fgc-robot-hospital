@@ -33,7 +33,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           setStatus('unauthenticated');
           return;
         }
-        setData(await res.json());
+        const newData: AppSession = await res.json();
+        // Avoid forcing a re-render (and thus a re-render of every
+        // useSession() consumer, e.g. mid-interaction with a floating UI
+        // component) when a window-focus refetch returns unchanged data.
+        setData(prev => (prev && JSON.stringify(prev) === JSON.stringify(newData) ? prev : newData));
         setStatus('authenticated');
       } catch {
         setData(null);
