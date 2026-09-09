@@ -32,6 +32,45 @@ interface DashboardStats {
   teamsAtEvent: number;
 }
 
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  color = 'primary',
+  subtitle,
+  loading,
+}: {
+  title: string;
+  value: number;
+  icon: React.ElementType;
+  color?: 'primary' | 'secondary' | 'success' | 'warning' | 'error';
+  subtitle?: string;
+  loading: boolean;
+}) {
+  return (
+    <Card elevation={2}>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box>
+            <Typography color="textSecondary" gutterBottom variant="body2">
+              {title}
+            </Typography>
+            <Typography variant="h4" component="div">
+              {loading ? <CircularProgress size={24} /> : value}
+            </Typography>
+            {subtitle && (
+              <Typography variant="body2" color="textSecondary">
+                {subtitle}
+              </Typography>
+            )}
+          </Box>
+          <Icon color={color} sx={{ fontSize: 40, opacity: 0.7 }} />
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
 function AdminDashboard() {
   const { fetchWithAuth, isAuthenticated } = useAuthenticatedFetch();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -57,41 +96,6 @@ function AdminDashboard() {
     }
   }, [isAuthenticated, fetchWithAuth]);
 
-  const StatCard = ({ 
-    title, 
-    value, 
-    icon: Icon, 
-    color = 'primary',
-    subtitle 
-  }: { 
-    title: string; 
-    value: number; 
-    icon: React.ElementType; 
-    color?: 'primary' | 'secondary' | 'success' | 'warning' | 'error';
-    subtitle?: string;
-  }) => (
-    <Card elevation={2}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box>
-            <Typography color="textSecondary" gutterBottom variant="body2">
-              {title}
-            </Typography>
-            <Typography variant="h4" component="div">
-              {loading ? <CircularProgress size={24} /> : value}
-            </Typography>
-            {subtitle && (
-              <Typography variant="body2" color="textSecondary">
-                {subtitle}
-              </Typography>
-            )}
-          </Box>
-          <Icon color={color} sx={{ fontSize: 40, opacity: 0.7 }} />
-        </Box>
-      </CardContent>
-    </Card>
-  );
-
   return (
     <Container maxWidth="lg">
       <Box sx={{ mt: 4, mb: 4 }}>
@@ -107,6 +111,7 @@ function AdminDashboard() {
               icon={PeopleIcon}
               color="primary"
               subtitle={`${stats?.activeUsers || 0} active`}
+              loading={loading}
             />
           </Grid>
           
@@ -117,6 +122,7 @@ function AdminDashboard() {
               icon={AssignmentIcon}
               color="secondary"
               subtitle={`${stats?.pendingRequests || 0} pending`}
+              loading={loading}
             />
           </Grid>
           
@@ -127,6 +133,7 @@ function AdminDashboard() {
               icon={BuildIcon}
               color="success"
               subtitle={`${stats?.pendingSpareParts || 0} pending`}
+              loading={loading}
             />
           </Grid>
           
@@ -137,6 +144,7 @@ function AdminDashboard() {
               icon={GroupsIcon}
               color="secondary"
               subtitle={`${stats?.teamsAtEvent || 0} at event`}
+              loading={loading}
             />
           </Grid>
 

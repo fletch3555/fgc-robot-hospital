@@ -43,9 +43,9 @@ describe("/api/admin/users", () => {
     mockQuery.mockReset();
     mockCreateUser.mockReset();
     mockDeleteUser.mockReset();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockCreateAdminClient.mockReturnValue({
       auth: { admin: { createUser: mockCreateUser, deleteUser: mockDeleteUser } },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
   });
 
