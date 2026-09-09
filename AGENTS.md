@@ -22,6 +22,18 @@ way training data suggests.
 - `npm run migrate` — run pending DB migrations directly; `-- --force` bypasses the environment gate (see below)
 - `npm test`, `npm run test:unit`, `npm run test:integration` — Jest; `:watch` and `:coverage` variants exist for each
 - `npm run lint` — ESLint
+- `npm run typecheck` — `tsc --noEmit`
+
+There is no `devDependencies` in `package.json` — everything (including
+`eslint`, `typescript`, `jest`, `@testing-library/*`) lives in
+`dependencies`. This is deliberate: Vercel's native Lint/Typecheck
+deployment checks (Project Settings → Deployment Checks) run `npm run
+lint`/`npm run typecheck` against a dependency install that appears to
+omit `devDependencies` (undocumented behavior, confirmed empirically —
+both checks failed with "command not found" for `eslint`/`tsc` even
+though a normal `npm ci`/`npm install` installs them fine). Don't move
+these back to `devDependencies` without re-verifying those checks still
+pass.
 
 ## Data model gotcha: kop-inventory.ts is the real inventory source
 
