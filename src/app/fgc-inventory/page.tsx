@@ -20,7 +20,7 @@ import { useTheme } from '@mui/material/styles';
 import OptimizedImage from '@/components/OptimizedImage';
 import { imageCacheManager } from '@/lib/imageCache';
 import { ReviewStatus } from '@/lib/types';
-import { kopInventory } from '@/data/kop-inventory';
+import { kopInventory, getUnitsPerPackage } from '@/data/kop-inventory';
 import { WithAuth } from '@/components/auth/WithAuth';
 import { WithPermissions } from '@/components/auth/WithPermissions';
 
@@ -429,6 +429,11 @@ const FGCInventoryPage = () => {
                     <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'secondary.main' }}>
                       {item.quantity}
                     </Typography>
+                    {getUnitsPerPackage(item.part_number) > 1 && (
+                      <Typography variant="caption" color="text.secondary">
+                        ({item.quantity * getUnitsPerPackage(item.part_number)} individual items)
+                      </Typography>
+                    )}
                   </Box>
                 </Box>
               </Card>

@@ -23,9 +23,9 @@ import {
   Card,
   CardContent
 } from '@mui/material';
-import { 
-  Add as AddIcon, 
-  Edit as EditIcon 
+import {
+  Add as AddIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 
 interface SparePart {
@@ -190,7 +190,7 @@ function SparePartsPage() {
                   <TableRow>
                     <TableCell>Item</TableCell>
                     <TableCell>Team</TableCell>
-                    <TableCell align="center">Quantity</TableCell>
+                    <TableCell align="center">Quantity (individual items)</TableCell>
                     <TableCell align="center">Status</TableCell>
                     <TableCell>Issued</TableCell>
                     <TableCell align="center">Actions</TableCell>

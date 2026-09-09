@@ -1,5 +1,14 @@
 import { IKoPItem, ReviewStatus } from '@/lib/types';
 
+// REV/FGC part numbers suffix multi-item packs as "-PK<n>" (e.g.
+// REV-11-1130-PK4 is a 4-pack). Spare parts are issued/tracked as
+// individual items, not packs, so this derives how many individual
+// items one kit "quantity" unit actually represents.
+export function getUnitsPerPackage(partNumber: string): number {
+  const match = partNumber.match(/-PK(\d+)$/);
+  return match ? parseInt(match[1], 10) : 1;
+}
+
 export const kopInventory: IKoPItem[] = [
   {
     id: "REV-11-1130",
