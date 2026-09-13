@@ -70,6 +70,27 @@ export interface ISparePart {
   updated_at: Date;
 }
 
+export type BatteryDeviceType = 'robot_controller' | 'driver_hub';
+export type BatterySwapStatus = 'swapped' | 'returned';
+
+export interface IBatterySwap {
+  id: string;
+  country_code: string;
+  country_name: string;
+  device_type: BatteryDeviceType;
+  status: BatterySwapStatus;
+  submitted_by: string; // UUID reference to users.id
+  submitted_by_name?: string;
+  submitted_by_email?: string;
+  handled_by?: string; // UUID reference to users.id
+  handled_by_name?: string;
+  handled_by_email?: string;
+  notes?: string;
+  season: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export interface ITeam {
   id: string;
   country_code: string;

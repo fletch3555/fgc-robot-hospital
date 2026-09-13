@@ -308,6 +308,16 @@ jest.mock("./src/models/SparePart", () => ({
   },
 }));
 
+jest.mock("./src/models/BatterySwap", () => ({
+  BatterySwap: {
+    findAll: jest.fn(),
+    findById: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    markReturned: jest.fn(),
+  },
+}));
+
 // Basic test setup without jest-dom since we're testing API endpoints
 global.console = {
   ...console,

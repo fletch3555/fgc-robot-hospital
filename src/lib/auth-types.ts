@@ -23,6 +23,7 @@ export type PermissionCategory =
   | 'machine_shop'
   | 'battery_charging'
   | 'spare_parts'
+  | 'battery_swaps'
   // | 'inspection'
   | 'admin'
   | 'documentation'
@@ -69,7 +70,13 @@ export type PermissionName =
   | 'spare_parts.edit'
   | 'spare_parts.issue'
   | 'spare_parts.receive'
-  
+
+  // Battery Swaps
+  | 'battery_swaps.view'
+  | 'battery_swaps.create'
+  | 'battery_swaps.edit'
+  | 'battery_swaps.return'
+
   // // Robot Inspection
   // | 'inspection.view'
   // | 'inspection.create'

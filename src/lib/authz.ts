@@ -162,6 +162,28 @@ export const PERMISSIONS: Record<PermissionName, Permission> = {
     category: 'spare_parts'
   },
 
+  // Battery Swaps
+  'battery_swaps.view': {
+    name: 'battery_swaps.view',
+    description: 'View battery swap records',
+    category: 'battery_swaps'
+  },
+  'battery_swaps.create': {
+    name: 'battery_swaps.create',
+    description: 'Record a new battery swap with a team',
+    category: 'battery_swaps'
+  },
+  'battery_swaps.edit': {
+    name: 'battery_swaps.edit',
+    description: 'Correct an existing battery swap record',
+    category: 'battery_swaps'
+  },
+  'battery_swaps.return': {
+    name: 'battery_swaps.return',
+    description: 'Mark a battery swap as returned',
+    category: 'battery_swaps'
+  },
+
   // // Robot Inspection
   // 'inspection.view': {
   //   name: 'inspection.view',

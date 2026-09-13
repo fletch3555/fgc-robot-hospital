@@ -41,6 +41,8 @@ import {
   Schedule as ScheduleIcon,
   Settings as ServoIcon,
   Code as ServoProgrammingIcon,
+  BatteryChargingFull as BatteryChargingFullIcon,
+  SwapHoriz as SwapHorizIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 280;
@@ -97,7 +99,19 @@ const navItems: NavItem[] = [
     href: '/spare-parts',
     requiredPermissions: ['spare_parts.view'],
   },
-  
+  {
+    text: 'Battery Swap Intake',
+    icon: <BatteryChargingFullIcon />,
+    href: '/battery-swaps/new',
+    requiredPermissions: ['battery_swaps.create'],
+  },
+  {
+    text: 'View Battery Swaps',
+    icon: <SwapHorizIcon />,
+    href: '/battery-swaps',
+    requiredPermissions: ['battery_swaps.view'],
+  },
+
   // Admin Section
   {
     text: 'Admin',
