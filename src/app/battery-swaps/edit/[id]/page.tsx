@@ -20,6 +20,8 @@ import {
   CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import { Save as SaveIcon, ArrowBack as ArrowBackIcon, SettingsRemote as SettingsRemoteIcon, SportsEsports as SportsEsportsIcon } from '@mui/icons-material';
 import Link from 'next/link';
@@ -37,6 +39,7 @@ function EditBatterySwapPage({ params }: { params: Promise<{ id: string }> }) {
   const [swapStatus, setSwapStatus] = useState<string | null>(null);
   const [countryCode, setCountryCode] = useState('');
   const [deviceType, setDeviceType] = useState<BatteryDeviceType | ''>('');
+  const [loanerProvided, setLoanerProvided] = useState(true);
   const [notes, setNotes] = useState('');
 
   const fetchSwap = useCallback(async () => {
@@ -50,6 +53,7 @@ function EditBatterySwapPage({ params }: { params: Promise<{ id: string }> }) {
       setSwapStatus(data.status);
       setCountryCode(data.country_code);
       setDeviceType(data.device_type);
+      setLoanerProvided(data.loaner_provided);
       setNotes(data.notes || '');
     } catch (err) {
       console.error('Error fetching battery swap:', err);
@@ -85,7 +89,7 @@ function EditBatterySwapPage({ params }: { params: Promise<{ id: string }> }) {
       const response = await fetchWithAuth(`/api/battery-swaps/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ countryCode, deviceType, notes: notes || undefined }),
+        body: JSON.stringify({ countryCode, deviceType, notes: notes || undefined, loanerProvided }),
       });
 
       if (!response.ok) {
@@ -194,6 +198,18 @@ function EditBatterySwapPage({ params }: { params: Promise<{ id: string }> }) {
                     </Box>
                   </ToggleButton>
                 </ToggleButtonGroup>
+              </Grid>
+
+              <Grid size={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={loanerProvided}
+                      onChange={(e) => setLoanerProvided(e.target.checked)}
+                    />
+                  }
+                  label="Provide a loaner battery"
+                />
               </Grid>
 
               <Grid size={12}>

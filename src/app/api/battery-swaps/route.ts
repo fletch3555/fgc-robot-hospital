@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
-    const { countryCode, deviceType, notes } = data;
+    const { countryCode, deviceType, notes, loanerProvided } = data;
 
     if (!countryCode) {
       return NextResponse.json({ error: 'Country code is required' }, { status: 400 });
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
       deviceType,
       submittedBy: authz.session.user.id,
       notes: notes || undefined,
+      loanerProvided: loanerProvided !== false,
     });
 
     return NextResponse.json({ swap }, { status: 201 });

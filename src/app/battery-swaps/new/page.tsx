@@ -18,6 +18,8 @@ import {
   Autocomplete,
   ToggleButton,
   ToggleButtonGroup,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -41,6 +43,7 @@ function NewBatterySwap() {
   const [error, setError] = useState('');
   const [countryCode, setCountryCode] = useState('');
   const [deviceType, setDeviceType] = useState<BatteryDeviceType | ''>('');
+  const [loanerProvided, setLoanerProvided] = useState(true);
   const [notes, setNotes] = useState('');
   const [outstandingSwaps, setOutstandingSwaps] = useState<IBatterySwap[]>([]);
 
@@ -91,7 +94,7 @@ function NewBatterySwap() {
       const response = await fetchWithAuth('/api/battery-swaps', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ countryCode, deviceType, notes: notes || undefined }),
+        body: JSON.stringify({ countryCode, deviceType, notes: notes || undefined, loanerProvided }),
       });
 
       if (!response.ok) {
@@ -131,8 +134,10 @@ function NewBatterySwap() {
           <Alert severity="info" sx={{ mb: 3 }}>
             <Typography variant="body2">
               <strong>How it works:</strong> Record swapping a team&apos;s low battery for a
-              charged hospital spare so they can keep competing. Mark it returned once the
-              team&apos;s original battery is charged and swapped back.
+              charged hospital spare so they can keep competing, or a plain drop-off for
+              charging if they don&apos;t need a loaner right now. Mark it returned once the
+              team&apos;s original battery is charged and picked back up (swapped back, if a
+              loaner was given).
             </Typography>
           </Alert>
 
@@ -181,6 +186,23 @@ function NewBatterySwap() {
                     </Box>
                   </ToggleButton>
                 </ToggleButtonGroup>
+              </Grid>
+
+              <Grid size={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={loanerProvided}
+                      onChange={(e) => setLoanerProvided(e.target.checked)}
+                    />
+                  }
+                  label="Provide a loaner battery"
+                />
+                {!loanerProvided && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    Team&apos;s battery will just charge here — no spare handed out.
+                  </Typography>
+                )}
               </Grid>
 
               {outstandingSwaps.length > 0 && (

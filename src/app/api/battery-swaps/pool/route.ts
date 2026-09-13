@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const authz = await checkPermissions(['battery_swaps.edit']);
+    const authz = await checkPermissions(['battery_swaps.configure']);
     if (!authz.authorized) {
       return authz.response!;
     }

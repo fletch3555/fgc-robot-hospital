@@ -95,6 +95,9 @@ CREATE TABLE IF NOT EXISTS battery_swaps (
     submitted_by UUID NOT NULL REFERENCES users(id), -- Clerk who processed the swap-out
     handled_by UUID REFERENCES users(id), -- Clerk who processed the return
     notes TEXT,
+    -- False for a plain drop-off-for-charging with no spare handed out;
+    -- these don't count against the loaner pool's outstanding total.
+    loaner_provided BOOLEAN NOT NULL DEFAULT true,
     -- Event year this record belongs to; see migrations/README.md
     season INTEGER NOT NULL DEFAULT 2026,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -280,7 +283,8 @@ INSERT INTO role_permissions (role, permission_name) VALUES
 ('admin', 'battery_swaps.view'),
 ('admin', 'battery_swaps.create'),
 ('admin', 'battery_swaps.edit'),
-('admin', 'battery_swaps.return')
+('admin', 'battery_swaps.return'),
+('admin', 'battery_swaps.configure')
 ON CONFLICT DO NOTHING;
 
 -- Indexes for performance

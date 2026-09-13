@@ -47,7 +47,7 @@ export async function PUT(
     await connectToDatabase();
 
     const data = await request.json();
-    const { countryCode, deviceType, notes } = data;
+    const { countryCode, deviceType, notes, loanerProvided } = data;
 
     if (countryCode !== undefined && !isValidCountryCode(countryCode)) {
       return NextResponse.json({ error: 'Invalid country code' }, { status: 400 });
@@ -56,7 +56,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Invalid device type' }, { status: 400 });
     }
 
-    const updatedSwap = await BatterySwap.update(params.id, { countryCode, deviceType, notes });
+    const updatedSwap = await BatterySwap.update(params.id, { countryCode, deviceType, notes, loanerProvided });
 
     if (!updatedSwap) {
       return NextResponse.json({ error: 'Battery swap not found' }, { status: 404 });

@@ -76,6 +76,7 @@ export type PermissionName =
   | 'battery_swaps.create'
   | 'battery_swaps.edit'
   | 'battery_swaps.return'
+  | 'battery_swaps.configure'
 
   // // Robot Inspection
   // | 'inspection.view'

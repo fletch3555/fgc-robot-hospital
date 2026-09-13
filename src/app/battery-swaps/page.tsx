@@ -193,16 +193,21 @@ function BatterySwapsPage() {
             {DEVICE_LABELS[swap.device_type] || swap.device_type}
           </Typography>
         </Box>
-        <Chip
-          label={swap.status.toUpperCase()}
-          size="small"
-          color={swap.status === 'swapped' ? 'warning' : 'success'}
-        />
+        <Stack direction="row" spacing={0.5}>
+          {!swap.loaner_provided && (
+            <Chip label="NO LOANER" size="small" variant="outlined" />
+          )}
+          <Chip
+            label={swap.status.toUpperCase()}
+            size="small"
+            color={swap.status === 'swapped' ? 'warning' : 'success'}
+          />
+        </Stack>
       </Stack>
 
       <Stack direction="row" sx={{ justifyContent: 'space-between', mt: 1, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="caption" color="text.secondary">
-          Swapped out {formatDate(swap.created_at as unknown as string)} by {swap.submitted_by_name}
+          {swap.loaner_provided ? 'Swapped out' : 'Dropped off'} {formatDate(swap.created_at as unknown as string)} by {swap.submitted_by_name}
         </Typography>
         {swap.status === 'returned' && swap.updated_at && (
           <Typography variant="caption" color="text.secondary">
@@ -288,7 +293,7 @@ function BatterySwapsPage() {
                         <Typography variant="h6" color={p.available_count > 0 ? 'text.primary' : 'error.main'}>
                           {p.available_count} / {p.total_count} available
                         </Typography>
-                        {hasPermission('battery_swaps.edit') && (
+                        {hasPermission('battery_swaps.configure') && (
                           <IconButton size="small" onClick={() => startEditPool(p)}>
                             <EditIcon fontSize="small" />
                           </IconButton>

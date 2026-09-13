@@ -586,7 +586,7 @@ export default function QueueDisplayPage() {
                   <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2, pb: 1, borderBottom: '2px solid rgba(255,183,77,0.3)' }}>
                     <BatteryChargingFull sx={{ fontSize: 20, color: '#ffb74d' }} />
                     <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold' }}>
-                      Loaner Out ({queueData.batterySwaps.outstanding.length})
+                      Currently Charging ({queueData.batterySwaps.outstanding.length})
                     </Typography>
                   </Stack>
                   <Stack spacing={2}>
@@ -610,6 +610,13 @@ export default function QueueDisplayPage() {
                               size="small"
                               sx={{ bgcolor: 'rgba(255,255,255,0.3)', color: 'white', fontWeight: 'bold' }}
                             />
+                            {swap.loaner_provided && (
+                              <Chip
+                                label="LOANER OUT"
+                                size="small"
+                                sx={{ bgcolor: 'rgba(255,183,77,0.5)', color: 'white', fontWeight: 'bold' }}
+                              />
+                            )}
                             <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
                               <AccessTime sx={{ fontSize: 18, color: 'rgba(255,255,255,0.7)' }} />
                               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>

@@ -204,5 +204,39 @@ describe("/api/battery-swaps", () => {
         })
       );
     });
+
+    it("should default loanerProvided to true when not specified", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(["battery_swaps.create"]);
+      (BatterySwap.create as jest.Mock).mockResolvedValue({ id: "new-swap-id" });
+
+      const request = new NextRequest("http://localhost:3000/api/battery-swaps", {
+        method: "POST",
+        body: JSON.stringify(validSwapData),
+      });
+
+      await POST(request);
+
+      expect(BatterySwap.create).toHaveBeenCalledWith(
+        expect.objectContaining({ loanerProvided: true })
+      );
+    });
+
+    it("should pass loanerProvided: false through for a plain drop-off", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(["battery_swaps.create"]);
+      (BatterySwap.create as jest.Mock).mockResolvedValue({ id: "new-swap-id" });
+
+      const request = new NextRequest("http://localhost:3000/api/battery-swaps", {
+        method: "POST",
+        body: JSON.stringify({ ...validSwapData, loanerProvided: false }),
+      });
+
+      await POST(request);
+
+      expect(BatterySwap.create).toHaveBeenCalledWith(
+        expect.objectContaining({ loanerProvided: false })
+      );
+    });
   });
 });

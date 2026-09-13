@@ -86,6 +86,9 @@ export interface IBatterySwap {
   handled_by_name?: string;
   handled_by_email?: string;
   notes?: string;
+  // False for a plain drop-off-for-charging with no spare handed out;
+  // these don't count against the loaner pool's outstanding total.
+  loaner_provided: boolean;
   season: number;
   created_at: Date;
   updated_at: Date;

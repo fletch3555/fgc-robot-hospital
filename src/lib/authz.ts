@@ -183,6 +183,11 @@ export const PERMISSIONS: Record<PermissionName, Permission> = {
     description: 'Mark a battery swap as returned',
     category: 'battery_swaps'
   },
+  'battery_swaps.configure': {
+    name: 'battery_swaps.configure',
+    description: 'Configure the total loaner battery pool size',
+    category: 'battery_swaps'
+  },
 
   // // Robot Inspection
   // 'inspection.view': {

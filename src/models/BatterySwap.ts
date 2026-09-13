@@ -98,14 +98,15 @@ export class BatterySwap {
     deviceType: BatteryDeviceType;
     submittedBy: string;
     notes?: string;
+    loanerProvided?: boolean;
   }): Promise<IBatterySwap> {
     try {
       const id = uuidv4();
 
       const result = await query(
         `INSERT INTO battery_swaps (
-           id, country_code, device_type, status, submitted_by, notes, season
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+           id, country_code, device_type, status, submitted_by, notes, loaner_provided, season
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING *`,
         [
           id,
@@ -114,6 +115,7 @@ export class BatterySwap {
           'swapped',
           data.submittedBy,
           data.notes || null,
+          data.loanerProvided !== false,
           getCurrentSeason()
         ]
       );
@@ -132,6 +134,7 @@ export class BatterySwap {
     countryCode?: string;
     deviceType?: BatteryDeviceType;
     notes?: string;
+    loanerProvided?: boolean;
   }): Promise<IBatterySwap | null> {
     try {
       const setParts: string[] = [];
@@ -149,6 +152,10 @@ export class BatterySwap {
       if (updates.notes !== undefined) {
         setParts.push(`notes = $${++paramCount}`);
         values.push(updates.notes);
+      }
+      if (updates.loanerProvided !== undefined) {
+        setParts.push(`loaner_provided = $${++paramCount}`);
+        values.push(updates.loanerProvided);
       }
 
       if (setParts.length === 0) {
@@ -199,7 +206,7 @@ export class BatterySwap {
         query('SELECT device_type, total_count FROM battery_swap_pool WHERE season = $1', [season]),
         query(
           `SELECT device_type, COUNT(*) as outstanding_count
-           FROM battery_swaps WHERE season = $1 AND status = 'swapped'
+           FROM battery_swaps WHERE season = $1 AND status = 'swapped' AND loaner_provided = true
            GROUP BY device_type`,
           [season]
         ),
