@@ -91,6 +91,14 @@ export interface IBatterySwap {
   updated_at: Date;
 }
 
+export interface IBatterySwapPoolStatus {
+  device_type: BatteryDeviceType;
+  season: number;
+  total_count: number;
+  outstanding_count: number;
+  available_count: number;
+}
+
 export interface ITeam {
   id: string;
   country_code: string;

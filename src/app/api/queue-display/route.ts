@@ -1,15 +1,22 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/database";
 import { Request } from "@/models/Request";
+import { BatterySwap } from "@/models/BatterySwap";
 import { getTeamByCountryCode } from "@/data/countries";
 import { IRequest } from "@/lib/types";
 
 export async function GET() {
   try {
     await connectToDatabase();
-    
+
     // Fetch all non-completed requests, ordered by creation date (oldest first)
     const requests = await Request.findAll();
+    const [outstandingSwaps, batteryPool] = await Promise.all([
+      BatterySwap.findAll({ status: 'swapped' }),
+      BatterySwap.getPoolStatus(),
+    ]);
+    // Oldest first, matching the request-queue sort below.
+    outstandingSwaps.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     
     // Define enriched request type
     type EnrichedRequest = IRequest & { country_name: string };
@@ -59,6 +66,10 @@ export async function GET() {
         totalInProgress,
       },
       requests: groupedRequests,
+      batterySwaps: {
+        outstanding: outstandingSwaps,
+        pool: batteryPool,
+      },
     });
   } catch (error) {
     console.error("Error in GET /api/queue-display:", error);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { IRequest } from '@/lib/types';
+import { IRequest, IBatterySwap, IBatterySwapPoolStatus } from '@/lib/types';
 import {
   Box,
   Card,
@@ -16,6 +16,7 @@ import {
   CheckCircle,
   HourglassEmpty,
   Person,
+  BatteryChargingFull,
 } from '@mui/icons-material';
 
 // Enriched request type with country_name
@@ -32,7 +33,16 @@ interface QueueData {
     machine_shop: { open: EnrichedRequest[]; inProgress: EnrichedRequest[] };
     battery_charging: { open: EnrichedRequest[]; inProgress: EnrichedRequest[] };
   };
+  batterySwaps: {
+    outstanding: IBatterySwap[];
+    pool: IBatterySwapPoolStatus[];
+  };
 }
+
+const DEVICE_LABELS: Record<string, string> = {
+  robot_controller: 'Robot Controller',
+  driver_hub: 'Driver Hub',
+};
 
 const TYPE_LABELS: Record<string, string> = {
   hardware: 'Hardware',
@@ -529,6 +539,99 @@ export default function QueueDisplayPage() {
               </Card>
             );
           })}
+
+          {/* Battery Swaps */}
+          <Card
+            elevation={8}
+            sx={{
+              background: 'linear-gradient(135deg, #00897b 0%, #26a69a 100%)',
+            }}
+          >
+            <CardContent>
+              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography
+                  variant="h4"
+                  sx={{ fontWeight: 'bold', color: 'white', textTransform: 'uppercase' }}
+                >
+                  Battery Swaps
+                </Typography>
+                <Chip
+                  label={queueData.batterySwaps.outstanding.length}
+                  sx={{
+                    fontSize: '1.5rem',
+                    fontWeight: 'bold',
+                    bgcolor: 'rgba(255,255,255,0.3)',
+                    color: 'white',
+                    height: 50,
+                    minWidth: 50,
+                    borderRadius: '25px',
+                    px: 2,
+                  }}
+                />
+              </Stack>
+
+              <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: 'wrap' }}>
+                {queueData.batterySwaps.pool.map((pool) => (
+                  <Chip
+                    key={pool.device_type}
+                    label={`${DEVICE_LABELS[pool.device_type] || pool.device_type}: ${pool.available_count} available`}
+                    sx={{
+                      bgcolor: pool.available_count > 0 ? 'rgba(255,255,255,0.25)' : 'rgba(244,67,54,0.5)',
+                      color: 'white',
+                      fontWeight: 'bold',
+                    }}
+                  />
+                ))}
+              </Stack>
+
+              {queueData.batterySwaps.outstanding.length > 0 ? (
+                <Box>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2, pb: 1, borderBottom: '2px solid rgba(255,183,77,0.3)' }}>
+                    <BatteryChargingFull sx={{ fontSize: 20, color: '#ffb74d' }} />
+                    <Typography variant="h5" sx={{ color: 'white', fontWeight: 'bold' }}>
+                      Loaner Out ({queueData.batterySwaps.outstanding.length})
+                    </Typography>
+                  </Stack>
+                  <Stack spacing={2}>
+                    {queueData.batterySwaps.outstanding.map((swap) => (
+                      <Card
+                        key={swap.id}
+                        elevation={8}
+                        sx={{
+                          bgcolor: 'rgba(255,255,255,0.25)',
+                          backdropFilter: 'blur(10px)',
+                          borderLeft: `6px solid ${getAgeBorderColor(swap.created_at.toString())}`,
+                        }}
+                      >
+                        <CardContent sx={{ py: 2 }}>
+                          <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold', flex: 1 }}>
+                              {swap.country_name || swap.country_code}
+                            </Typography>
+                            <Chip
+                              label={DEVICE_LABELS[swap.device_type] || swap.device_type}
+                              size="small"
+                              sx={{ bgcolor: 'rgba(255,255,255,0.3)', color: 'white', fontWeight: 'bold' }}
+                            />
+                            <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                              <AccessTime sx={{ fontSize: 18, color: 'rgba(255,255,255,0.7)' }} />
+                              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                                {formatDate(swap.created_at.toString())}
+                              </Typography>
+                            </Stack>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Stack>
+                </Box>
+              ) : (
+                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  No batteries currently on loan
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
         </Box>
 
         {/* Footer */}

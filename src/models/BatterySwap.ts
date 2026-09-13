@@ -1,8 +1,10 @@
 import { v4 as uuidv4 } from 'uuid';
 import { query } from '@/lib/database';
-import { IBatterySwap, BatteryDeviceType, BatterySwapStatus } from '@/lib/types';
+import { IBatterySwap, IBatterySwapPoolStatus, BatteryDeviceType, BatterySwapStatus } from '@/lib/types';
 import { getCountryName } from '@/lib/countryUtils';
 import { getCurrentSeason } from '@/lib/season';
+
+const DEVICE_TYPES: BatteryDeviceType[] = ['robot_controller', 'driver_hub'];
 
 export class BatterySwap {
   static async findById(id: string): Promise<IBatterySwap | null> {
@@ -187,6 +189,54 @@ export class BatterySwap {
       return swap || null;
     } catch (error) {
       console.error('Error marking battery swap returned:', error);
+      throw error;
+    }
+  }
+
+  static async getPoolStatus(season: number = getCurrentSeason()): Promise<IBatterySwapPoolStatus[]> {
+    try {
+      const [poolResult, outstandingResult] = await Promise.all([
+        query('SELECT device_type, total_count FROM battery_swap_pool WHERE season = $1', [season]),
+        query(
+          `SELECT device_type, COUNT(*) as outstanding_count
+           FROM battery_swaps WHERE season = $1 AND status = 'swapped'
+           GROUP BY device_type`,
+          [season]
+        ),
+      ]);
+
+      const totals = new Map<string, number>(poolResult.rows.map((r: { device_type: string; total_count: number }) => [r.device_type, r.total_count]));
+      const outstanding = new Map<string, number>(
+        outstandingResult.rows.map((r: { device_type: string; outstanding_count: string }) => [r.device_type, parseInt(r.outstanding_count, 10)])
+      );
+
+      return DEVICE_TYPES.map((deviceType) => {
+        const totalCount = totals.get(deviceType) || 0;
+        const outstandingCount = outstanding.get(deviceType) || 0;
+        return {
+          device_type: deviceType,
+          season,
+          total_count: totalCount,
+          outstanding_count: outstandingCount,
+          available_count: totalCount - outstandingCount,
+        };
+      });
+    } catch (error) {
+      console.error('Error getting battery swap pool status:', error);
+      throw error;
+    }
+  }
+
+  static async setPoolCount(deviceType: BatteryDeviceType, totalCount: number, season: number = getCurrentSeason()): Promise<void> {
+    try {
+      await query(
+        `INSERT INTO battery_swap_pool (device_type, season, total_count, updated_at)
+         VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+         ON CONFLICT (device_type, season) DO UPDATE SET total_count = $3, updated_at = CURRENT_TIMESTAMP`,
+        [deviceType, season, totalCount]
+      );
+    } catch (error) {
+      console.error('Error setting battery swap pool count:', error);
       throw error;
     }
   }

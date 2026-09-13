@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Allow access to queue display page without authentication
-  if (request.nextUrl.pathname.startsWith('/display-queue-monitor')) {
+  if (request.nextUrl.pathname.startsWith('/monitor')) {
     return NextResponse.next();
   }
 

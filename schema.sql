@@ -101,6 +101,16 @@ CREATE TABLE IF NOT EXISTS battery_swaps (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Tracks the fixed number of loaner batteries available per device type,
+-- so "available" can be computed as total minus currently outstanding swaps.
+CREATE TABLE IF NOT EXISTS battery_swap_pool (
+    device_type VARCHAR(20) NOT NULL CHECK (device_type IN ('robot_controller', 'driver_hub')),
+    season INTEGER NOT NULL,
+    total_count INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (device_type, season)
+);
+
 -- Teams table (now using countries data, but keeping for potential future use)
 CREATE TABLE IF NOT EXISTS teams (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

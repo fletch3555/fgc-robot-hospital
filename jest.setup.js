@@ -315,6 +315,8 @@ jest.mock("./src/models/BatterySwap", () => ({
     create: jest.fn(),
     update: jest.fn(),
     markReturned: jest.fn(),
+    getPoolStatus: jest.fn(),
+    setPoolCount: jest.fn(),
   },
 }));
 
