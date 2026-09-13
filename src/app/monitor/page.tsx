@@ -31,7 +31,6 @@ interface QueueData {
     hardware: { open: EnrichedRequest[]; inProgress: EnrichedRequest[] };
     software: { open: EnrichedRequest[]; inProgress: EnrichedRequest[] };
     machine_shop: { open: EnrichedRequest[]; inProgress: EnrichedRequest[] };
-    battery_charging: { open: EnrichedRequest[]; inProgress: EnrichedRequest[] };
   };
   batterySwaps: {
     outstanding: IBatterySwap[];
@@ -48,14 +47,12 @@ const TYPE_LABELS: Record<string, string> = {
   hardware: 'Hardware',
   software: 'Software',
   machine_shop: 'Machine Shop',
-  battery_charging: 'Battery Charging',
 };
 
 const TYPE_COLORS: Record<string, { primary: string; secondary: string }> = {
   hardware: { primary: '#1976d2', secondary: '#42a5f5' },
   software: { primary: '#9c27b0', secondary: '#ba68c8' },
   machine_shop: { primary: '#f57c00', secondary: '#ff9800' },
-  battery_charging: { primary: '#388e3c', secondary: '#66bb6a' },
 };
 
 export default function QueueDisplayPage() {

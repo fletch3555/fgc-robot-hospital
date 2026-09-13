@@ -21,12 +21,14 @@ export async function GET() {
     // Define enriched request type
     type EnrichedRequest = IRequest & { country_name: string };
     
-    // Group by type and separate by status
+    // Group by type and separate by status. battery_charging is
+    // deliberately omitted — Battery Swaps supersedes it on this display,
+    // and the `if (groupedRequests[type])` guard below means omitting it
+    // here also keeps it out of the totalOpen/totalInProgress summary.
     const groupedRequests = {
       hardware: { open: [] as EnrichedRequest[], inProgress: [] as EnrichedRequest[] },
       software: { open: [] as EnrichedRequest[], inProgress: [] as EnrichedRequest[] },
       machine_shop: { open: [] as EnrichedRequest[], inProgress: [] as EnrichedRequest[] },
-      battery_charging: { open: [] as EnrichedRequest[], inProgress: [] as EnrichedRequest[] },
     };
     
     let totalOpen = 0;
