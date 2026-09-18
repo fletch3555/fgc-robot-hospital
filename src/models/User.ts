@@ -151,16 +151,17 @@ export class User {
     }
   }
 
-  static async findAll(): Promise<IUser[]> {
+  static async findAll(includeArchived: boolean = false): Promise<IUser[]> {
     try {
       const result = await query(
-        `SELECT u.*, 
+        `SELECT u.*,
                 COALESCE(
-                  array_agg(ur.role_id) FILTER (WHERE ur.role_id IS NOT NULL), 
+                  array_agg(ur.role_id) FILTER (WHERE ur.role_id IS NOT NULL),
                   ARRAY[]::VARCHAR[]
                 ) as roles
          FROM users u
          LEFT JOIN user_roles ur ON u.id = ur.user_id
+         ${includeArchived ? '' : 'WHERE u.is_archived = false'}
          GROUP BY u.id`,
       );
       return result.rows;
@@ -196,7 +197,7 @@ export class User {
         FROM users u
         JOIN user_roles ur ON u.id = ur.user_id
         JOIN role_permissions rp ON ur.role_id = rp.role
-        WHERE rp.permission_name IN (${placeholders})
+        WHERE rp.permission_name IN (${placeholders}) AND u.is_archived = false
         GROUP BY u.id
         ORDER BY u.name ASC`,
         permissions

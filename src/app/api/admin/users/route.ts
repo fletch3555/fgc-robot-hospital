@@ -4,18 +4,20 @@ import { User } from '@/models/User';
 import { connectToDatabase } from '@/lib/database';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const authResult = await checkPermissions(['admin.users']);
-    
+
     if (!authResult.authorized) {
       return authResult.response!;
     }
 
     await connectToDatabase();
 
+    const includeArchived = request.nextUrl.searchParams.get('includeArchived') === 'true';
+
     // For now, just return all users - pagination can be added later
-    const users = await User.findAll();
+    const users = await User.findAll(includeArchived);
 
     return NextResponse.json({
       users: users.map(user => ({
@@ -23,6 +25,7 @@ export async function GET() {
         name: user.name,
         email: user.email,
         roles: user.roles,
+        isArchived: user.is_archived,
         createdAt: user.created_at,
         updatedAt: user.updated_at
       })),
@@ -91,6 +94,7 @@ export async function POST(request: NextRequest) {
       name: newUser.name,
       email: newUser.email,
       roles: newUser.roles,
+      isArchived: newUser.is_archived,
       createdAt: newUser.created_at,
       updatedAt: newUser.updated_at
     }, { status: 201 });

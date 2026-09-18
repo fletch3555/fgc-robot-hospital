@@ -53,7 +53,7 @@ describe("/api/admin/users", () => {
     it("should return 401 when user is not authenticated", async () => {
       setupAuthMock(null);
 
-      const response = await GET();
+      const response = await GET(new NextRequest("http://localhost:3000/api/admin/users"));
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -64,7 +64,7 @@ describe("/api/admin/users", () => {
       setupAuthMock(mockSession); // regular volunteer user
       setupUserPermissionsMock([]); // No admin permissions
 
-      const response = await GET();
+      const response = await GET(new NextRequest("http://localhost:3000/api/admin/users"));
       const data = await response.json();
 
       expect(response.status).toBe(403);
@@ -101,7 +101,7 @@ describe("/api/admin/users", () => {
 
       (User.findAll as jest.Mock).mockResolvedValue(mockUsers);
 
-      const response = await GET();
+      const response = await GET(new NextRequest("http://localhost:3000/api/admin/users"));
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -128,11 +128,31 @@ describe("/api/admin/users", () => {
       setupUserPermissionsMock(['admin.users']); // Admin has admin users permission
       (User.findAll as jest.Mock).mockRejectedValue(new Error("Database error"));
 
-      const response = await GET();
+      const response = await GET(new NextRequest("http://localhost:3000/api/admin/users"));
       const data = await response.json();
 
       expect(response.status).toBe(500);
       expect(data).toEqual({ error: "Database error" });
+    });
+
+    it("should default to excluding archived users", async () => {
+      setupAuthMock(mockAdminSession);
+      setupUserPermissionsMock(['admin.users']);
+      (User.findAll as jest.Mock).mockResolvedValue([]);
+
+      await GET(new NextRequest("http://localhost:3000/api/admin/users"));
+
+      expect(User.findAll).toHaveBeenCalledWith(false);
+    });
+
+    it("should include archived users when includeArchived=true", async () => {
+      setupAuthMock(mockAdminSession);
+      setupUserPermissionsMock(['admin.users']);
+      (User.findAll as jest.Mock).mockResolvedValue([]);
+
+      await GET(new NextRequest("http://localhost:3000/api/admin/users?includeArchived=true"));
+
+      expect(User.findAll).toHaveBeenCalledWith(true);
     });
   });
 

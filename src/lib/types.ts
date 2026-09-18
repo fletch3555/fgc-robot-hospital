@@ -22,6 +22,7 @@ export interface IUser {
   email: string;
   name: string;
   roles?: UserRole[]; // Array of roles for multi-role support
+  is_archived: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -159,6 +160,7 @@ export interface IUserSummary {
 
 export interface IUserAdmin extends IUserSummary {
   _id: string; // Admin API uses _id instead of id
+  isArchived: boolean;
   createdAt: string;
   updatedAt: string;
 }

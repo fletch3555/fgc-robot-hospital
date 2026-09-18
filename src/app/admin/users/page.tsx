@@ -33,6 +33,8 @@ import {
   Container,
   ListItemText,
   OutlinedInput,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -40,6 +42,8 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
+  Archive as ArchiveIcon,
+  Unarchive as UnarchiveIcon,
 } from '@mui/icons-material';
 import { RoleMetadata } from '@/lib/auth-types';
 
@@ -58,6 +62,7 @@ function UsersPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [includeArchived, setIncludeArchived] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<IUserAdmin | null>(null);
   const [formData, setFormData] = useState({
@@ -93,7 +98,7 @@ function UsersPage() {
     pages: 0,
   });
 
-  const fetchUsers = useCallback(async (page = 1, search = '') => {
+  const fetchUsers = useCallback(async (page = 1, search = '', showArchived = includeArchived) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -101,6 +106,7 @@ function UsersPage() {
         limit: pagination.limit.toString(),
       });
       if (search) params.append('search', search);
+      if (showArchived) params.append('includeArchived', 'true');
 
       const response = await fetchWithAuth(`/api/admin/users?${params}`);
       if (response.ok) {
@@ -116,7 +122,7 @@ function UsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [pagination.limit, fetchWithAuth]);
+  }, [pagination.limit, fetchWithAuth, includeArchived]);
 
   const fetchRoles = useCallback(async () => {
     try {
@@ -230,6 +236,31 @@ function UsersPage() {
     }
   };
 
+  const handleToggleIncludeArchived = (checked: boolean) => {
+    setIncludeArchived(checked);
+    fetchUsers(1, searchTerm, checked);
+  };
+
+  const handleToggleArchive = async (user: IUserAdmin) => {
+    try {
+      const response = await fetch(`/api/admin/users/${user._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_archived: !user.isArchived }),
+      });
+
+      if (response.ok) {
+        setSuccess(user.isArchived ? 'User unarchived' : 'User archived');
+        fetchUsers(pagination.page, searchTerm);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to update user');
+      }
+    } catch {
+      setError('Error updating user');
+    }
+  };
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ mt: 4, mb: 4 }}>
@@ -252,6 +283,15 @@ function UsersPage() {
           <IconButton onClick={handleSearch}>
             <SearchIcon />
           </IconButton>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={includeArchived}
+                onChange={(e) => handleToggleIncludeArchived(e.target.checked)}
+              />
+            }
+            label="Show archived"
+          />
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
@@ -299,8 +339,13 @@ function UsersPage() {
               </TableRow>
             ) : (
               users.map((user) => (
-                <TableRow key={user._id}>
-                  <TableCell>{user.name}</TableCell>
+                <TableRow key={user._id} sx={user.isArchived ? { opacity: 0.6 } : undefined}>
+                  <TableCell>
+                    {user.name}
+                    {user.isArchived && (
+                      <Chip label="ARCHIVED" size="small" sx={{ ml: 1 }} />
+                    )}
+                  </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     {user.roles.map((roleName, index) => {
@@ -328,8 +373,13 @@ function UsersPage() {
                         <EditIcon />
                       </IconButton>
                     </Tooltip>
+                    <Tooltip title={user.isArchived ? 'Unarchive User' : 'Archive User'}>
+                      <IconButton onClick={() => handleToggleArchive(user)}>
+                        {user.isArchived ? <UnarchiveIcon /> : <ArchiveIcon />}
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title="Delete User">
-                      <IconButton 
+                      <IconButton
                         onClick={() => handleDeleteUser(user._id)}
                         color="error"
                       >

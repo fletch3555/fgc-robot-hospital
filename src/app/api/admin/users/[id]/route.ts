@@ -33,6 +33,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       name: user.name,
       email: user.email,
       roles: user.roles,
+      isArchived: user.is_archived,
       createdAt: user.created_at,
       updatedAt: user.updated_at
     });
@@ -52,6 +53,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
     const updateData = await request.json();
+
+    if (updateData.is_archived !== undefined && typeof updateData.is_archived !== 'boolean') {
+      return NextResponse.json({ error: 'is_archived must be a boolean' }, { status: 400 });
+    }
 
     await connectToDatabase();
 
@@ -78,6 +83,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       name: updatedUser!.name,
       email: updatedUser!.email,
       roles: updatedUser!.roles,
+      isArchived: updatedUser!.is_archived,
       createdAt: updatedUser!.created_at,
       updatedAt: updatedUser!.updated_at
     });
