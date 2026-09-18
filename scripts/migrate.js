@@ -41,12 +41,14 @@ async function main() {
     .filter((f) => f.endsWith('.sql'))
     .sort();
 
+  const sslConfig = AUTO_RUN_ENVIRONMENTS.includes(process.env.VERCEL_ENV) ? { rejectUnauthorized: false } : false;
+  console.log(
+    `[diagnostic] node=${process.version} VERCEL_ENV=${process.env.VERCEL_ENV} NODE_ENV=${process.env.NODE_ENV} ssl=${JSON.stringify(sslConfig)} host=${connectionString.replace(/:\/\/[^@]*@/, '://<redacted>@')}`
+  );
+
   const client = new Client({
     connectionString,
-    // NODE_ENV isn't reliably 'production' during Vercel's build step (only
-    // at runtime), so gate SSL on the same VERCEL_ENV signal used above to
-    // decide whether we're talking to a real remote Supabase database.
-    ssl: AUTO_RUN_ENVIRONMENTS.includes(process.env.VERCEL_ENV) ? { rejectUnauthorized: false } : false,
+    ssl: sslConfig,
   });
 
   await client.connect();
