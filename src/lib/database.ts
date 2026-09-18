@@ -1,6 +1,6 @@
 import { Pool, Client } from 'pg';
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://robot_hospital_user:robot_hospital_password@localhost:5432/robot_hospital';
+const POSTGRES_URL = process.env.POSTGRES_URL || 'postgresql://robot_hospital_user:robot_hospital_password@localhost:5432/robot_hospital';
 
 // Global variable to reuse connection in serverless environment
 let globalPool: Pool | null = null;
@@ -20,7 +20,7 @@ export async function connectToDatabase(): Promise<Pool> {
 
   try {
     globalPool = new Pool({
-      connectionString: DATABASE_URL,
+      connectionString: POSTGRES_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       // Serverless optimizations
       max: 1, // Limit to 1 connection in serverless
@@ -45,7 +45,7 @@ export async function query(text: string, params?: unknown[]): Promise<any> {
   if (process.env.VERCEL) {
     // Use single client for Vercel serverless functions
     const client = new Client({
-      connectionString: DATABASE_URL,
+      connectionString: POSTGRES_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
     });
 

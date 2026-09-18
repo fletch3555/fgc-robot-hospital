@@ -3,7 +3,9 @@
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useSession } from '@/contexts/SessionContext';
+import { createClient } from '@/lib/supabase/client';
 import { usePermissions } from '@/contexts/PermissionsContext';
 import { PermissionName } from '@/lib/auth-types';
 import {
@@ -34,10 +36,13 @@ import {
   Security as SecurityIcon,
   Assignment as AssignmentIcon,
   Logout as LogoutIcon,
+  Password as PasswordIcon,
   Category as FGCInventoryIcon,
   Schedule as ScheduleIcon,
   Settings as ServoIcon,
   Code as ServoProgrammingIcon,
+  BatteryChargingFull as BatteryChargingFullIcon,
+  SwapHoriz as SwapHorizIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 280;
@@ -94,7 +99,19 @@ const navItems: NavItem[] = [
     href: '/spare-parts',
     requiredPermissions: ['spare_parts.view'],
   },
-  
+  {
+    text: 'Battery Swap Intake',
+    icon: <BatteryChargingFullIcon />,
+    href: '/battery-swaps/new',
+    requiredPermissions: ['battery_swaps.create'],
+  },
+  {
+    text: 'View Battery Swaps',
+    icon: <SwapHorizIcon />,
+    href: '/battery-swaps',
+    requiredPermissions: ['battery_swaps.view'],
+  },
+
   // Admin Section
   {
     text: 'Admin',
@@ -272,9 +289,11 @@ function NavItemComponent({ item, level = 0, onMobileToggle }: NavItemComponentP
 
 function SidebarContent({ onMobileToggle }: { onMobileToggle?: () => void }) {
   const { data: session } = useSession();
+  const router = useRouter();
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/' });
+  const handleSignOut = async () => {
+    await createClient().auth.signOut();
+    router.replace('/');
   };
 
   // No need to combine items anymore - navItems already includes admin section
@@ -289,8 +308,7 @@ function SidebarContent({ onMobileToggle }: { onMobileToggle?: () => void }) {
       {session?.user && (
         <>
           <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar 
-              src={(session.user as { image?: string }).image || undefined}
+            <Avatar
               alt={session.user.name || 'User'}
               sx={{ width: 40, height: 40 }}
             >
@@ -326,7 +344,18 @@ function SidebarContent({ onMobileToggle }: { onMobileToggle?: () => void }) {
       <Divider />
       
       {session?.user && (
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Button
+            fullWidth
+            variant="outlined"
+            component={Link}
+            href="/account/change-password"
+            startIcon={<PasswordIcon />}
+            onClick={onMobileToggle}
+            color="inherit"
+          >
+            Change Password
+          </Button>
           <Button
             fullWidth
             variant="outlined"

@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { PermissionName } from "../../../../src/lib/auth-types";
 import { GET, POST } from "../../../../src/app/api/admin/permissions/route";
 import {
   setupAuthMock,
@@ -27,7 +28,7 @@ jest.mock("../../../../src/lib/authz", () => ({
 import { checkPermissions } from "../../../../src/lib/authz";
 const mockCheckPermissions = checkPermissions as jest.MockedFunction<typeof checkPermissions>;
 
-function setupUserPermissionsMock(userPermissions: string[] = [], hasSession: boolean = true) {
+function setupUserPermissionsMock(userPermissions: PermissionName[] = [], hasSession: boolean = true) {
   const authorized = userPermissions.includes("admin.permissions");
   
   let response = null;

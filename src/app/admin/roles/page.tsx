@@ -205,7 +205,7 @@ function RoleManagementPage() {
           <Typography variant="h4" component="h1" gutterBottom>
             Roles & Permissions
           </Typography>
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
             <CircularProgress />
           </Box>
         </Box>
@@ -253,7 +253,7 @@ function RoleManagementPage() {
                     {roles.map((role) => (
                       <TableRow key={role.role} hover>
                         <TableCell>
-                          <Typography variant="body2" fontWeight="medium">
+                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
                             {role.displayName}
                           </Typography>
                         </TableCell>
@@ -354,7 +354,7 @@ function RoleManagementPage() {
                         {categoryPermissions.map((permission) => (
                           <TableRow key={permission.name} hover>
                             <TableCell sx={{ position: 'sticky', left: 0, bgcolor: 'background.paper', zIndex: 1 }}>
-                              <Typography variant="body2" color="text.secondary" fontSize="0.8rem">
+                              <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
                                 {permission.description}
                               </Typography>
                             </TableCell>

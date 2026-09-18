@@ -5,7 +5,7 @@
  * These are true unit tests that test individual functions in isolation.
  */
 
-import { Session } from 'next-auth';
+import { AppSession } from '@/lib/auth-types';
 
 describe('Authentication Utilities - Unit Tests', () => {
   
@@ -65,7 +65,7 @@ describe('Authentication Utilities - Unit Tests', () => {
   });
 
   describe('isSessionExpired', () => {
-    let isSessionExpired: (session: Session) => boolean;
+    let isSessionExpired: (session: AppSession) => boolean;
     
     beforeAll(async () => {
       const authnModule = await import('../../../src/lib/authn');
@@ -73,7 +73,7 @@ describe('Authentication Utilities - Unit Tests', () => {
     });
 
     it('should return true for session without expires field', () => {
-      const session = { user: { id: 'test' } } as Session;
+      const session = { user: { id: 'test' } } as unknown as AppSession;
       expect(isSessionExpired(session)).toBe(true);
     });
 
@@ -82,7 +82,7 @@ describe('Authentication Utilities - Unit Tests', () => {
       const session = { 
         user: { id: 'test' },
         expires: pastDate 
-      } as Session;
+      } as unknown as AppSession;
       expect(isSessionExpired(session)).toBe(true);
     });
 
@@ -91,7 +91,7 @@ describe('Authentication Utilities - Unit Tests', () => {
       const session = { 
         user: { id: 'test' },
         expires: futureDate 
-      } as Session;
+      } as unknown as AppSession;
       expect(isSessionExpired(session)).toBe(false);
     });
 
@@ -100,7 +100,7 @@ describe('Authentication Utilities - Unit Tests', () => {
       const session = { 
         user: { id: 'test' },
         expires: now 
-      } as Session;
+      } as unknown as AppSession;
       // Due to timing, this might be true or false, but let's test the boundary
       const result = isSessionExpired(session);
       expect(typeof result).toBe('boolean');

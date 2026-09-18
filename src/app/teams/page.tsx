@@ -104,8 +104,10 @@ function TeamsPage() {
               placeholder="Search by country name or code..."
               value={searchTerm}
               onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+              slotProps={{
+                input: {
+                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                },
               }}
             />
           </Box>

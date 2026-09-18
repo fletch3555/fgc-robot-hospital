@@ -5,12 +5,10 @@
  * including role-based access control (RBAC), permission checking, and session management.
  */
 
-import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
-import { Session } from "next-auth";
-import { authOptions } from "./authn";
+import { getCurrentUserWithRoles } from "@/lib/supabase/session";
 import { query } from "@/lib/database";
-import { Role, Permission, PermissionCategory, RoleMetadata, PermissionName } from "./auth-types";
+import { Role, Permission, PermissionCategory, RoleMetadata, PermissionName, AppSession } from "./auth-types";
 
 // =============================================================================
 // Permission Definitions
@@ -164,6 +162,33 @@ export const PERMISSIONS: Record<PermissionName, Permission> = {
     category: 'spare_parts'
   },
 
+  // Battery Swaps
+  'battery_swaps.view': {
+    name: 'battery_swaps.view',
+    description: 'View battery swap records',
+    category: 'battery_swaps'
+  },
+  'battery_swaps.create': {
+    name: 'battery_swaps.create',
+    description: 'Record a new battery swap with a team',
+    category: 'battery_swaps'
+  },
+  'battery_swaps.edit': {
+    name: 'battery_swaps.edit',
+    description: 'Correct an existing battery swap record',
+    category: 'battery_swaps'
+  },
+  'battery_swaps.return': {
+    name: 'battery_swaps.return',
+    description: 'Mark a battery swap as returned',
+    category: 'battery_swaps'
+  },
+  'battery_swaps.configure': {
+    name: 'battery_swaps.configure',
+    description: 'Configure the total loaner battery pool size',
+    category: 'battery_swaps'
+  },
+
   // // Robot Inspection
   // 'inspection.view': {
   //   name: 'inspection.view',
@@ -297,7 +322,7 @@ export interface RoleWithPermissions {
 export interface AuthzResult {
   authorized: boolean;
   response: NextResponse | null;
-  session?: Session;
+  session?: AppSession;
   permissions?: PermissionName[];
 }
 
@@ -701,14 +726,8 @@ export class UserAuthorizationService {
 /**
  * Get the current authenticated session
  */
-export async function getAuthenticatedSession(): Promise<Session | null> {
-  try {
-    const session = await getServerSession(authOptions);
-    return session;
-  } catch (error) {
-    console.error('Error getting authenticated session:', error);
-    return null;
-  }
+export async function getAuthenticatedSession(): Promise<AppSession | null> {
+  return getCurrentUserWithRoles();
 }
 
 /**

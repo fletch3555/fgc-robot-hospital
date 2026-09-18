@@ -3,6 +3,7 @@ import { checkPermissions } from '@/lib/authz';
 import { connectToDatabase, query } from '@/lib/database';
 import { isValidCountryCode, getCountryName } from '@/lib/countryUtils';
 import { kopInventory } from '@/data/kop-inventory';
+import { getCurrentSeason } from '@/lib/season';
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,8 +62,9 @@ export async function POST(request: NextRequest) {
           is_loan,
           status,
           submitted_by,
-          notes
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          notes,
+          season
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *`,
         [
           item.fgcPartNumber || null,
@@ -72,7 +74,8 @@ export async function POST(request: NextRequest) {
           isLoan,
           'issued',
           authz.session.user.id, // Attendant who issued the part
-          notes ? [notes] : null
+          notes ? [notes] : null,
+          getCurrentSeason()
         ]
       );
       
@@ -103,30 +106,36 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const isDashboard = searchParams.get('dashboard') === 'true';
     const countryCode = searchParams.get('countryCode');
+    const allSeasons = searchParams.get('allSeasons') === 'true';
+    const season = allSeasons ? 'all' : getCurrentSeason();
+    const seasonWhere = season === 'all' ? '' : 'season = $1';
+    const seasonValues = season === 'all' ? [] : [season];
 
     if (isDashboard) {
       // Get counts for dashboard
       const countsResult = await query(`
-        SELECT 
+        SELECT
           status,
           COUNT(*) as count
-        FROM spare_parts 
+        FROM spare_parts
+        ${seasonWhere ? `WHERE ${seasonWhere}` : ''}
         GROUP BY status
-      `);
+      `, seasonValues);
 
       // Get overdue loans (for example, loans issued more than 7 days ago that haven't been returned)
       const overdueResult = await query(`
-        SELECT 
+        SELECT
           sp.*,
           u.name as issued_to_name,
           u.email as issued_to_email
         FROM spare_parts sp
         LEFT JOIN users u ON sp.submitted_by = u.id
-        WHERE sp.is_loan = true 
-          AND sp.status = 'issued' 
+        WHERE sp.is_loan = true
+          AND sp.status = 'issued'
           AND sp.created_at < NOW() - INTERVAL '7 days'
+          ${seasonWhere ? `AND sp.${seasonWhere}` : ''}
         ORDER BY sp.created_at ASC
-      `);
+      `, seasonValues);
 
       // Process the counts into the expected format
       const counts = {
@@ -157,6 +166,10 @@ export async function GET(request: NextRequest) {
     const values: unknown[] = [];
     let paramCount = 0;
 
+    if (season !== 'all') {
+      whereClause += ` AND sp.season = $${++paramCount}`;
+      values.push(season);
+    }
     if (countryCode) {
       whereClause += ` AND sp.country_code = $${++paramCount}`;
       values.push(countryCode.toUpperCase());

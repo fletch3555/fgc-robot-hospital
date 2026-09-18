@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/contexts/SessionContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
@@ -30,12 +30,14 @@ export default function AdminProtection({ children }: AdminProtectionProps) {
   if (status === 'loading') {
     return (
       <Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        minHeight="50vh"
-        gap={2}
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '50vh',
+          gap: 2,
+        }}
       >
         <CircularProgress />
         <Typography>Loading...</Typography>
@@ -46,12 +48,14 @@ export default function AdminProtection({ children }: AdminProtectionProps) {
   if (!session?.user?.roles?.includes('admin')) {
     return (
       <Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        minHeight="50vh"
-        gap={2}
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '50vh',
+          gap: 2,
+        }}
       >
         <Typography variant="h5" color="error">
           Access Denied

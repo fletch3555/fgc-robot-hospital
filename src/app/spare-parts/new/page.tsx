@@ -36,7 +36,7 @@ import {
   Code as CodeIcon,
 } from '@mui/icons-material';
 import Link from 'next/link';
-import { kopInventory } from '@/data/kop-inventory';
+import { kopInventory, getUnitsPerPackage } from '@/data/kop-inventory';
 import { ReviewStatus } from '@/lib/types';
 
 interface FGCInventoryItem {
@@ -241,8 +241,8 @@ function NewSparePart() {
   };
 
   return (
-    <Box py={4}>
-      <Box display="flex" alignItems="center" mb={4}>
+    <Box sx={{ py: 4 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
           <Button
             component={Link}
             href="/spare-parts"
@@ -266,8 +266,10 @@ function NewSparePart() {
           <CardContent>
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
-                <strong>How it works:</strong> Select items from the FGC Kit of Parts inventory. 
+                <strong>How it works:</strong> Select items from the FGC Kit of Parts inventory.
                 Specify whether each item is for loan (must be returned) or consumable (to be kept).
+                Quantity is always the number of individual pieces — for items marked{' '}
+                <Chip label="pack of N" size="small" variant="outlined" component="span" sx={{ verticalAlign: 'middle' }} />, count out pieces, not packs.
               </Typography>
             </Alert>
             
@@ -318,7 +320,7 @@ function NewSparePart() {
                       <TableHead>
                         <TableRow>
                           <TableCell sx={{ fontWeight: 'bold' }}>Item</TableCell>
-                          <TableCell sx={{ fontWeight: 'bold' }} align="center">Qty</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }} align="center">Qty (individual items)</TableCell>
                           <TableCell sx={{ fontWeight: 'bold' }} align="center">Actions</TableCell>
                         </TableRow>
                       </TableHead>
@@ -345,6 +347,7 @@ function NewSparePart() {
                                     )}
                                     renderOption={(props, option) => {
                                       const { key, ...otherProps } = props;
+                                      const unitsPerPackage = getUnitsPerPackage(option.part_number);
                                       return (
                                         <Box component="li" key={key} {...otherProps}>
                                           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
@@ -356,6 +359,9 @@ function NewSparePart() {
                                                 Part #: {option.part_number}
                                               </Typography>
                                             </Box>
+                                            {unitsPerPackage > 1 && (
+                                              <Chip label={`pack of ${unitsPerPackage}`} size="small" variant="outlined" sx={{ mr: 1 }} />
+                                            )}
                                             {getReviewStatusChip(option.review_status)}
                                           </Box>
                                         </Box>
@@ -364,9 +370,14 @@ function NewSparePart() {
                                     disabled={loadingInventory}
                                     sx={{ flexGrow: 1, minWidth: 300 }}
                                   />
-                                  {item.fgcInventoryId && fgcInventory.find(inv => inv.id === item.fgcInventoryId) &&
-                                    getReviewStatusChip(fgcInventory.find(inv => inv.id === item.fgcInventoryId)!.review_status)
-                                  }
+                                  {item.fgcInventoryId && fgcInventory.find(inv => inv.id === item.fgcInventoryId) && (
+                                    <>
+                                      {getUnitsPerPackage(item.partNumber) > 1 && (
+                                        <Chip label={`pack of ${getUnitsPerPackage(item.partNumber)}`} size="small" variant="outlined" sx={{ ml: 1 }} />
+                                      )}
+                                      {getReviewStatusChip(fgcInventory.find(inv => inv.id === item.fgcInventoryId)!.review_status)}
+                                    </>
+                                  )}
                                 </Box>
                               </TableCell>
                               <TableCell align="center">
@@ -376,12 +387,12 @@ function NewSparePart() {
                                   value={item.requestedQuantity}
                                   onChange={(e) => handleRequestedItemChange(index, 'requestedQuantity', parseInt(e.target.value) || 1)}
                                   required
-                                  inputProps={{ min: 1, style: { textAlign: 'center' } }}
+                                  slotProps={{ htmlInput: { min: 1, style: { textAlign: 'center' } } }}
                                   sx={{ width: 80 }}
                                 />
                               </TableCell>
                               <TableCell align="center">
-                                <Box display="flex" gap={1} justifyContent="center">
+                                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                                   <IconButton
                                     onClick={() => addRequestedItem(index)}
                                     size="small"
@@ -420,7 +431,7 @@ function NewSparePart() {
 
                 <Grid size={12}>
                   <Divider sx={{ my: 2 }} />
-                  <Box display="flex" justifyContent="flex-end" gap={2}>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                     <Button
                       component={Link}
                       href="/spare-parts"

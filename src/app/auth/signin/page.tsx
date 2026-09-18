@@ -1,6 +1,8 @@
 'use client';
 
-import { useSession, signIn } from "next-auth/react";
+import { useState } from "react";
+import { useSession } from "@/contexts/SessionContext";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import {
@@ -12,12 +14,19 @@ import {
   Stack,
   Toolbar,
   AppBar,
+  TextField,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
 import Image from "next/image";
 
 export default function SignIn() {
   const { data: session } = useSession();
   const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   // Use useEffect for client-side redirection
   useEffect(() => {
@@ -26,8 +35,26 @@ export default function SignIn() {
     }
   }, [session, router]);
 
-  const handleSlackSignIn = () => {
-    signIn('slack', { callbackUrl: '/' });
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    setSubmitting(true);
+
+    try {
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (signInError) {
+        setError('Invalid email or password');
+        setSubmitting(false);
+        return;
+      }
+
+      router.replace('/');
+    } catch {
+      setError('Something went wrong. Please try again.');
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -42,11 +69,11 @@ export default function SignIn() {
       >
         <Toolbar>
           {/* Centered content container */}
-          <Box 
-            sx={{ 
-              flexGrow: 1, 
-              display: 'flex', 
-              alignItems: 'center', 
+          <Box
+            sx={{
+              flexGrow: 1,
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'center',
               gap: 2
             }}
@@ -63,7 +90,7 @@ export default function SignIn() {
               height={40}
               style={{ objectFit: 'contain' }}
             />
-            
+
             {/* App Title */}
             <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
               Robot Hospital Information System
@@ -86,43 +113,49 @@ export default function SignIn() {
         }}
       >
         <Toolbar /> {/* Spacer for fixed AppBar */}
-        
+
         <Container maxWidth="sm">
           <Paper sx={{ p: 4 }}>
             <Typography component="h1" variant="h5" align="center" gutterBottom>
               Sign In
             </Typography>
 
-            {/* OAuth Providers */}
-            <Stack spacing={2} sx={{ mb: 3 }}>
-              <Button
-                fullWidth
-                variant="outlined"
-                onClick={handleSlackSignIn}
-                startIcon={
-                  <Image
-                    src="/slack-icon.svg"
-                    alt="Slack"
-                    width={20}
-                    height={20}
-                    style={{ marginRight: 8 }}
-                  />
-                }
-                sx={{
-                  color: 'text.primary',
-                  borderColor: 'divider',
-                  '&:hover': {
-                    borderColor: '#1DB954',
-                    backgroundColor: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? 'rgba(29, 185, 84, 0.08)'
-                        : 'rgba(29, 185, 84, 0.04)',
-                  },
-                }}
-              >
-                Continue with Slack
-              </Button>
-            </Stack>
+            <Box component="form" onSubmit={handleSubmit} noValidate>
+              <Stack spacing={2} sx={{ mb: 1 }}>
+                {error && <Alert severity="error">{error}</Alert>}
+
+                <TextField
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  fullWidth
+                  autoComplete="email"
+                  autoFocus
+                />
+
+                <TextField
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  fullWidth
+                  autoComplete="current-password"
+                />
+
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  disabled={submitting}
+                  startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
+                >
+                  Sign In
+                </Button>
+              </Stack>
+            </Box>
           </Paper>
         </Container>
       </Box>

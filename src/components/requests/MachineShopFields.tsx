@@ -114,7 +114,7 @@ export default function MachineShopFields({ data, onChange, errors = {} }: Machi
             margin="normal"
             error={!!errors.actionOther}
             helperText={errors.actionOther || "Maximum 100 characters"}
-            inputProps={{ maxLength: 100 }}
+            slotProps={{ htmlInput: { maxLength: 100 } }}
           />
         </Grid>
       )}
@@ -193,7 +193,7 @@ export default function MachineShopFields({ data, onChange, errors = {} }: Machi
               placeholder="Please specify the other material type..."
               error={!!errors.materialOther}
               helperText={errors.materialOther || "Maximum 50 characters"}
-              inputProps={{ maxLength: 50 }}
+              slotProps={{ htmlInput: { maxLength: 50 } }}
               required
             />
           )}

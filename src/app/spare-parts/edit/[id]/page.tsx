@@ -37,7 +37,7 @@ import {
   Code as CodeIcon,
 } from '@mui/icons-material';
 import Link from 'next/link';
-import { kopInventory } from '@/data/kop-inventory';
+import { kopInventory, getUnitsPerPackage } from '@/data/kop-inventory';
 import { ReviewStatus } from '@/lib/types';
 
 interface FGCInventoryItem {
@@ -325,7 +325,7 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
 
   if (authLoading || isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
         <CircularProgress />
       </Box>
     );
@@ -358,8 +358,8 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
   }
 
   return (
-    <Box py={4}>
-      <Box display="flex" alignItems="center" mb={4}>
+    <Box sx={{ py: 4 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
         <Button
           component={Link}
           href="/spare-parts"
@@ -385,8 +385,10 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
             <Typography variant="body2">
               <strong>Current Status:</strong> {sparePartData.status.charAt(0).toUpperCase() + sparePartData.status.slice(1)}
               <br />
-              <strong>How it works:</strong> Select items from the FGC Kit of Parts inventory. 
+              <strong>How it works:</strong> Select items from the FGC Kit of Parts inventory.
               Specify whether each item is for loan (must be returned) or consumable (to be kept).
+              Quantity is always the number of individual pieces — for items marked{' '}
+              <Chip label="pack of N" size="small" variant="outlined" component="span" sx={{ verticalAlign: 'middle' }} />, count out pieces, not packs.
             </Typography>
           </Alert>
           
@@ -437,7 +439,7 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ fontWeight: 'bold' }}>Item</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }} align="center">Qty</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }} align="center">Qty (individual items)</TableCell>
                         <TableCell sx={{ fontWeight: 'bold' }} align="center">Actions</TableCell>
                       </TableRow>
                     </TableHead>
@@ -464,6 +466,7 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
                                 )}
                                 renderOption={(props, option) => {
                                   const { key, ...otherProps } = props;
+                                  const unitsPerPackage = getUnitsPerPackage(option.part_number);
                                   return (
                                     <Box component="li" key={key} {...otherProps}>
                                       <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
@@ -475,6 +478,9 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
                                             Part #: {option.part_number}
                                           </Typography>
                                         </Box>
+                                        {unitsPerPackage > 1 && (
+                                          <Chip label={`pack of ${unitsPerPackage}`} size="small" variant="outlined" sx={{ mr: 1 }} />
+                                        )}
                                         {getReviewStatusChip(option.review_status)}
                                       </Box>
                                     </Box>
@@ -483,9 +489,14 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
                                 disabled={loadingInventory}
                                 sx={{ flexGrow: 1, minWidth: 300 }}
                               />
-                              {item.fgcInventoryId && fgcInventory.find(inv => inv.id === item.fgcInventoryId) &&
-                                getReviewStatusChip(fgcInventory.find(inv => inv.id === item.fgcInventoryId)!.review_status)
-                              }
+                              {item.fgcInventoryId && fgcInventory.find(inv => inv.id === item.fgcInventoryId) && (
+                                <>
+                                  {getUnitsPerPackage(item.partNumber) > 1 && (
+                                    <Chip label={`pack of ${getUnitsPerPackage(item.partNumber)}`} size="small" variant="outlined" sx={{ ml: 1 }} />
+                                  )}
+                                  {getReviewStatusChip(fgcInventory.find(inv => inv.id === item.fgcInventoryId)!.review_status)}
+                                </>
+                              )}
                             </Box>
                           </TableCell>
                           <TableCell align="center">
@@ -495,12 +506,12 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
                               value={item.requestedQuantity}
                               onChange={(e) => handleRequestedItemChange(index, 'requestedQuantity', parseInt(e.target.value) || 1)}
                               required
-                              inputProps={{ min: 1, style: { textAlign: 'center' } }}
+                              slotProps={{ htmlInput: { min: 1, style: { textAlign: 'center' } } }}
                               sx={{ width: 80 }}
                             />
                           </TableCell>
                           <TableCell align="center">
-                            <Box display="flex" gap={1} justifyContent="center">
+                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                               <IconButton
                                 onClick={() => addRequestedItem(index)}
                                 size="small"
@@ -539,7 +550,7 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
 
               <Grid size={12}>
                 <Divider sx={{ my: 2 }} />
-                <Box display="flex" justifyContent="flex-end" gap={2}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                   <Button
                     component={Link}
                     href="/spare-parts"

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { GET, POST } from "../../../../src/app/api/admin/users/route";
 import { User } from "../../../../src/models/User";
 import { query } from "../../../../src/lib/database";
+import { createAdminClient } from "../../../../src/lib/supabase/admin";
 import {
   setupAuthMock,
   setupDatabaseMock,
@@ -10,8 +11,13 @@ import {
   mockAdminSession,
 } from "../../../helpers/test-utils";
 
+jest.mock("../../../../src/lib/supabase/admin");
+
 // Mock database query
 const mockQuery = query as jest.MockedFunction<typeof query>;
+const mockCreateAdminClient = createAdminClient as jest.MockedFunction<typeof createAdminClient>;
+const mockCreateUser = jest.fn();
+const mockDeleteUser = jest.fn();
 
 function setupUserPermissionsMock(userPermissions: string[] = []) {
   mockQuery.mockImplementation((sql: string) => {
@@ -35,13 +41,19 @@ describe("/api/admin/users", () => {
     resetMocks();
     setupDatabaseMock();
     mockQuery.mockReset();
+    mockCreateUser.mockReset();
+    mockDeleteUser.mockReset();
+    mockCreateAdminClient.mockReturnValue({
+      auth: { admin: { createUser: mockCreateUser, deleteUser: mockDeleteUser } },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
   });
 
   describe("GET", () => {
     it("should return 401 when user is not authenticated", async () => {
       setupAuthMock(null);
 
-      const response = await GET();
+      const response = await GET(new NextRequest("http://localhost:3000/api/admin/users"));
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -52,7 +64,7 @@ describe("/api/admin/users", () => {
       setupAuthMock(mockSession); // regular volunteer user
       setupUserPermissionsMock([]); // No admin permissions
 
-      const response = await GET();
+      const response = await GET(new NextRequest("http://localhost:3000/api/admin/users"));
       const data = await response.json();
 
       expect(response.status).toBe(403);
@@ -89,7 +101,7 @@ describe("/api/admin/users", () => {
 
       (User.findAll as jest.Mock).mockResolvedValue(mockUsers);
 
-      const response = await GET();
+      const response = await GET(new NextRequest("http://localhost:3000/api/admin/users"));
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -116,11 +128,31 @@ describe("/api/admin/users", () => {
       setupUserPermissionsMock(['admin.users']); // Admin has admin users permission
       (User.findAll as jest.Mock).mockRejectedValue(new Error("Database error"));
 
-      const response = await GET();
+      const response = await GET(new NextRequest("http://localhost:3000/api/admin/users"));
       const data = await response.json();
 
       expect(response.status).toBe(500);
       expect(data).toEqual({ error: "Database error" });
+    });
+
+    it("should default to excluding archived users", async () => {
+      setupAuthMock(mockAdminSession);
+      setupUserPermissionsMock(['admin.users']);
+      (User.findAll as jest.Mock).mockResolvedValue([]);
+
+      await GET(new NextRequest("http://localhost:3000/api/admin/users"));
+
+      expect(User.findAll).toHaveBeenCalledWith(false);
+    });
+
+    it("should include archived users when includeArchived=true", async () => {
+      setupAuthMock(mockAdminSession);
+      setupUserPermissionsMock(['admin.users']);
+      (User.findAll as jest.Mock).mockResolvedValue([]);
+
+      await GET(new NextRequest("http://localhost:3000/api/admin/users?includeArchived=true"));
+
+      expect(User.findAll).toHaveBeenCalledWith(true);
     });
   });
 
@@ -180,6 +212,7 @@ describe("/api/admin/users", () => {
         updated_at: new Date().toISOString(),
       };
 
+      mockCreateUser.mockResolvedValue({ data: { user: { id: "new-user-id" } }, error: null });
       (User.create as jest.Mock).mockResolvedValue(mockCreatedUser);
 
       const request = new NextRequest("http://localhost:3000/api/admin/users", {
@@ -231,6 +264,8 @@ describe("/api/admin/users", () => {
     it("should handle database errors during user creation", async () => {
       setupAuthMock(mockAdminSession);
       setupUserPermissionsMock(['admin.users']); // Admin has admin users permission
+      mockCreateUser.mockResolvedValue({ data: { user: { id: "new-user-id" } }, error: null });
+      mockDeleteUser.mockResolvedValue({ error: null });
       (User.create as jest.Mock).mockRejectedValue(new Error("Database error"));
 
       const request = new NextRequest("http://localhost:3000/api/admin/users", {

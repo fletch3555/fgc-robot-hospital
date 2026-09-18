@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/contexts/SessionContext';
 import { Role, PermissionName } from '@/lib/auth-types';
 
 interface PermissionsContextType {

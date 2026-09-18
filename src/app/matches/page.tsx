@@ -193,7 +193,7 @@ const MatchSchedulePage: React.FC = () => {
     if (!country) return null;
     
     return (
-      <Box display="flex" alignItems="center" justifyContent="center">
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Flag country={country} size={20} />
         <Typography variant="body2">
           {country.code}
@@ -334,10 +334,12 @@ const MatchSchedulePage: React.FC = () => {
   if (initialLoading) {
     return (
       <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="400px"
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '400px',
+        }}
       >
         <CircularProgress />
       </Box>
@@ -345,7 +347,7 @@ const MatchSchedulePage: React.FC = () => {
   }
 
   return (
-    <Box p={3}>
+    <Box sx={{ p: 3 }}>
       <Typography variant="h4" component="h1" gutterBottom>
         FIRST Global 2025 - Match Schedule
       </Typography>
@@ -390,7 +392,7 @@ const MatchSchedulePage: React.FC = () => {
           clearText="Clear filter"
           noOptionsText="No countries found"
           renderOption={(props, option) => (
-            <Box component="li" {...props} display="flex" alignItems="center">
+            <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center' }}>
               {fetchCountry(option.code) && (
                 <Flag country={fetchCountry(option.code)!} size={20} />
               )}

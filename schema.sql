@@ -26,11 +26,15 @@ INSERT INTO roles (id, name, description) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Users table (no single role column - uses many-to-many relationship)
+-- id must be an existing auth.users(id) — created via Supabase Auth
+-- (supabase.auth.admin.createUser), never generated locally.
 CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
+    -- Hides an account from /admin/users by default without deleting it
+    -- (e.g. accounts with no working login left).
+    is_archived BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -60,6 +64,8 @@ CREATE TABLE IF NOT EXISTS requests (
     software_data JSONB,
     machine_shop_data JSONB,
     battery_charging_data JSONB,
+    -- Event year this request belongs to; see migrations/README.md
+    season INTEGER NOT NULL DEFAULT 2026,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -76,8 +82,39 @@ CREATE TABLE IF NOT EXISTS spare_parts (
     submitted_by UUID NOT NULL REFERENCES users(id), -- Attendant who issued the part
     handled_by UUID REFERENCES users(id), -- Attendant who handled return (if applicable)
     notes TEXT[],
+    -- Event year this record belongs to; see migrations/README.md
+    season INTEGER NOT NULL DEFAULT 2026,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Battery Swaps table (bidirectional exchange: team's low battery in,
+-- a hospital spare out, until the swap is reversed)
+CREATE TABLE IF NOT EXISTS battery_swaps (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    country_code CHAR(3) NOT NULL,
+    device_type VARCHAR(20) NOT NULL CHECK (device_type IN ('robot_controller', 'driver_hub')),
+    status VARCHAR(20) NOT NULL CHECK (status IN ('swapped', 'returned')),
+    submitted_by UUID NOT NULL REFERENCES users(id), -- Clerk who processed the swap-out
+    handled_by UUID REFERENCES users(id), -- Clerk who processed the return
+    notes TEXT,
+    -- False for a plain drop-off-for-charging with no spare handed out;
+    -- these don't count against the loaner pool's outstanding total.
+    loaner_provided BOOLEAN NOT NULL DEFAULT true,
+    -- Event year this record belongs to; see migrations/README.md
+    season INTEGER NOT NULL DEFAULT 2026,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tracks the fixed number of loaner batteries available per device type,
+-- so "available" can be computed as total minus currently outstanding swaps.
+CREATE TABLE IF NOT EXISTS battery_swap_pool (
+    device_type VARCHAR(20) NOT NULL CHECK (device_type IN ('robot_controller', 'driver_hub')),
+    season INTEGER NOT NULL,
+    total_count INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (device_type, season)
 );
 
 -- Teams table (now using countries data, but keeping for potential future use)
@@ -122,7 +159,11 @@ INSERT INTO role_permissions (role, permission_name) VALUES
 ('intake_clerk', 'spare_parts.view'),
 ('intake_clerk', 'documentation.view'),
 ('intake_clerk', 'inventory.view'),
-('intake_clerk', 'matches.view')
+('intake_clerk', 'matches.view'),
+('intake_clerk', 'battery_swaps.view'),
+('intake_clerk', 'battery_swaps.create'),
+('intake_clerk', 'battery_swaps.edit'),
+('intake_clerk', 'battery_swaps.return')
 ON CONFLICT DO NOTHING;
 
 -- Machine Shop Operator - machine shop focused
@@ -241,7 +282,12 @@ INSERT INTO role_permissions (role, permission_name) VALUES
 ('admin', 'admin.reports'),
 ('admin', 'documentation.view'),
 ('admin', 'inventory.view'),
-('admin', 'matches.view')
+('admin', 'matches.view'),
+('admin', 'battery_swaps.view'),
+('admin', 'battery_swaps.create'),
+('admin', 'battery_swaps.edit'),
+('admin', 'battery_swaps.return'),
+('admin', 'battery_swaps.configure')
 ON CONFLICT DO NOTHING;
 
 -- Indexes for performance
@@ -256,6 +302,13 @@ CREATE INDEX IF NOT EXISTS idx_spare_parts_status ON spare_parts(status);
 CREATE INDEX IF NOT EXISTS idx_spare_parts_country_code ON spare_parts(country_code);
 CREATE INDEX IF NOT EXISTS idx_spare_parts_submitted_by ON spare_parts(submitted_by);
 CREATE INDEX IF NOT EXISTS idx_spare_parts_fgc_part_number ON spare_parts(fgc_part_number);
+CREATE INDEX IF NOT EXISTS idx_requests_season ON requests(season);
+CREATE INDEX IF NOT EXISTS idx_spare_parts_season ON spare_parts(season);
+CREATE INDEX IF NOT EXISTS idx_battery_swaps_status ON battery_swaps(status);
+CREATE INDEX IF NOT EXISTS idx_battery_swaps_country_code ON battery_swaps(country_code);
+CREATE INDEX IF NOT EXISTS idx_battery_swaps_season ON battery_swaps(season);
+CREATE INDEX IF NOT EXISTS idx_battery_swaps_submitted_by ON battery_swaps(submitted_by);
+CREATE INDEX IF NOT EXISTS idx_battery_swaps_outstanding_lookup ON battery_swaps(country_code, device_type, status);
 CREATE INDEX IF NOT EXISTS idx_teams_country_code ON teams(country_code);
 CREATE INDEX IF NOT EXISTS idx_role_permissions_role ON role_permissions(role);
 CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_name ON role_permissions(permission_name);
@@ -282,6 +335,11 @@ CREATE TRIGGER update_requests_updated_at
 
 CREATE TRIGGER update_spare_parts_updated_at
     BEFORE UPDATE ON spare_parts
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER update_battery_swaps_updated_at
+    BEFORE UPDATE ON battery_swaps
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
 

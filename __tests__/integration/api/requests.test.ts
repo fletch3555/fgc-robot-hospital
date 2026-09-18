@@ -43,7 +43,7 @@ describe("/api/requests", () => {
     it("should return 401 when user is not authenticated", async () => {
       setupAuthMock(null);
 
-      const response = await GET();
+      const response = await GET(new NextRequest("http://localhost:3000/api/requests"));
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -83,7 +83,7 @@ describe("/api/requests", () => {
       (Request.findAll as jest.Mock).mockResolvedValue(mockActiveRequests);
       (Request.findRecentlyClosed as jest.Mock).mockResolvedValue(mockClosedRequests);
 
-      const response = await GET();
+      const response = await GET(new NextRequest("http://localhost:3000/api/requests"));
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -92,7 +92,7 @@ describe("/api/requests", () => {
         closed: mockClosedRequests
       });
       expect(Request.findAll).toHaveBeenCalledTimes(1);
-      expect(Request.findRecentlyClosed).toHaveBeenCalledWith(10);
+      expect(Request.findRecentlyClosed).toHaveBeenCalledWith(10, undefined);
     });
 
     it("should handle database errors gracefully", async () => {
@@ -100,7 +100,7 @@ describe("/api/requests", () => {
       setupUserPermissionsMock(['requests.view']); // User has requests view permission
       (Request.findAll as jest.Mock).mockRejectedValue(new Error("Database error"));
 
-      const response = await GET();
+      const response = await GET(new NextRequest("http://localhost:3000/api/requests"));
       const data = await response.json();
 
       expect(response.status).toBe(500);

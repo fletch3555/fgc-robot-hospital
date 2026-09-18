@@ -106,7 +106,7 @@ export function AnalyticsWidget({
                     {metric.label}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" fontWeight="medium">
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
                       {metric.value.toLocaleString()}
                     </Typography>
                     {metric.change && (

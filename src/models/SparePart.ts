@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { query } from '@/lib/database';
 import { ISparePart } from '@/lib/types';
 import { getCountryName } from '@/lib/countryUtils';
+import { getCurrentSeason } from '@/lib/season';
 
 export class SparePart {
   static async findById(id: string): Promise<ISparePart | null> {
@@ -36,12 +37,18 @@ export class SparePart {
     submittedBy?: string;
     handledBy?: string;
     countryCode?: string;
+    season?: number | 'all';
   } = {}): Promise<ISparePart[]> {
     try {
       let whereClause = 'WHERE 1=1';
       const values: unknown[] = [];
       let paramCount = 0;
 
+      const season = filters.season === undefined ? getCurrentSeason() : filters.season;
+      if (season !== 'all') {
+        whereClause += ` AND sp.season = $${++paramCount}`;
+        values.push(season);
+      }
       if (filters.status) {
         whereClause += ` AND sp.status = $${++paramCount}`;
         values.push(filters.status);
@@ -101,9 +108,9 @@ export class SparePart {
       
       const result = await query(
         `INSERT INTO spare_parts (
-           id, country_code, item_name, quantity, 
-           is_loan, status, submitted_by, notes
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+           id, country_code, item_name, quantity,
+           is_loan, status, submitted_by, notes, season
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING *`,
         [
           id,
@@ -113,7 +120,8 @@ export class SparePart {
           sparePartData.isLoan,
           'issued',
           sparePartData.submittedBy,
-          JSON.stringify(sparePartData.notes || [])
+          JSON.stringify(sparePartData.notes || []),
+          getCurrentSeason()
         ]
       );
       
@@ -188,19 +196,26 @@ export class SparePart {
     }
   }
 
-  static async findByUser(userId: string, role: 'submitted' | 'handled' = 'submitted'): Promise<ISparePart[]> {
+  static async findByUser(userId: string, role: 'submitted' | 'handled' = 'submitted', season: number | 'all' = getCurrentSeason()): Promise<ISparePart[]> {
     try {
       const column = role === 'submitted' ? 'submitted_by' : 'handled_by';
+      const values: unknown[] = [userId];
+      let seasonClause = '';
+      if (season !== 'all') {
+        seasonClause = ' AND sp.season = $2';
+        values.push(season);
+      }
+
       const result = await query(
-        `SELECT sp.*, 
+        `SELECT sp.*,
                 u1.name as submitted_by_name, u1.email as submitted_by_email,
                 u2.name as handled_by_name, u2.email as handled_by_email
          FROM spare_parts sp
          LEFT JOIN users u1 ON sp.submitted_by = u1.id
          LEFT JOIN users u2 ON sp.handled_by = u2.id
-         WHERE sp.${column} = $1
+         WHERE sp.${column} = $1${seasonClause}
          ORDER BY sp.created_at DESC`,
-        [userId]
+        values
       );
       
       // Add country names through lookup

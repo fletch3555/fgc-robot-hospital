@@ -274,7 +274,7 @@ function Home() {
           Robot Hospital Dashboard
         </Typography>
         <WithPermissions requiredAnyPermissions={['requests.view', 'spare_parts.view']}>
-          <Typography variant="body1" color="text.secondary" paragraph>
+          <Typography variant="body1" sx={{ color: 'text.secondary', mb: 2 }}>
             Comprehensive overview of support requests, spare parts, and operational metrics.
           </Typography>
           

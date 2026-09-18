@@ -447,8 +447,10 @@ export default function EditRequestModal({
       onClose={onClose} 
       maxWidth="md" 
       fullWidth
-      PaperProps={{
-        sx: { minHeight: '80vh' }
+      slotProps={{
+        paper: {
+          sx: { minHeight: '80vh' }
+        }
       }}
     >
       <DialogTitle>

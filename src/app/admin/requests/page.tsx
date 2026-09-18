@@ -193,7 +193,7 @@ function AdminRequestsPage() {
                     </TableCell>
                     <TableCell>
                       {request.assigned_to_name || (
-                        <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
                           Unassigned
                         </Typography>
                       )}
@@ -210,7 +210,7 @@ function AdminRequestsPage() {
                               : request.comments}
                           </Typography>
                         ) : (
-                          <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                          <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
                             No comments
                           </Typography>
                         )}

@@ -23,6 +23,7 @@ export type PermissionCategory =
   | 'machine_shop'
   | 'battery_charging'
   | 'spare_parts'
+  | 'battery_swaps'
   // | 'inspection'
   | 'admin'
   | 'documentation'
@@ -69,7 +70,14 @@ export type PermissionName =
   | 'spare_parts.edit'
   | 'spare_parts.issue'
   | 'spare_parts.receive'
-  
+
+  // Battery Swaps
+  | 'battery_swaps.view'
+  | 'battery_swaps.create'
+  | 'battery_swaps.edit'
+  | 'battery_swaps.return'
+  | 'battery_swaps.configure'
+
   // // Robot Inspection
   // | 'inspection.view'
   // | 'inspection.create'
@@ -118,4 +126,20 @@ export interface AuthenticatedUser {
   name: string;
   roles: Role[];
   permissions: string[];
+}
+
+/**
+ * Session shape used throughout the app, sourced from Supabase Auth
+ * (see src/lib/supabase/session.ts) plus this app's own user_roles lookup.
+ * Deliberately mirrors next-auth's old Session shape so existing consumers
+ * (checkPermissions, requireAuth, client components) didn't need to change.
+ */
+export interface AppSession {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    roles: string[];
+  };
+  expires: string;
 }

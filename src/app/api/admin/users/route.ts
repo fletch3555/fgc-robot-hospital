@@ -2,19 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkPermissions } from '@/lib/authz';
 import { User } from '@/models/User';
 import { connectToDatabase } from '@/lib/database';
+import { createAdminClient } from '@/lib/supabase/admin';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const authResult = await checkPermissions(['admin.users']);
-    
+
     if (!authResult.authorized) {
       return authResult.response!;
     }
 
     await connectToDatabase();
 
+    const includeArchived = request.nextUrl.searchParams.get('includeArchived') === 'true';
+
     // For now, just return all users - pagination can be added later
-    const users = await User.findAll();
+    const users = await User.findAll(includeArchived);
 
     return NextResponse.json({
       users: users.map(user => ({
@@ -22,6 +25,7 @@ export async function GET() {
         name: user.name,
         email: user.email,
         roles: user.roles,
+        isArchived: user.is_archived,
         createdAt: user.created_at,
         updatedAt: user.updated_at
       })),
@@ -54,24 +58,43 @@ export async function POST(request: NextRequest) {
 
     await connectToDatabase();
 
-    // Check if user with email already exists
+    // Cheap pre-check; Supabase Auth's own uniqueness check below is authoritative.
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
       return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
     }
 
-    const newUser = await User.create({
-      name,
+    const admin = createAdminClient();
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
       email,
       password,
-      roles
+      email_confirm: true, // admin-provisioned accounts are usable immediately
     });
+
+    if (createError || !created.user) {
+      return NextResponse.json({ error: createError?.message || 'Failed to create user' }, { status: 400 });
+    }
+
+    let newUser;
+    try {
+      newUser = await User.create({
+        id: created.user.id,
+        name,
+        email,
+        roles
+      });
+    } catch (error) {
+      // Compensate: don't leave an orphaned Supabase Auth identity with no app profile.
+      await admin.auth.admin.deleteUser(created.user.id);
+      throw error;
+    }
 
     return NextResponse.json({
       _id: newUser.id,
       name: newUser.name,
       email: newUser.email,
       roles: newUser.roles,
+      isArchived: newUser.is_archived,
       createdAt: newUser.created_at,
       updatedAt: newUser.updated_at
     }, { status: 201 });

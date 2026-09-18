@@ -9,8 +9,13 @@
 
 'use client';
 
-import { signOut } from 'next-auth/react';
+import { createClient } from './supabase/client';
 import { AuthError } from './auth-types';
+
+async function signOutAndRedirect(callbackUrl: string) {
+  await createClient().auth.signOut();
+  window.location.href = callbackUrl;
+}
 
 /**
  * Enhanced fetch wrapper that handles authentication errors
@@ -28,7 +33,7 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
   // Handle authentication errors
   if (response.status === 401) {
     console.warn('Authentication token expired, redirecting to sign in');
-    await signOut({ callbackUrl: '/auth/signin', redirect: true });
+    await signOutAndRedirect('/auth/signin');
     throw new Error('Authentication expired');
   }
 
@@ -40,17 +45,17 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
  * This is the canonical client-side implementation
  */
 export function handleAuthError(error: unknown, router?: { replace: (path: string) => void }): boolean {
-  const isAuthError = error && 
-    typeof error === 'object' && 
-    ('status' in error && error.status === 401 || 
+  const isAuthError = error &&
+    typeof error === 'object' &&
+    ('status' in error && error.status === 401 ||
      'message' in error && typeof error.message === 'string' && error.message.includes('Unauthorized'));
-     
+
   if (isAuthError) {
     console.warn('Authentication error detected, redirecting to sign in');
     if (router) {
       router.replace('/auth/signin');
     } else {
-      signOut({ callbackUrl: '/auth/signin', redirect: true });
+      signOutAndRedirect('/auth/signin');
     }
     return true;
   }

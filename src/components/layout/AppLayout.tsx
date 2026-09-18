@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
+import { useSession } from '@/contexts/SessionContext';
 import { Box, Toolbar, Container } from '@mui/material';
 import Sidebar from './Sidebar';
 import TopAppBar from './AppBar';
@@ -11,13 +12,23 @@ interface AppLayoutProps {
   children: React.ReactNode;
 }
 
+// Routes that render full-screen, without the sidebar/app chrome, regardless
+// of auth status — e.g. a shared kiosk display (see middleware.ts, which
+// also allows this path without authentication).
+const CHROME_FREE_PATHS = ['/monitor'];
+
 export default function AppLayout({ children }: AppLayoutProps) {
   const { status } = useSession();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleMobileToggle = () => {
     setMobileOpen(!mobileOpen);
   };
+
+  if (CHROME_FREE_PATHS.includes(pathname)) {
+    return <>{children}</>;
+  }
 
   // Show loading state while session is loading
   if (status === 'loading') {

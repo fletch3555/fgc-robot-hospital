@@ -503,9 +503,11 @@ function CreateRequestPage() {
                   </Box>
                 );
               }}
-              ListboxProps={{
-                sx: {
-                  maxHeight: '50vh'
+              slotProps={{
+                listbox: {
+                  sx: {
+                    maxHeight: '50vh'
+                  }
                 }
               }}
               isOptionEqualToValue={(option, value) => option.code === value.code}
@@ -637,14 +639,16 @@ function CreateRequestPage() {
                       borderRadius: { xs: 1, sm: 2 }
                     }
                   }}
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {loadingUsers ? <CircularProgress color="inherit" size={20} /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
+                  slotProps={{
+                    input: {
+                      ...params.slotProps.input,
+                      endAdornment: (
+                        <>
+                          {loadingUsers ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.slotProps.input.endAdornment}
+                        </>
+                      ),
+                    },
                   }}
                 />
               )}
@@ -681,7 +685,7 @@ function CreateRequestPage() {
             rows={4}
             error={!!validationErrors.comments}
             helperText={validationErrors.comments || `${formData.comments.length}/500 characters (optional)`}
-            inputProps={{ maxLength: 500 }}
+            slotProps={{ htmlInput: { maxLength: 500 } }}
           />
 
           <Box 

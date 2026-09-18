@@ -20,9 +20,9 @@ export interface IUserRole {
 export interface IUser {
   id: string;
   email: string;
-  password: string;
   name: string;
   roles?: UserRole[]; // Array of roles for multi-role support
+  is_archived: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -48,6 +48,7 @@ export interface IRequest {
   software_data?: SoftwareRequestData;
   machine_shop_data?: MachineShopRequestData;
   battery_charging_data?: BatteryChargingRequestData;
+  season: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -65,8 +66,41 @@ export interface ISparePart {
   submitted_by: string; // UUID reference to users.id
   handled_by?: string; // UUID reference to users.id
   notes?: string[];
+  season: number;
   created_at: Date;
   updated_at: Date;
+}
+
+export type BatteryDeviceType = 'robot_controller' | 'driver_hub';
+export type BatterySwapStatus = 'swapped' | 'returned';
+
+export interface IBatterySwap {
+  id: string;
+  country_code: string;
+  country_name: string;
+  device_type: BatteryDeviceType;
+  status: BatterySwapStatus;
+  submitted_by: string; // UUID reference to users.id
+  submitted_by_name?: string;
+  submitted_by_email?: string;
+  handled_by?: string; // UUID reference to users.id
+  handled_by_name?: string;
+  handled_by_email?: string;
+  notes?: string;
+  // False for a plain drop-off-for-charging with no spare handed out;
+  // these don't count against the loaner pool's outstanding total.
+  loaner_provided: boolean;
+  season: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface IBatterySwapPoolStatus {
+  device_type: BatteryDeviceType;
+  season: number;
+  total_count: number;
+  outstanding_count: number;
+  available_count: number;
 }
 
 export interface ITeam {
@@ -126,6 +160,7 @@ export interface IUserSummary {
 
 export interface IUserAdmin extends IUserSummary {
   _id: string; // Admin API uses _id instead of id
+  isArchived: boolean;
   createdAt: string;
   updatedAt: string;
 }

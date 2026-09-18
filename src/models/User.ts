@@ -1,5 +1,3 @@
-import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
 import { query } from '@/lib/database';
 import { IUser } from '@/lib/types';
 
@@ -47,21 +45,20 @@ export class User {
   }
 
   static async create(userData: {
+    id: string; // Must be an existing Supabase Auth user id (auth.users.id)
     email: string;
-    password: string;
     name: string;
     roles?: string[]; // Array of role IDs
   }): Promise<IUser> {
     try {
-      const id = uuidv4();
-      const hashedPassword = await bcrypt.hash(userData.password, 12);
-      
+      const { id } = userData;
+
       // Create user without roles first
       const result = await query(
-        `INSERT INTO users (id, email, password, name) 
-         VALUES ($1, $2, $3, $4) 
+        `INSERT INTO users (id, email, name)
+         VALUES ($1, $2, $3)
          RETURNING *`,
-        [id, userData.email.toLowerCase(), hashedPassword, userData.name]
+        [id, userData.email.toLowerCase(), userData.name]
       );
       
       const user = result.rows[0];
@@ -154,24 +151,17 @@ export class User {
     }
   }
 
-  static async comparePassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
-    return bcrypt.compare(plainPassword, hashedPassword);
-  }
-
-  static async hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, 12);
-  }
-
-  static async findAll(): Promise<IUser[]> {
+  static async findAll(includeArchived: boolean = false): Promise<IUser[]> {
     try {
       const result = await query(
-        `SELECT u.*, 
+        `SELECT u.*,
                 COALESCE(
-                  array_agg(ur.role_id) FILTER (WHERE ur.role_id IS NOT NULL), 
+                  array_agg(ur.role_id) FILTER (WHERE ur.role_id IS NOT NULL),
                   ARRAY[]::VARCHAR[]
                 ) as roles
          FROM users u
          LEFT JOIN user_roles ur ON u.id = ur.user_id
+         ${includeArchived ? '' : 'WHERE u.is_archived = false'}
          GROUP BY u.id`,
       );
       return result.rows;
@@ -207,7 +197,7 @@ export class User {
         FROM users u
         JOIN user_roles ur ON u.id = ur.user_id
         JOIN role_permissions rp ON ur.role_id = rp.role
-        WHERE rp.permission_name IN (${placeholders})
+        WHERE rp.permission_name IN (${placeholders}) AND u.is_archived = false
         GROUP BY u.id
         ORDER BY u.name ASC`,
         permissions
