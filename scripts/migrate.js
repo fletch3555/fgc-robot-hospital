@@ -43,7 +43,10 @@ async function main() {
 
   const client = new Client({
     connectionString,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    // NODE_ENV isn't reliably 'production' during Vercel's build step (only
+    // at runtime), so gate SSL on the same VERCEL_ENV signal used above to
+    // decide whether we're talking to a real remote Supabase database.
+    ssl: AUTO_RUN_ENVIRONMENTS.includes(process.env.VERCEL_ENV) ? { rejectUnauthorized: false } : false,
   });
 
   await client.connect();
