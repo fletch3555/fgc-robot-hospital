@@ -4,6 +4,6 @@
       "maxDuration": 30
     }
   },
-  "regions": ["sfo1"],
+  "regions": ["iad1"],
   "framework": "nextjs"
 }
