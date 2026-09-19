@@ -54,20 +54,23 @@ Postgres databases, via Vercel's per-environment `POSTGRES_URL` scoping
 point at the **Preview** database too — never point a local `.env` at
 the Production connection string.
 
-The app reads `POSTGRES_URL` directly (see `src/lib/database.ts`).
-`scripts/migrate.js` prefers `POSTGRES_URL_NON_POOLING` (the direct,
-non-pooled connection) when it's set, falling back to `POSTGRES_URL`
-otherwise — migrations are a single one-shot admin connection with no
-concurrency needs, and Supabase's transaction-mode pooler has been
-observed to fail from Vercel's build container with
-`SELF_SIGNED_CERT_IN_CHAIN` on at least one pooler node, even with
-`rejectUnauthorized: false` and the identical pooled connection working
-fine at runtime. The Supabase Vercel integration only manages one
-project's vars and auto-sets both `POSTGRES_URL` and
-`POSTGRES_URL_NON_POOLING` for the **Production** project it's
-connected to; Preview's connection string is set manually using just
-the `POSTGRES_URL` name (see `DEPLOYMENT.md`), so Preview's migrations
-fall back to its pooled connection.
+The app and `scripts/migrate.js` both read `POSTGRES_URL` directly (see
+`src/lib/database.ts`). The Supabase Vercel integration only manages
+one project's vars and auto-sets `POSTGRES_URL` for the **Production**
+project it's connected to, and Preview's connection string is set manually
+using that same name (see `DEPLOYMENT.md`) so both environments read the
+same variable.
+
+`scripts/migrate.js` additionally sets `NODE_TLS_REJECT_UNAUTHORIZED=0`
+(scoped tightly around just the connection attempt) when running against
+Preview/Production. Vercel's build container has been observed to fail
+to connect to Production's Supabase pooler with `SELF_SIGNED_CERT_IN_CHAIN`
+even with `pg`'s own `ssl.rejectUnauthorized: false` option — verified by
+testing the certificate, DNS, and every backend IP behind that pooler
+directly, all of which connect cleanly from outside Vercel, so the
+discrepancy is specific to Vercel's build container rather than Supabase.
+The identical pooled connection already works fine at runtime without
+this override.
 
 This wasn't always true: earlier in this project's life, local dev and
 every Preview deployment shared the single Production database directly.
@@ -135,8 +138,7 @@ afterward:
   land it once the schema change is final.
 - If you want to test a migration without pushing at all, use
   `node scripts/migrate.js --force` against a database you specify via
-  `POSTGRES_URL` (or `POSTGRES_URL_NON_POOLING`, which takes precedence
-  if both are set) in your shell — never point either at the Production
+  `POSTGRES_URL` in your shell — never point it at the Production
   connection string without the user's explicit confirmation, since
   that bypasses every safeguard above at once.
 

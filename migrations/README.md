@@ -30,11 +30,9 @@ npm run migrate -- --force
 node scripts/migrate.js --force
 ```
 
-`--force` runs against whatever `POSTGRES_URL_NON_POOLING` is set to,
-falling back to `POSTGRES_URL` if that's not set (see AGENTS.md:
-Database environments for why migrations prefer the non-pooled
-connection) — double-check whichever one is set before using this
-against a database you didn't mean to touch.
+`--force` runs against whatever `POSTGRES_URL` is currently set to, so
+double-check it before using this against a database you didn't mean to
+touch.
 
 `0001_init.sql` is a frozen copy of `schema.sql` as it existed before this
 directory was introduced, included so the runner can bootstrap a genuinely
