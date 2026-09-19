@@ -52,11 +52,12 @@ const Flag: React.FC<{ country: Country; size?: number }> = ({ country, size = 2
   const flagUrl = `https://flagcdn.com/w40/${country.short.toLowerCase()}.png`;
   
   return (
-    <img
+    <Image
       src={flagUrl}
       alt={`${country.code} flag`}
       width={size}
       height={size * 0.75} // 4:3 aspect ratio
+      unoptimized
       style={{
         marginRight: 8,
         borderRadius: 2,

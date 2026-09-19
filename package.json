@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "node scripts/reconcile-0001.js && node scripts/migrate.js && next build",
+    "build": "node scripts/migrate.js && next build",
     "migrate": "node scripts/migrate.js",
     "start": "next start",
     "lint": "eslint",
@@ -38,9 +38,7 @@
     "pg": "^8.20.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "uuid": "^14.0.0"
-  },
-  "devDependencies": {
+    "uuid": "^14.0.0",
     "@jest/globals": "^30.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
