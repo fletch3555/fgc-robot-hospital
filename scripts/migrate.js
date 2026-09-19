@@ -1,13 +1,15 @@
 #!/usr/bin/env node
-// Applies any not-yet-applied migrations/*.sql files to POSTGRES_URL, in
-// order, tracking what's been applied in a schema_migrations table.
+// Applies any not-yet-applied migrations/*.sql files to
+// POSTGRES_URL_NON_POOLING (falling back to POSTGRES_URL), in order,
+// tracking what's been applied in a schema_migrations table.
 //
 // Runs automatically as part of `npm run build`, but only actually does
 // anything when VERCEL_ENV is "production" or "preview" — each against
-// that environment's own POSTGRES_URL (see AGENTS.md: Database
+// that environment's own database (see AGENTS.md: Database
 // environments). Local/non-Vercel builds skip by default. Pass --force to
 // run anyway (e.g. to apply migrations locally, or outside Vercel
-// entirely) against whatever POSTGRES_URL is currently set.
+// entirely) against whatever POSTGRES_URL_NON_POOLING/POSTGRES_URL is
+// currently set.
 //
 // See migrations/README.md and AGENTS.md for the rules new migrations
 // must follow (additive-only).
