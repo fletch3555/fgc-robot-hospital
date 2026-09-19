@@ -24,34 +24,18 @@ const AUTO_RUN_ENVIRONMENTS = ['production', 'preview'];
 // non-idempotent, e.g. CREATE TRIGGER) migration file concurrently.
 const MIGRATION_LOCK_KEY = 727501;
 
-async function connectWithTlsWorkaround(connectionString, sslConfig, usingRemoteDatabase) {
-  const client = new Client({ connectionString, ssl: sslConfig });
-
-  if (!usingRemoteDatabase) {
-    await client.connect();
-    return client;
-  }
-
-  // pg's per-connection `ssl: { rejectUnauthorized: false }` isn't always
-  // enough to get past Supabase's pooler cert chain from Vercel's build
-  // container — confirmed by direct testing that it fails with
-  // SELF_SIGNED_CERT_IN_CHAIN with that option alone, but succeeds once
-  // this process-level override is also set during the handshake. This
-  // disables TLS verification for the whole process, so it's scoped as
-  // tightly as possible: set immediately before connect() and restored
-  // immediately after, regardless of outcome — it has no effect on the
-  // already-established connection once restored.
-  const previousValue = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-  try {
-    await client.connect();
-  } finally {
-    if (previousValue === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
-    else process.env.NODE_TLS_REJECT_UNAUTHORIZED = previousValue;
-  }
-
-  return client;
-}
+// Supabase's pooler presents a chain rooted in their own CA rather than a
+// publicly-trusted one. `rejectUnauthorized: false` alone was found to
+// fail with SELF_SIGNED_CERT_IN_CHAIN specifically from Vercel's build
+// container, even though the identical option works from every other
+// environment tested. Explicitly trusting Supabase's actual root CA lets
+// the chain validate properly instead of bypassing validation. This is
+// the public cert every client receives during the TLS handshake, not a
+// secret, and is shared by every Supabase project/pooler node, so this
+// one file works for Preview and Production alike (see
+// src/lib/database.ts, which duplicates it as a string literal since it
+// runs inside Next.js's bundled functions instead of reading a file).
+const SUPABASE_POOLER_CA = fs.readFileSync(path.join(__dirname, '..', 'certs', 'supabase-pooler-ca.pem'), 'utf8');
 
 async function main() {
   const forced = process.argv.includes('--force');
@@ -78,11 +62,11 @@ async function main() {
     .filter((f) => f.endsWith('.sql'))
     .sort();
 
-  const client = await connectWithTlsWorkaround(
+  const client = new Client({
     connectionString,
-    usingRemoteDatabase ? { rejectUnauthorized: false } : false,
-    usingRemoteDatabase
-  );
+    ssl: usingRemoteDatabase ? { ca: SUPABASE_POOLER_CA } : false,
+  });
+  await client.connect();
 
   try {
     // Blocks until any concurrently-running migration (e.g. a second

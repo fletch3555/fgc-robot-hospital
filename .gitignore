@@ -23,6 +23,9 @@
 # misc
 .DS_Store
 *.pem
+# Exception: Supabase's own public pooler CA cert, not a secret — see
+# src/lib/database.ts and scripts/migrate.js.
+!/certs/supabase-pooler-ca.pem
 
 # debug
 npm-debug.log*
