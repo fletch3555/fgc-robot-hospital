@@ -1,13 +1,15 @@
 #!/usr/bin/env node
-// Applies any not-yet-applied migrations/*.sql files to POSTGRES_URL, in
-// order, tracking what's been applied in a schema_migrations table.
+// Applies any not-yet-applied migrations/*.sql files to
+// POSTGRES_URL_NON_POOLING (falling back to POSTGRES_URL), in order,
+// tracking what's been applied in a schema_migrations table.
 //
 // Runs automatically as part of `npm run build`, but only actually does
 // anything when VERCEL_ENV is "production" or "preview" — each against
-// that environment's own POSTGRES_URL (see AGENTS.md: Database
+// that environment's own database (see AGENTS.md: Database
 // environments). Local/non-Vercel builds skip by default. Pass --force to
 // run anyway (e.g. to apply migrations locally, or outside Vercel
-// entirely) against whatever POSTGRES_URL is currently set.
+// entirely) against whatever POSTGRES_URL_NON_POOLING/POSTGRES_URL is
+// currently set.
 //
 // See migrations/README.md and AGENTS.md for the rules new migrations
 // must follow (additive-only).
@@ -28,7 +30,15 @@ async function main() {
     return;
   }
 
-  const connectionString = process.env.POSTGRES_URL;
+  // Prefer the direct (non-pooled) connection for migrations: this is a
+  // single one-shot admin connection with no concurrency needs, and
+  // Supabase's transaction-mode pooler (used by POSTGRES_URL on at least
+  // one environment) has been observed to fail from Vercel's build
+  // container with SELF_SIGNED_CERT_IN_CHAIN even with rejectUnauthorized
+  // false, despite the identical pooled connection working fine at
+  // runtime. POSTGRES_URL_NON_POOLING isn't set in every environment
+  // (e.g. Preview, set up manually — see AGENTS.md), hence the fallback.
+  const connectionString = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
 
   if (!connectionString) {
     console.log('Skipping migrations: POSTGRES_URL is not set');
