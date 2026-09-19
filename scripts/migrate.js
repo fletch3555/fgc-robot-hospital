@@ -11,6 +11,12 @@
 // entirely) against whatever POSTGRES_URL_NON_POOLING/POSTGRES_URL is
 // currently set.
 //
+// TEMPORARY: while tracking down a SELF_SIGNED_CERT_IN_CHAIN failure
+// specific to Production's build container, this tries several candidate
+// connections non-fatally and logs which ones work, then proceeds using
+// whichever succeeded. Remove this multi-candidate logic (back to a
+// single connectionString/sslConfig) once the real fix is confirmed.
+//
 // See migrations/README.md and AGENTS.md for the rules new migrations
 // must follow (additive-only).
 
@@ -19,6 +25,86 @@ const path = require('path');
 const { Client } = require('pg');
 
 const AUTO_RUN_ENVIRONMENTS = ['production', 'preview'];
+
+async function tryConnect(label, connectionString, sslConfig, envOverrides) {
+  if (!connectionString) {
+    console.log(`[diagnostic] ${label}: SKIPPED (no connection string available)`);
+    return null;
+  }
+
+  let hostInfo = '<unparseable>';
+  try {
+    const parsed = new URL(connectionString);
+    hostInfo = `${parsed.hostname}:${parsed.port || '5432'}${parsed.pathname}`;
+  } catch {
+    // leave as <unparseable> — never fall back to logging the raw string
+  }
+
+  const prevEnv = {};
+  for (const [key, value] of Object.entries(envOverrides || {})) {
+    prevEnv[key] = process.env[key];
+    process.env[key] = value;
+  }
+
+  const client = new Client({ connectionString, ssl: sslConfig, connectionTimeoutMillis: 8000 });
+  try {
+    await client.connect();
+    await client.query('SELECT 1');
+    console.log(`[diagnostic] ${label}: SUCCESS (host=${hostInfo} ssl=${JSON.stringify(sslConfig)})`);
+    return client;
+  } catch (error) {
+    console.log(`[diagnostic] ${label}: FAILED (host=${hostInfo} ssl=${JSON.stringify(sslConfig)}) - ${error.code || 'no code'}: ${error.message}`);
+    try {
+      await client.end();
+    } catch {
+      // already dead
+    }
+    return null;
+  } finally {
+    for (const [key, value] of Object.entries(prevEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+async function findWorkingClient() {
+  const rejectFalse = { rejectUnauthorized: false };
+
+  const candidates = [
+    { label: 'POSTGRES_URL_NON_POOLING (as configured)', connectionString: process.env.POSTGRES_URL_NON_POOLING, ssl: rejectFalse },
+    { label: 'POSTGRES_URL (as configured)', connectionString: process.env.POSTGRES_URL, ssl: rejectFalse },
+    { label: 'POSTGRES_PRISMA_URL (as configured)', connectionString: process.env.POSTGRES_PRISMA_URL, ssl: rejectFalse },
+    {
+      label: 'POSTGRES_URL + NODE_TLS_REJECT_UNAUTHORIZED=0',
+      connectionString: process.env.POSTGRES_URL,
+      ssl: rejectFalse,
+      envOverrides: { NODE_TLS_REJECT_UNAUTHORIZED: '0' },
+    },
+  ];
+
+  if (process.env.POSTGRES_HOST && process.env.POSTGRES_USER && process.env.POSTGRES_PASSWORD && process.env.POSTGRES_DATABASE) {
+    const directUrl = `postgresql://${encodeURIComponent(process.env.POSTGRES_USER)}:${encodeURIComponent(process.env.POSTGRES_PASSWORD)}@${process.env.POSTGRES_HOST}:5432/${process.env.POSTGRES_DATABASE}`;
+    candidates.push({ label: 'constructed direct via POSTGRES_HOST', connectionString: directUrl, ssl: rejectFalse });
+    candidates.push({
+      label: 'constructed direct via POSTGRES_HOST + NODE_TLS_REJECT_UNAUTHORIZED=0',
+      connectionString: directUrl,
+      ssl: rejectFalse,
+      envOverrides: { NODE_TLS_REJECT_UNAUTHORIZED: '0' },
+    });
+  }
+
+  console.log(`[diagnostic] node=${process.version} VERCEL_ENV=${process.env.VERCEL_ENV} NODE_ENV=${process.env.NODE_ENV}`);
+
+  for (const candidate of candidates) {
+    const client = await tryConnect(candidate.label, candidate.connectionString, candidate.ssl, candidate.envOverrides);
+    if (client) {
+      return client;
+    }
+  }
+
+  return null;
+}
 
 async function main() {
   const forced = process.argv.includes('--force');
@@ -30,17 +116,7 @@ async function main() {
     return;
   }
 
-  // Prefer the direct (non-pooled) connection for migrations: this is a
-  // single one-shot admin connection with no concurrency needs, and
-  // Supabase's transaction-mode pooler (used by POSTGRES_URL on at least
-  // one environment) has been observed to fail from Vercel's build
-  // container with SELF_SIGNED_CERT_IN_CHAIN even with rejectUnauthorized
-  // false, despite the identical pooled connection working fine at
-  // runtime. POSTGRES_URL_NON_POOLING isn't set in every environment
-  // (e.g. Preview, set up manually — see AGENTS.md), hence the fallback.
-  const connectionString = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
-
-  if (!connectionString) {
+  if (!process.env.POSTGRES_URL && !process.env.POSTGRES_URL_NON_POOLING) {
     console.log('Skipping migrations: POSTGRES_URL is not set');
     return;
   }
@@ -51,24 +127,10 @@ async function main() {
     .filter((f) => f.endsWith('.sql'))
     .sort();
 
-  const sslConfig = AUTO_RUN_ENVIRONMENTS.includes(process.env.VERCEL_ENV) ? { rejectUnauthorized: false } : false;
-  let hostInfo = '<unparseable>';
-  try {
-    const parsed = new URL(connectionString);
-    hostInfo = `${parsed.hostname}:${parsed.port || '5432'}${parsed.pathname}`;
-  } catch {
-    // leave as <unparseable> — never fall back to logging the raw string
+  const client = await findWorkingClient();
+  if (!client) {
+    throw new Error('All candidate connections failed — see [diagnostic] lines above.');
   }
-  console.log(
-    `[diagnostic] node=${process.version} VERCEL_ENV=${process.env.VERCEL_ENV} NODE_ENV=${process.env.NODE_ENV} ssl=${JSON.stringify(sslConfig)} host=${hostInfo}`
-  );
-
-  const client = new Client({
-    connectionString,
-    ssl: sslConfig,
-  });
-
-  await client.connect();
 
   try {
     await client.query(`
