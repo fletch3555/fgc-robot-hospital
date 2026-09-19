@@ -18,6 +18,41 @@ const { Client } = require('pg');
 
 const AUTO_RUN_ENVIRONMENTS = ['production', 'preview'];
 
+// Arbitrary fixed key for a session-level advisory lock, so two
+// deployments building at the same time can't both see an empty
+// schema_migrations table and race to apply the same (possibly
+// non-idempotent, e.g. CREATE TRIGGER) migration file concurrently.
+const MIGRATION_LOCK_KEY = 727501;
+
+async function connectWithTlsWorkaround(connectionString, sslConfig, usingRemoteDatabase) {
+  const client = new Client({ connectionString, ssl: sslConfig });
+
+  if (!usingRemoteDatabase) {
+    await client.connect();
+    return client;
+  }
+
+  // pg's per-connection `ssl: { rejectUnauthorized: false }` isn't always
+  // enough to get past Supabase's pooler cert chain from Vercel's build
+  // container — confirmed by direct testing that it fails with
+  // SELF_SIGNED_CERT_IN_CHAIN with that option alone, but succeeds once
+  // this process-level override is also set during the handshake. This
+  // disables TLS verification for the whole process, so it's scoped as
+  // tightly as possible: set immediately before connect() and restored
+  // immediately after, regardless of outcome — it has no effect on the
+  // already-established connection once restored.
+  const previousValue = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  try {
+    await client.connect();
+  } finally {
+    if (previousValue === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+    else process.env.NODE_TLS_REJECT_UNAUTHORIZED = previousValue;
+  }
+
+  return client;
+}
+
 async function main() {
   const forced = process.argv.includes('--force');
 
@@ -37,65 +72,60 @@ async function main() {
 
   const usingRemoteDatabase = AUTO_RUN_ENVIRONMENTS.includes(process.env.VERCEL_ENV);
 
-  if (usingRemoteDatabase) {
-    // pg's per-connection `ssl: { rejectUnauthorized: false }` isn't
-    // always enough to get past Supabase's pooler cert chain from
-    // Vercel's build container — confirmed by direct testing that one
-    // pooler node reproducibly fails with SELF_SIGNED_CERT_IN_CHAIN with
-    // that option alone, but succeeds once this process-level override is
-    // also set. The identical pooled connection already works fine at
-    // runtime without this, but setting it here is harmless since this
-    // script's only job is this one short-lived migration connection.
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-  }
-
   const migrationsDir = path.join(__dirname, '..', 'migrations');
   const files = fs
     .readdirSync(migrationsDir)
     .filter((f) => f.endsWith('.sql'))
     .sort();
 
-  const client = new Client({
+  const client = await connectWithTlsWorkaround(
     connectionString,
-    ssl: usingRemoteDatabase ? { rejectUnauthorized: false } : false,
-  });
-
-  await client.connect();
+    usingRemoteDatabase ? { rejectUnauthorized: false } : false,
+    usingRemoteDatabase
+  );
 
   try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS schema_migrations (
-        filename TEXT PRIMARY KEY,
-        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
+    // Blocks until any concurrently-running migration (e.g. a second
+    // deploy building at the same time) finishes and releases its lock.
+    await client.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_KEY]);
 
-    const { rows } = await client.query('SELECT filename FROM schema_migrations');
-    const applied = new Set(rows.map((r) => r.filename));
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+          filename TEXT PRIMARY KEY,
+          applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
 
-    const pending = files.filter((f) => !applied.has(f));
-    if (pending.length === 0) {
-      console.log('No pending migrations.');
-      return;
-    }
+      const { rows } = await client.query('SELECT filename FROM schema_migrations');
+      const applied = new Set(rows.map((r) => r.filename));
 
-    for (const file of pending) {
-      console.log(`Applying migration: ${file}`);
-      const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-
-      await client.query('BEGIN');
-      try {
-        await client.query(sql);
-        await client.query('INSERT INTO schema_migrations (filename) VALUES ($1)', [file]);
-        await client.query('COMMIT');
-        console.log(`Applied: ${file}`);
-      } catch (error) {
-        await client.query('ROLLBACK');
-        throw new Error(`Migration ${file} failed, rolled back: ${error.message}`);
+      const pending = files.filter((f) => !applied.has(f));
+      if (pending.length === 0) {
+        console.log('No pending migrations.');
+        return;
       }
-    }
 
-    console.log('Migrations up to date.');
+      for (const file of pending) {
+        console.log(`Applying migration: ${file}`);
+        const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+
+        await client.query('BEGIN');
+        try {
+          await client.query(sql);
+          await client.query('INSERT INTO schema_migrations (filename) VALUES ($1)', [file]);
+          await client.query('COMMIT');
+          console.log(`Applied: ${file}`);
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw new Error(`Migration ${file} failed, rolled back: ${error.message}`);
+        }
+      }
+
+      console.log('Migrations up to date.');
+    } finally {
+      await client.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY]);
+    }
   } finally {
     await client.end();
   }
