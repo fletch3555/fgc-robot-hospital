@@ -42,8 +42,15 @@ async function main() {
     .sort();
 
   const sslConfig = AUTO_RUN_ENVIRONMENTS.includes(process.env.VERCEL_ENV) ? { rejectUnauthorized: false } : false;
+  let hostInfo = '<unparseable>';
+  try {
+    const parsed = new URL(connectionString);
+    hostInfo = `${parsed.hostname}:${parsed.port || '5432'}${parsed.pathname}`;
+  } catch {
+    // leave as <unparseable> — never fall back to logging the raw string
+  }
   console.log(
-    `[diagnostic] node=${process.version} VERCEL_ENV=${process.env.VERCEL_ENV} NODE_ENV=${process.env.NODE_ENV} ssl=${JSON.stringify(sslConfig)} host=${connectionString.replace(/:\/\/[^@]*@/, '://<redacted>@')}`
+    `[diagnostic] node=${process.version} VERCEL_ENV=${process.env.VERCEL_ENV} NODE_ENV=${process.env.NODE_ENV} ssl=${JSON.stringify(sslConfig)} host=${hostInfo}`
   );
 
   const client = new Client({
