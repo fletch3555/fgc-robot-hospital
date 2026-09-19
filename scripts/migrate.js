@@ -28,7 +28,15 @@ async function main() {
     return;
   }
 
-  const connectionString = process.env.POSTGRES_URL;
+  // Prefer the direct (non-pooled) connection for migrations: this is a
+  // single one-shot admin connection with no concurrency needs, and
+  // Supabase's transaction-mode pooler (used by POSTGRES_URL on at least
+  // one environment) has been observed to fail from Vercel's build
+  // container with SELF_SIGNED_CERT_IN_CHAIN even with rejectUnauthorized
+  // false, despite the identical pooled connection working fine at
+  // runtime. POSTGRES_URL_NON_POOLING isn't set in every environment
+  // (e.g. Preview, set up manually — see AGENTS.md), hence the fallback.
+  const connectionString = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
 
   if (!connectionString) {
     console.log('Skipping migrations: POSTGRES_URL is not set');
