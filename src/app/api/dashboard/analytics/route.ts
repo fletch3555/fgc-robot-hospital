@@ -1,8 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase, query } from "@/lib/database";
 import { requireAuthentication } from "@/lib/authn";
+import { getCurrentSeason } from "@/lib/season";
 
-export async function GET() {
+type Season = number | 'all';
+
+export async function GET(request: NextRequest) {
   try {
     const authResult = await requireAuthentication();
     if (!authResult.authenticated) {
@@ -10,6 +13,9 @@ export async function GET() {
     }
 
     await connectToDatabase();
+
+    const allSeasons = request.nextUrl.searchParams.get('allSeasons') === 'true';
+    const season: Season = allSeasons ? 'all' : getCurrentSeason();
 
     // Get comprehensive analytics data
     const [
@@ -23,14 +29,14 @@ export async function GET() {
       completedByDay,
       // priorityDistribution
     ] = await Promise.all([
-      getRequestsByStatus(),
-      getRequestsByType(),
-      getDailyCompletions(),
-      getOpenRequestsByType(),
-      getSparePartsStats(),
-      getPerformanceMetrics(),
-      getAverageResolutionTime(),
-      getCompletedByDay(),
+      getRequestsByStatus(season),
+      getRequestsByType(season),
+      getDailyCompletions(season),
+      getOpenRequestsByType(season),
+      getSparePartsStats(season),
+      getPerformanceMetrics(season),
+      getAverageResolutionTime(season),
+      getCompletedByDay(season),
       // getPriorityDistribution()
     ]);
 
@@ -54,23 +60,32 @@ export async function GET() {
   }
 }
 
-async function getRequestsByStatus() {
+function seasonFilter(season: Season, paramIndex: number): { clause: string; values: unknown[] } {
+  if (season === 'all') {
+    return { clause: '', values: [] };
+  }
+  return { clause: `season = $${paramIndex}`, values: [season] };
+}
+
+async function getRequestsByStatus(season: Season) {
+  const { clause, values } = seasonFilter(season, 1);
   const result = await query(`
-    SELECT 
+    SELECT
       status,
       COUNT(*) as count,
       COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today_count,
       COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') as week_count
     FROM requests
+    ${clause ? `WHERE ${clause}` : ''}
     GROUP BY status
-    ORDER BY 
-      CASE status 
-        WHEN 'open' THEN 1 
-        WHEN 'in-progress' THEN 2 
-        WHEN 'completed' THEN 3 
-        WHEN 'cancelled' THEN 4 
+    ORDER BY
+      CASE status
+        WHEN 'open' THEN 1
+        WHEN 'in-progress' THEN 2
+        WHEN 'completed' THEN 3
+        WHEN 'cancelled' THEN 4
       END
-  `);
+  `, values);
 
   return result.rows.map((row: {status: string; count: string; today_count: string; week_count: string}) => ({
     status: row.status,
@@ -80,9 +95,10 @@ async function getRequestsByStatus() {
   }));
 }
 
-async function getRequestsByType() {
+async function getRequestsByType(season: Season) {
+  const { clause, values } = seasonFilter(season, 1);
   const result = await query(`
-    SELECT 
+    SELECT
       type,
       COUNT(*) as total,
       COUNT(*) FILTER (WHERE status = 'open') as open,
@@ -90,9 +106,10 @@ async function getRequestsByType() {
       COUNT(*) FILTER (WHERE status = 'completed') as completed,
       COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today_count
     FROM requests
+    ${clause ? `WHERE ${clause}` : ''}
     GROUP BY type
     ORDER BY total DESC
-  `);
+  `, values);
 
   return result.rows.map((row: {type: string; total: string; open: string; in_progress: string; completed: string; today_count: string}) => ({
     type: row.type,
@@ -104,22 +121,24 @@ async function getRequestsByType() {
   }));
 }
 
-async function getDailyCompletions() {
+async function getDailyCompletions(season: Season) {
+  const { clause, values } = seasonFilter(season, 1);
   const result = await query(`
-    SELECT 
+    SELECT
       DATE(updated_at) as date,
       COUNT(*) as count
     FROM requests
-    WHERE status = 'completed' 
+    WHERE status = 'completed'
       AND updated_at >= CURRENT_DATE - INTERVAL '7 days'
+      ${clause ? `AND ${clause}` : ''}
     GROUP BY DATE(updated_at)
     ORDER BY date DESC
     LIMIT 7
-  `);
+  `, values);
 
   const today = new Date().toISOString().split('T')[0];
   const todayCount = result.rows.find((row: {date: Date; count: string}) => row.date.toISOString().split('T')[0] === today)?.count || 0;
-  
+
   return {
     today: parseInt(todayCount.toString()),
     last7Days: result.rows.map((row: {date: Date; count: string}) => ({
@@ -129,17 +148,19 @@ async function getDailyCompletions() {
   };
 }
 
-async function getOpenRequestsByType() {
+async function getOpenRequestsByType(season: Season) {
+  const { clause, values } = seasonFilter(season, 1);
   const result = await query(`
-    SELECT 
+    SELECT
       type,
       COUNT(*) as count,
       AVG(EXTRACT(EPOCH FROM (NOW() - created_at))/3600) as avg_age_hours
     FROM requests
     WHERE status = 'open'
+      ${clause ? `AND ${clause}` : ''}
     GROUP BY type
     ORDER BY count DESC
-  `);
+  `, values);
 
   return result.rows.map((row: {type: string; count: string; avg_age_hours: string}) => ({
     type: row.type,
@@ -148,30 +169,34 @@ async function getOpenRequestsByType() {
   }));
 }
 
-async function getSparePartsStats() {
+async function getSparePartsStats(season: Season) {
   try {
+    const { clause, values } = seasonFilter(season, 1);
+
     // Get overall spare parts statistics
     const overallResult = await query(`
-      SELECT 
+      SELECT
         COUNT(*) FILTER (WHERE status = 'issued') as total_issued,
         COUNT(*) FILTER (WHERE status = 'returned') as total_returned,
         COUNT(*) FILTER (WHERE status = 'issued' AND is_loan = true) as currently_loaned,
         COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as issued_today
       FROM spare_parts
-    `);
+      ${clause ? `WHERE ${clause}` : ''}
+    `, values);
 
     // Get spare parts by category (using FGC inventory groups)
     const categoryResult = await query(`
-      SELECT 
+      SELECT
         COALESCE(sp.fgc_part_number, 'Unknown') as category,
         COUNT(*) FILTER (WHERE status = 'issued') as issued,
         COUNT(*) FILTER (WHERE status = 'returned') as returned,
         COUNT(*) FILTER (WHERE status = 'issued' AND is_loan = true) as pending_return
       FROM spare_parts sp
+      ${clause ? `WHERE ${clause}` : ''}
       GROUP BY sp.fgc_part_number
       ORDER BY issued DESC
       LIMIT 10
-    `);
+    `, values);
 
     const overall = overallResult.rows[0] as {
       total_issued: string;
@@ -207,7 +232,8 @@ async function getSparePartsStats() {
   }
 }
 
-async function getPerformanceMetrics() {
+async function getPerformanceMetrics(season: Season) {
+  const { clause, values } = seasonFilter(season, 1);
   const result = await query(`
     SELECT
       COUNT(*) FILTER (WHERE status = 'completed') as total_completed,
@@ -217,7 +243,8 @@ async function getPerformanceMetrics() {
       COUNT(*) FILTER (WHERE status IN ('open', 'in-progress')) as active_requests,
       AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/60) FILTER (WHERE status = 'completed') as avg_resolution_minutes
     FROM requests
-  `);
+    ${clause ? `WHERE ${clause}` : ''}
+  `, values);
 
   const row = result.rows[0] as {
     total_completed?: string;
@@ -237,7 +264,8 @@ async function getPerformanceMetrics() {
   };
 }
 
-async function getAverageResolutionTime() {
+async function getAverageResolutionTime(season: Season) {
+  const { clause, values } = seasonFilter(season, 1);
   const result = await query(`
     SELECT
       type,
@@ -246,8 +274,9 @@ async function getAverageResolutionTime() {
     FROM requests
     WHERE status = 'completed'
       AND updated_at >= CURRENT_DATE - INTERVAL '30 days'
+      ${clause ? `AND ${clause}` : ''}
     GROUP BY type
-  `);
+  `, values);
 
   return result.rows.map((row: {type: string; avg_minutes: string; completed_count: string}) => ({
     type: row.type,
@@ -256,7 +285,8 @@ async function getAverageResolutionTime() {
   }));
 }
 
-async function getCompletedByDay() {
+async function getCompletedByDay(season: Season) {
+  const { clause, values } = seasonFilter(season, 1);
   const result = await query(`
     SELECT
       DATE(updated_at) as date,
@@ -264,9 +294,10 @@ async function getCompletedByDay() {
     FROM requests
     WHERE status = 'completed'
       AND updated_at >= CURRENT_DATE - INTERVAL '5 days'
+      ${clause ? `AND ${clause}` : ''}
     GROUP BY DATE(updated_at)
     ORDER BY date DESC
-  `);
+  `, values);
 
   return result.rows.map((row: {date: Date; count: string}) => ({
     date: row.date.toISOString().split('T')[0],
@@ -276,19 +307,19 @@ async function getCompletedByDay() {
 
 // async function getPriorityDistribution() {
 //   const result = await query(`
-//     SELECT 
+//     SELECT
 //       priority,
 //       COUNT(*) as total,
 //       COUNT(*) FILTER (WHERE status = 'open') as open,
 //       COUNT(*) FILTER (WHERE status = 'in-progress') as in_progress
 //     FROM requests
 //     GROUP BY priority
-//     ORDER BY 
-//       CASE priority 
-//         WHEN 'urgent' THEN 1 
-//         WHEN 'high' THEN 2 
-//         WHEN 'medium' THEN 3 
-//         WHEN 'low' THEN 4 
+//     ORDER BY
+//       CASE priority
+//         WHEN 'urgent' THEN 1
+//         WHEN 'high' THEN 2
+//         WHEN 'medium' THEN 3
+//         WHEN 'low' THEN 4
 //       END
 //   `);
 
