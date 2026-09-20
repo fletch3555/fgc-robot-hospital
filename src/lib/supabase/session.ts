@@ -25,6 +25,15 @@ export async function getCurrentUserWithRoles(): Promise<AppSession | null> {
     await connectToDatabase();
     const dbUser = await User.findById(id);
 
+    // Archived accounts (e.g. legacy Slack-era users with shared/default
+    // credentials) shouldn't be able to authenticate at all — treating
+    // this the same as "no session" blocks both new sign-ins and any
+    // already-established session on their very next request, since
+    // every server-side auth check funnels through this function.
+    if (dbUser?.is_archived) {
+      return null;
+    }
+
     return {
       user: {
         id,
