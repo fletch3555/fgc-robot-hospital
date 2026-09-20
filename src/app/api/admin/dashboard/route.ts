@@ -1,19 +1,25 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { checkPermissions } from '@/lib/authz';
 import { connectToDatabase, query } from '@/lib/database';
+import { getCurrentSeason } from '@/lib/season';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const authz = await checkPermissions(['admin.dashboard']);
-    
+
     if (!authz.authorized) {
       return authz.response!;
     }
 
     await connectToDatabase();
 
+    const allSeasons = request.nextUrl.searchParams.get('allSeasons') === 'true';
+    const season = allSeasons ? 'all' : getCurrentSeason();
+    const seasonClause = season === 'all' ? '' : 'AND season = $2';
+    const seasonValues = (thirtyDaysAgoIso: string) => (season === 'all' ? [thirtyDaysAgoIso] : [thirtyDaysAgoIso, season]);
+
     // Get dashboard statistics with SQL queries
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
     const [
       userStats,
@@ -21,30 +27,33 @@ export async function GET() {
       sparePartStats,
       teamStats
     ] = await Promise.all([
+      // users/teams aren't season-scoped tables, so these stay unfiltered
       query(`
-        SELECT 
+        SELECT
           COUNT(*) as total_users,
           COUNT(CASE WHEN updated_at >= $1 THEN 1 END) as active_users
         FROM users
-      `, [thirtyDaysAgo.toISOString()]),
+      `, [thirtyDaysAgo]),
       query(`
-        SELECT 
+        SELECT
           COUNT(*) as total_requests,
           COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_requests
         FROM requests
-      `),
+        WHERE 1=1 ${seasonClause}
+      `, seasonValues(thirtyDaysAgo)),
       query(`
-        SELECT 
+        SELECT
           COUNT(*) as total_spare_parts,
           COUNT(CASE WHEN status = 'issued' THEN 1 END) as issued_spare_parts
         FROM spare_parts
-      `),
+        WHERE 1=1 ${seasonClause}
+      `, seasonValues(thirtyDaysAgo)),
       query(`
-        SELECT 
+        SELECT
           COUNT(*) as total_teams,
           COUNT(CASE WHEN created_at >= $1 THEN 1 END) as new_teams_this_month
         FROM teams
-      `, [thirtyDaysAgo.toISOString()])
+      `, [thirtyDaysAgo])
     ]);
 
     const stats = {
