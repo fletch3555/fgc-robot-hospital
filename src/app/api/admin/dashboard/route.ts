@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       query(`
         SELECT
           COUNT(*) as total_requests,
-          COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_requests
+          COUNT(CASE WHEN status = 'open' THEN 1 END) as pending_requests
         FROM requests
         WHERE 1=1 ${seasonClause}
       `, seasonValues(thirtyDaysAgo)),
@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
       pendingRequests: parseInt(String(requestStats.rows[0].pending_requests)),
       totalSpareParts: parseInt(String(sparePartStats.rows[0].total_spare_parts)),
       issuedSpareParts: parseInt(String(sparePartStats.rows[0].issued_spare_parts)),
+      pendingSpareParts: parseInt(String(sparePartStats.rows[0].issued_spare_parts)),
       totalTeams: parseInt(String(teamStats.rows[0].total_teams)),
       newTeamsThisMonth: parseInt(String(teamStats.rows[0].new_teams_this_month)),
     };
