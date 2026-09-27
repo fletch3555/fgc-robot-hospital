@@ -25,7 +25,11 @@ import {
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
+  Assessment as StatsIcon,
   Build as RequestsIcon,
+  Computer as SoftwareIcon,
+  PrecisionManufacturing as MachineShopIcon,
+  BatteryChargingFull as BatteryChargingIcon,
   Inventory as SparePartsIcon,
   AdminPanelSettings as AdminIcon,
   ExpandLess,
@@ -41,8 +45,6 @@ import {
   Schedule as ScheduleIcon,
   Settings as ServoIcon,
   Code as ServoProgrammingIcon,
-  BatteryChargingFull as BatteryChargingFullIcon,
-  SwapHoriz as SwapHorizIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 280;
@@ -70,23 +72,51 @@ interface NavItem {
 const navItems: NavItem[] = [
   // Main Navigation
   {
-    text: 'Dashboard',
-    icon: <DashboardIcon />,
-    href: '/',
-    // Dashboard available to all authenticated users
-  },
-  {
     text: 'Hospital Intake',
     icon: <AssignmentIcon />,
-    href: '/requests/new',
-    requiredPermissions: ['requests.create'],
+    href: '/',
+    // The landing page -- available to all authenticated users, even those
+    // without requests.create, so there's always a way back to it.
   },
   {
-    text: 'View Hospital Requests',
-    icon: <RequestsIcon />,
-    href: '/requests',
-    requiredPermissions: ['requests.view'],
+    text: 'Stats',
+    icon: <StatsIcon />,
+    href: '/stats',
+    requiredPermissions: ['requests.view', 'hardware.view', 'software.view', 'machine_shop.view'],
+    requireAnyPermission: true,
   },
+];
+
+// Kept as its own list (with dividers around it) so the four queues read as
+// one group, without turning them into a collapsible submenu.
+const queueNavItems: NavItem[] = [
+  {
+    text: 'Hardware Queue',
+    icon: <RequestsIcon />,
+    href: '/requests/hardware',
+    requiredPermissions: ['hardware.view'],
+  },
+  {
+    text: 'Software Queue',
+    icon: <SoftwareIcon />,
+    href: '/requests/software',
+    requiredPermissions: ['software.view'],
+  },
+  {
+    text: 'Machine Shop Queue',
+    icon: <MachineShopIcon />,
+    href: '/requests/machine-shop',
+    requiredPermissions: ['machine_shop.view'],
+  },
+  {
+    text: 'Battery Charging Queue',
+    icon: <BatteryChargingIcon />,
+    href: '/requests/battery-charging',
+    requiredPermissions: ['battery_charging.view'],
+  },
+];
+
+const bottomNavItems: NavItem[] = [
   {
     text: 'Spare Parts Intake',
     icon: <AddIcon />,
@@ -98,18 +128,6 @@ const navItems: NavItem[] = [
     icon: <SparePartsIcon />,
     href: '/spare-parts',
     requiredPermissions: ['spare_parts.view'],
-  },
-  {
-    text: 'Battery Swap Intake',
-    icon: <BatteryChargingFullIcon />,
-    href: '/battery-swaps/new',
-    requiredPermissions: ['battery_swaps.create'],
-  },
-  {
-    text: 'View Battery Swaps',
-    icon: <SwapHorizIcon />,
-    href: '/battery-swaps',
-    requiredPermissions: ['battery_swaps.view'],
   },
 
   // Admin Section
@@ -287,17 +305,32 @@ function NavItemComponent({ item, level = 0, onMobileToggle }: NavItemComponentP
   );
 }
 
+// Mirrors NavItemComponent's own check, so the wrapping dividers around a
+// list can be skipped when nothing in it would actually render.
+function isItemVisible(
+  item: NavItem,
+  hasAnyPermission: (permissions: PermissionName[]) => boolean,
+  hasAllPermissions: (permissions: PermissionName[]) => boolean
+): boolean {
+  if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
+    return true;
+  }
+  return item.requireAnyPermission
+    ? hasAnyPermission(item.requiredPermissions)
+    : hasAllPermissions(item.requiredPermissions);
+}
+
 function SidebarContent({ onMobileToggle }: { onMobileToggle?: () => void }) {
   const { data: session } = useSession();
   const router = useRouter();
+  const { hasAnyPermission, hasAllPermissions } = usePermissions();
 
   const handleSignOut = async () => {
     await createClient().auth.signOut();
     router.replace('/');
   };
 
-  // No need to combine items anymore - navItems already includes admin section
-  const allNavItems = navItems;
+  const anyQueueVisible = queueNavItems.some((item) => isItemVisible(item, hasAnyPermission, hasAllPermissions));
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -327,14 +360,34 @@ function SidebarContent({ onMobileToggle }: { onMobileToggle?: () => void }) {
         </>
       )}
 
-      <List sx={{ flexGrow: 1, py: 1 }}>
-        {allNavItems.map((item, index) => (
-          <NavItemComponent key={index} item={item} onMobileToggle={onMobileToggle} />
-        ))}
-      </List>
+      <Box sx={{ flexGrow: 1 }}>
+        <List sx={{ py: 1 }}>
+          {navItems.map((item, index) => (
+            <NavItemComponent key={index} item={item} onMobileToggle={onMobileToggle} />
+          ))}
+        </List>
+
+        {anyQueueVisible && (
+          <>
+            <Divider />
+            <List sx={{ py: 1 }}>
+              {queueNavItems.map((item, index) => (
+                <NavItemComponent key={`queue-${index}`} item={item} onMobileToggle={onMobileToggle} />
+              ))}
+            </List>
+            <Divider />
+          </>
+        )}
+
+        <List sx={{ py: 1 }}>
+          {bottomNavItems.map((item, index) => (
+            <NavItemComponent key={`bottom-${index}`} item={item} onMobileToggle={onMobileToggle} />
+          ))}
+        </List>
+      </Box>
 
       <Divider />
-      
+
       <List sx={{ py: 1 }}>
         {resourcesNavItems.map((item, index) => (
           <NavItemComponent key={`resources-${index}`} item={item} onMobileToggle={onMobileToggle} />

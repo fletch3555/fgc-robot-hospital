@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, SyntheticEvent } from 'react';
-import Image from 'next/image';
 import {
   Box,
   Typography,
@@ -16,6 +15,7 @@ import moment from 'moment';
 import { countries } from '@/data/countries';
 import { WithAuth } from '@/components/auth/WithAuth';
 import { WithPermissions } from '@/components/auth/WithPermissions';
+import CountryFlag from '@/components/common/CountryFlag';
 
 interface Country {
   value: string;
@@ -46,31 +46,6 @@ interface ApiMatch {
     country: string;
   }>;
 }
-
-// Flag component for rendering country flags
-const Flag: React.FC<{ country: Country; size?: number }> = ({ country, size = 24 }) => {
-  const flagUrl = `https://flagcdn.com/w40/${country.short.toLowerCase()}.png`;
-  
-  return (
-    <Image
-      src={flagUrl}
-      alt={`${country.code} flag`}
-      width={size}
-      height={size * 0.75} // 4:3 aspect ratio
-      unoptimized
-      style={{
-        marginRight: 8,
-        borderRadius: 2,
-        backgroundColor: '#ffffff',
-        objectFit: 'cover',
-      }}
-      onError={(e) => {
-        // Fallback to a placeholder or hide if flag not found
-        (e.target as HTMLImageElement).style.display = 'none';
-      }}
-    />
-  );
-};
 
 const fetchCountry = (code: string): Country | undefined => {
   const countryInfo = countries.find((c) => c.code === code);
@@ -194,8 +169,8 @@ const MatchSchedulePage: React.FC = () => {
     if (!country) return null;
     
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Flag country={country} size={20} />
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75 }}>
+        <CountryFlag code={country.code} size={20} />
         <Typography variant="body2">
           {country.code}
         </Typography>
@@ -393,10 +368,8 @@ const MatchSchedulePage: React.FC = () => {
           clearText="Clear filter"
           noOptionsText="No countries found"
           renderOption={(props, option) => (
-            <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center' }}>
-              {fetchCountry(option.code) && (
-                <Flag country={fetchCountry(option.code)!} size={20} />
-              )}
+            <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CountryFlag code={option.code} size={20} />
               {option.name} ({option.code})
             </Box>
           )}

@@ -6,7 +6,7 @@ import { checkPermissions } from "@/lib/authz";
 
 export async function GET(req: NextRequest) {
   try {
-    const authz = await checkPermissions(['requests.view', 'hardware.view', 'software.view', 'machine_shop.view'], false);
+    const authz = await checkPermissions(['requests.view', 'hardware.view', 'software.view', 'machine_shop.view', 'battery_charging.view'], false);
 
     if (!authz.authorized) {
       return authz.response!;
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       if (request.type === 'machine_shop')
         return authz.permissions?.includes('machine_shop.view');
       if (request.type === 'battery_charging')
-        return authz.permissions?.includes('requests.view');
+        return authz.permissions?.includes('battery_charging.view');
 
       return false;
     });
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       if (request.type === 'machine_shop')
         return authz.permissions?.includes('machine_shop.view');
       if (request.type === 'battery_charging')
-        return authz.permissions?.includes('requests.view');
+        return authz.permissions?.includes('battery_charging.view');
 
       return false;
     });

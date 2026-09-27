@@ -8,14 +8,13 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { useSession } from '@/contexts/SessionContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import '@testing-library/jest-dom';
 import { PermissionsProvider } from '../../../src/contexts/PermissionsContext';
 
 // Import page components - we'll test the internal components directly
 import HomePage from '../../../src/app/page';
-import RequestsPage from '../../../src/app/requests/page';
-import NewRequestPage from '../../../src/app/requests/new/page';
+import RequestsPage from '../../../src/app/requests/hardware/page';
 import SparePartsPage from '../../../src/app/spare-parts/page';
 import TeamsPage from '../../../src/app/teams/page';
 import AdminDashboard from '../../../src/app/admin/page';
@@ -40,6 +39,7 @@ jest.mock('@mui/x-data-grid', () => ({
 
 const mockUseSession = useSession as jest.MockedFunction<typeof useSession>;
 const mockUseRouter = useRouter as jest.MockedFunction<typeof useRouter>;
+const mockUseSearchParams = useSearchParams as jest.MockedFunction<typeof useSearchParams>;
 
 const mockRouter = {
   push: jest.fn(),
@@ -87,7 +87,8 @@ describe('Page Authentication Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseRouter.mockReturnValue(mockRouter);
-    
+    mockUseSearchParams.mockReturnValue(new URLSearchParams() as ReturnType<typeof useSearchParams>);
+
     // Mock fetch for API calls
     global.fetch = jest.fn((url: string) => {
       if (url.includes('/api/permissions')) {
@@ -105,6 +106,10 @@ describe('Page Authentication Tests', () => {
                 'requests.create',
                 'requests.edit',
                 'requests.delete',
+                'hardware.view',
+                'software.view',
+                'machine_shop.view',
+                'battery_charging.view',
                 'admin.dashboard',
                 'admin.users',
                 'admin.roles',
@@ -240,27 +245,19 @@ describe('Page Authentication Tests', () => {
       });
     });
 
-    test('should render main dashboard for authenticated volunteers', async () => {
+    test('should render the hospital intake landing page for authenticated volunteers', async () => {
       renderWithProviders(<HomePage />);
-      
+
       await waitFor(() => {
-        expect(screen.getByText('Robot Hospital Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('Hospital Intake')).toBeInTheDocument();
       });
     });
 
-    test('should render requests page for authenticated volunteers', async () => {
+    test('should not show hardware requests for a volunteer without hardware.view', async () => {
       renderWithProviders(<RequestsPage />);
-      
-      await waitFor(() => {
-        expect(screen.getByText('Support Requests')).toBeInTheDocument();
-      });
-    });
 
-    test('should render new request page for authenticated volunteers', async () => {
-      renderWithProviders(<NewRequestPage />);
-      
       await waitFor(() => {
-        expect(screen.getByText('Create New Support Request')).toBeInTheDocument();
+        expect(screen.getByText(/don't have access/i)).toBeInTheDocument();
       });
     });
 
@@ -314,11 +311,11 @@ describe('Page Authentication Tests', () => {
       });
     });
 
-    test('should render main dashboard for admins', async () => {
+    test('should render the hospital intake landing page for admins', async () => {
       renderWithProviders(<HomePage />);
-      
+
       await waitFor(() => {
-        expect(screen.getByText('Robot Hospital Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('Hospital Intake')).toBeInTheDocument();
       });
     });
 
@@ -342,9 +339,9 @@ describe('Page Authentication Tests', () => {
 
     test('should render volunteer pages for admins (admins have all access)', async () => {
       renderWithProviders(<RequestsPage />);
-      
+
       await waitFor(() => {
-        expect(screen.getByText('Support Requests')).toBeInTheDocument();
+        expect(screen.getByText('Hardware Queue')).toBeInTheDocument();
       });
     });
   });
@@ -357,7 +354,7 @@ describe('Page Authentication Tests', () => {
         status: 'authenticated',
       });
 
-      const { rerender } = render(<HomePage />);
+      const { rerender } = render(<HomePage />, { wrapper: TestWrapper });
 
       // Simulate session expiration
       mockUseSession.mockReturnValue({
@@ -392,7 +389,7 @@ describe('Page Authentication Tests', () => {
         })
       ) as jest.Mock;
 
-      render(<HomePage />);
+      renderWithProviders(<RequestsPage />);
 
       await waitFor(() => {
         // Should make API call
@@ -413,13 +410,20 @@ describe('Page Authentication Tests', () => {
         }
       ];
 
-      global.fetch = jest.fn(() =>
-        Promise.resolve({
+      global.fetch = jest.fn((url: string) => {
+        if (url.includes('/api/permissions')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve({ permissions: ['hardware.view'], roles: ['volunteer'] }),
+          });
+        }
+        return Promise.resolve({
           ok: true,
           status: 200,
           json: () => Promise.resolve(mockData),
-        })
-      ) as jest.Mock;
+        });
+      }) as jest.Mock;
 
       renderWithProviders(<RequestsPage />);
 

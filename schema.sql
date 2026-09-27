@@ -59,6 +59,9 @@ CREATE TABLE IF NOT EXISTS requests (
     status VARCHAR(20) NOT NULL CHECK (status IN ('open', 'in-progress', 'completed', 'cancelled')),
     submitted_by UUID NOT NULL REFERENCES users(id),
     assigned_to UUID REFERENCES users(id),
+    -- Who processed a battery_charging request's return (mirrors
+    -- spare_parts.handled_by); unused by the other three request types.
+    handled_by UUID REFERENCES users(id),
     -- Type-specific data stored as JSON
     hardware_data JSONB,
     software_data JSONB,
@@ -107,14 +110,38 @@ CREATE TABLE IF NOT EXISTS battery_swaps (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Tracks the fixed number of loaner batteries available per device type,
--- so "available" can be computed as total minus currently outstanding swaps.
-CREATE TABLE IF NOT EXISTS battery_swap_pool (
+-- battery_swaps itself is superseded by the battery_charging request type
+-- (see migrations/0008_merge_battery_swaps_into_requests.sql) and is left
+-- here, inert, only because migrations/0004_add_battery_swaps.sql always
+-- creates it when bootstrapping a fresh database from the migrations
+-- directory -- schema.sql has to stay consistent with that end state
+-- rather than pretending the table never existed.
+
+-- battery_charging_pool tracked only a bare total_count per device type; it
+-- is superseded by battery_units (migrations/0009_battery_units.sql), which
+-- tracks individual numbered physical batteries instead. Left here, inert,
+-- for the same reason battery_swaps is above -- migrations/0005 always
+-- creates it when bootstrapping from the migrations directory.
+CREATE TABLE IF NOT EXISTS battery_charging_pool (
     device_type VARCHAR(20) NOT NULL CHECK (device_type IN ('robot_controller', 'driver_hub')),
     season INTEGER NOT NULL,
     total_count INTEGER NOT NULL DEFAULT 0,
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     PRIMARY KEY (device_type, season)
+);
+
+-- Individual numbered loaner batteries (e.g. "Robot Controller #7"), so a
+-- specific physical unit can be checked out/returned rather than just
+-- decrementing a count. No status column -- a unit is "checked out" if any
+-- open/in-progress battery_charging request references its device_type +
+-- number in battery_charging_data (see src/lib/batteryPool.ts).
+CREATE TABLE IF NOT EXISTS battery_units (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    device_type VARCHAR(20) NOT NULL CHECK (device_type IN ('robot_controller', 'driver_hub')),
+    number INTEGER NOT NULL CHECK (number > 0),
+    season INTEGER NOT NULL DEFAULT 2026,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (device_type, number, season)
 );
 
 -- Teams table (now using countries data, but keeping for potential future use)
@@ -163,7 +190,11 @@ INSERT INTO role_permissions (role, permission_name) VALUES
 ('intake_clerk', 'battery_swaps.view'),
 ('intake_clerk', 'battery_swaps.create'),
 ('intake_clerk', 'battery_swaps.edit'),
-('intake_clerk', 'battery_swaps.return')
+('intake_clerk', 'battery_swaps.return'),
+('intake_clerk', 'battery_charging.view'),
+('intake_clerk', 'battery_charging.create'),
+('intake_clerk', 'battery_charging.edit'),
+('intake_clerk', 'battery_charging.return')
 ON CONFLICT DO NOTHING;
 
 -- Machine Shop Operator - machine shop focused
@@ -287,7 +318,12 @@ INSERT INTO role_permissions (role, permission_name) VALUES
 ('admin', 'battery_swaps.create'),
 ('admin', 'battery_swaps.edit'),
 ('admin', 'battery_swaps.return'),
-('admin', 'battery_swaps.configure')
+('admin', 'battery_swaps.configure'),
+('admin', 'battery_charging.view'),
+('admin', 'battery_charging.create'),
+('admin', 'battery_charging.edit'),
+('admin', 'battery_charging.return'),
+('admin', 'battery_charging.configure')
 ON CONFLICT DO NOTHING;
 
 -- Indexes for performance
@@ -298,6 +334,7 @@ CREATE INDEX IF NOT EXISTS idx_requests_status ON requests(status);
 CREATE INDEX IF NOT EXISTS idx_requests_type ON requests(type);
 CREATE INDEX IF NOT EXISTS idx_requests_submitted_by ON requests(submitted_by);
 CREATE INDEX IF NOT EXISTS idx_requests_assigned_to ON requests(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_requests_handled_by ON requests(handled_by);
 CREATE INDEX IF NOT EXISTS idx_spare_parts_status ON spare_parts(status);
 CREATE INDEX IF NOT EXISTS idx_spare_parts_country_code ON spare_parts(country_code);
 CREATE INDEX IF NOT EXISTS idx_spare_parts_submitted_by ON spare_parts(submitted_by);
@@ -309,6 +346,7 @@ CREATE INDEX IF NOT EXISTS idx_battery_swaps_country_code ON battery_swaps(count
 CREATE INDEX IF NOT EXISTS idx_battery_swaps_season ON battery_swaps(season);
 CREATE INDEX IF NOT EXISTS idx_battery_swaps_submitted_by ON battery_swaps(submitted_by);
 CREATE INDEX IF NOT EXISTS idx_battery_swaps_outstanding_lookup ON battery_swaps(country_code, device_type, status);
+CREATE INDEX IF NOT EXISTS idx_battery_units_season ON battery_units(season);
 CREATE INDEX IF NOT EXISTS idx_teams_country_code ON teams(country_code);
 CREATE INDEX IF NOT EXISTS idx_role_permissions_role ON role_permissions(role);
 CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_name ON role_permissions(permission_name);

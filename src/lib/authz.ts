@@ -134,6 +134,16 @@ export const PERMISSIONS: Record<PermissionName, Permission> = {
     description: 'Can be assigned to battery charging requests',
     category: 'battery_charging'
   },
+  'battery_charging.return': {
+    name: 'battery_charging.return',
+    description: 'Mark a battery charging request as returned',
+    category: 'battery_charging'
+  },
+  'battery_charging.configure': {
+    name: 'battery_charging.configure',
+    description: 'Configure the total loaner battery pool size',
+    category: 'battery_charging'
+  },
 
   // Spare Parts
   'spare_parts.view': {

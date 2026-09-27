@@ -177,7 +177,7 @@ function AdminDashboard() {
                     label="View Pending Requests"
                     clickable
                     color="warning"
-                    onClick={() => window.location.href = '/requests'}
+                    onClick={() => window.location.href = '/'}
                   />
                   <Chip
                     label="Admin Requests"

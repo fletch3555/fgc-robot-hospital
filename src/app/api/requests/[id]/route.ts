@@ -70,6 +70,19 @@ export async function PATCH(
     if (body.comments !== undefined) updateData.comments = body.comments;
     if (body.assigned_to !== undefined) updateData.assigned_to = body.assigned_to;
     if (body.country_code) updateData.country_code = body.country_code;
+
+    // A battery_charging request's "handled_by" (who processed the
+    // return) is always stamped server-side from the current session,
+    // never taken from the request body -- this is what "Mark Returned"
+    // means for this request type, mirroring the old battery_swaps
+    // feature's markReturned behavior.
+    if (
+      existingRequest.type === 'battery_charging' &&
+      body.status === 'completed' &&
+      existingRequest.status !== 'completed'
+    ) {
+      updateData.handled_by = authz.session!.user.id;
+    }
     
     // Handle type-specific data fields
     if (body.hardwareData) updateData.hardware_data = JSON.stringify(body.hardwareData);

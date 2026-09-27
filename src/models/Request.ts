@@ -15,12 +15,14 @@ export class Request {
   static async findById(id: string): Promise<IRequest | null> {
     try {
       const result = await query(
-        `SELECT r.*, 
+        `SELECT r.*,
                 u1.name as submitted_by_name, u1.email as submitted_by_email,
-                u2.name as assigned_to_name, u2.email as assigned_to_email
+                u2.name as assigned_to_name, u2.email as assigned_to_email,
+                u3.name as handled_by_name, u3.email as handled_by_email
          FROM requests r
          LEFT JOIN users u1 ON r.submitted_by = u1.id
          LEFT JOIN users u2 ON r.assigned_to = u2.id
+         LEFT JOIN users u3 ON r.handled_by = u3.id
          WHERE r.id = $1`,
         [id]
       );
@@ -71,12 +73,14 @@ export class Request {
       }
 
       const result = await query(
-        `SELECT r.*, 
+        `SELECT r.*,
                 u1.name as submitted_by_name, u1.email as submitted_by_email,
-                u2.name as assigned_to_name, u2.email as assigned_to_email
+                u2.name as assigned_to_name, u2.email as assigned_to_email,
+                u3.name as handled_by_name, u3.email as handled_by_email
          FROM requests r
          LEFT JOIN users u1 ON r.submitted_by = u1.id
          LEFT JOIN users u2 ON r.assigned_to = u2.id
+         LEFT JOIN users u3 ON r.handled_by = u3.id
          ${whereClause}
          AND r.status != 'completed'
          ORDER BY 
@@ -106,10 +110,12 @@ export class Request {
       const result = await query(
         `SELECT r.*,
                 u1.name as submitted_by_name, u1.email as submitted_by_email,
-                u2.name as assigned_to_name, u2.email as assigned_to_email
+                u2.name as assigned_to_name, u2.email as assigned_to_email,
+                u3.name as handled_by_name, u3.email as handled_by_email
          FROM requests r
          LEFT JOIN users u1 ON r.submitted_by = u1.id
          LEFT JOIN users u2 ON r.assigned_to = u2.id
+         LEFT JOIN users u3 ON r.handled_by = u3.id
          WHERE r.status = 'completed'${seasonClause}
          ORDER BY r.updated_at DESC
          LIMIT $1`,
@@ -126,13 +132,15 @@ export class Request {
   static async findAllForAdmin(): Promise<IRequest[]> {
     try {
       const result = await query(
-        `SELECT r.*, 
+        `SELECT r.*,
                 u1.name as submitted_by_name, u1.email as submitted_by_email,
-                u2.name as assigned_to_name, u2.email as assigned_to_email
+                u2.name as assigned_to_name, u2.email as assigned_to_email,
+                u3.name as handled_by_name, u3.email as handled_by_email
          FROM requests r
          LEFT JOIN users u1 ON r.submitted_by = u1.id
          LEFT JOIN users u2 ON r.assigned_to = u2.id
-         ORDER BY 
+         LEFT JOIN users u3 ON r.handled_by = u3.id
+         ORDER BY
            CASE r.status 
              WHEN 'in-progress' THEN 1 
              WHEN 'open' THEN 2 
@@ -268,10 +276,12 @@ export class Request {
       const result = await query(
         `SELECT r.*,
                 u1.name as submitted_by_name, u1.email as submitted_by_email,
-                u2.name as assigned_to_name, u2.email as assigned_to_email
+                u2.name as assigned_to_name, u2.email as assigned_to_email,
+                u3.name as handled_by_name, u3.email as handled_by_email
          FROM requests r
          LEFT JOIN users u1 ON r.submitted_by = u1.id
          LEFT JOIN users u2 ON r.assigned_to = u2.id
+         LEFT JOIN users u3 ON r.handled_by = u3.id
          WHERE r.${column} = $1${seasonClause}
          ORDER BY r.created_at DESC`,
         values

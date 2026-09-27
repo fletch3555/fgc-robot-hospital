@@ -168,6 +168,72 @@ describe("/api/requests/[id]", () => {
       expect(Request.update).toHaveBeenCalledWith("test-request-id", updateData);
     });
 
+    it("should stamp handled_by server-side when a battery_charging request is marked returned", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.view', 'battery_charging.edit']);
+
+      const mockExistingRequest = {
+        id: "test-request-id",
+        type: "battery_charging",
+        status: "open",
+      };
+
+      const mockUpdatedRequest = {
+        id: "test-request-id",
+        type: "battery_charging",
+        status: "completed",
+        handled_by: mockSession.user.id,
+      };
+
+      (Request.findById as jest.Mock)
+        .mockResolvedValueOnce(mockExistingRequest)
+        .mockResolvedValueOnce(mockUpdatedRequest);
+      (Request.update as jest.Mock).mockResolvedValue(mockUpdatedRequest);
+
+      // Client attempts to smuggle a different handled_by -- must be ignored.
+      const updateData = { status: "completed", handled_by: "someone-else-id" };
+      const request = new NextRequest("http://localhost:3000/api/requests/test-request-id", {
+        method: "PATCH",
+        body: JSON.stringify(updateData),
+      });
+
+      const response = await PATCH(request, mockContext);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual(mockUpdatedRequest);
+      expect(Request.update).toHaveBeenCalledWith("test-request-id", {
+        status: "completed",
+        handled_by: mockSession.user.id,
+      });
+    });
+
+    it("should not stamp handled_by for a non-battery_charging request", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.view', 'requests.edit']);
+
+      const mockExistingRequest = {
+        id: "test-request-id",
+        type: "hardware",
+        status: "open",
+      };
+      const mockUpdatedRequest = { ...mockExistingRequest, status: "completed" };
+
+      (Request.findById as jest.Mock)
+        .mockResolvedValueOnce(mockExistingRequest)
+        .mockResolvedValueOnce(mockUpdatedRequest);
+      (Request.update as jest.Mock).mockResolvedValue(mockUpdatedRequest);
+
+      const request = new NextRequest("http://localhost:3000/api/requests/test-request-id", {
+        method: "PATCH",
+        body: JSON.stringify({ status: "completed" }),
+      });
+
+      await PATCH(request, mockContext);
+
+      expect(Request.update).toHaveBeenCalledWith("test-request-id", { status: "completed" });
+    });
+
     it("should return 404 when updating non-existent request", async () => {
       setupAuthMock(mockSession);
       // User needs both requests.view (for initial auth) and requests.edit (for update)

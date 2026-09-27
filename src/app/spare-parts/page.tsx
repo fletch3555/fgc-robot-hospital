@@ -27,6 +27,7 @@ import {
   Add as AddIcon,
   Edit as EditIcon
 } from '@mui/icons-material';
+import CountryFlag from '@/components/common/CountryFlag';
 
 interface SparePart {
   id: string;
@@ -217,13 +218,16 @@ function SparePartsPage() {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Box>
-                          <Typography variant="body2">
-                            {part.country_name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {part.country_code}
-                          </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <CountryFlag code={part.country_code} />
+                          <Box>
+                            <Typography variant="body2">
+                              {part.country_name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {part.country_code}
+                            </Typography>
+                          </Box>
                         </Box>
                       </TableCell>
                       <TableCell align="center">
