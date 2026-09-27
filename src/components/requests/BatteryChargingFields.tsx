@@ -25,10 +25,8 @@ export interface BatteryChargingFieldsProps {
   data: BatteryChargingRequestData;
   onChange: (data: Partial<BatteryChargingRequestData>) => void;
   errors?: {[key: string]: string};
-  /** Only the create flow lets you pick a specific unit -- there's nothing
-   * to edit once one's been handed out. */
-  mode?: 'create' | 'edit';
-  /** Numbers currently free to hand out for the selected device type. */
+  /** Selectable numbers for the current device type: free units, plus --
+   * when editing an existing request -- the one already checked out to it. */
   availableBatteryNumbers?: number[];
 }
 
@@ -38,7 +36,7 @@ export const serializeBatteryChargingData = (formData: FormData): BatteryChargin
   loanerProvided: formData.get('loanerProvided') !== null,
 });
 
-export default function BatteryChargingFields({ data, onChange, errors = {}, mode = 'create', availableBatteryNumbers = [] }: BatteryChargingFieldsProps) {
+export default function BatteryChargingFields({ data, onChange, errors = {}, availableBatteryNumbers = [] }: BatteryChargingFieldsProps) {
   const handleChange = (field: string, value: string | null) => {
     onChange({ [field]: value });
   };
@@ -165,37 +163,31 @@ export default function BatteryChargingFields({ data, onChange, errors = {}, mod
 
       {data.loanerProvided !== false && data.batteryType && (
         <Grid size={12}>
-          {mode === 'create' ? (
-            <FormControl fullWidth required error={!!errors.loanerBatteryNumber}>
-              <InputLabel>Loaner Battery Number</InputLabel>
-              <Select
-                value={data.loanerBatteryNumber ?? ''}
-                label="Loaner Battery Number"
-                onChange={(e) => onChange({ loanerBatteryNumber: Number(e.target.value) })}
-              >
-                {availableBatteryNumbers.length === 0 ? (
-                  <MenuItem value="" disabled>
-                    No {DEVICE_LABELS[data.batteryType]} batteries available
+          <FormControl fullWidth required error={!!errors.loanerBatteryNumber}>
+            <InputLabel>Loaner Battery Number</InputLabel>
+            <Select
+              value={data.loanerBatteryNumber ?? ''}
+              label="Loaner Battery Number"
+              onChange={(e) => onChange({ loanerBatteryNumber: Number(e.target.value) })}
+            >
+              {availableBatteryNumbers.length === 0 ? (
+                <MenuItem value="" disabled>
+                  No {DEVICE_LABELS[data.batteryType]} batteries available
+                </MenuItem>
+              ) : (
+                availableBatteryNumbers.map((n) => (
+                  <MenuItem key={n} value={n}>
+                    {DEVICE_LABELS[data.batteryType as BatteryDeviceType]} #{n}
                   </MenuItem>
-                ) : (
-                  availableBatteryNumbers.map((n) => (
-                    <MenuItem key={n} value={n}>
-                      {DEVICE_LABELS[data.batteryType as BatteryDeviceType]} #{n}
-                    </MenuItem>
-                  ))
-                )}
-              </Select>
-              {errors.loanerBatteryNumber && (
-                <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                  {errors.loanerBatteryNumber}
-                </Typography>
+                ))
               )}
-            </FormControl>
-          ) : data.loanerBatteryNumber ? (
-            <Typography variant="body2" color="text.secondary">
-              Loaner: {DEVICE_LABELS[data.batteryType]} #{data.loanerBatteryNumber}
-            </Typography>
-          ) : null}
+            </Select>
+            {errors.loanerBatteryNumber && (
+              <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                {errors.loanerBatteryNumber}
+              </Typography>
+            )}
+          </FormControl>
         </Grid>
       )}
     </Grid>

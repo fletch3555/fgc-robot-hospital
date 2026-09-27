@@ -214,12 +214,12 @@ export function useRequestForm({
     };
   }, [mode, formData.type, formData.country_code, batteryChargingData.batteryType]);
 
-  // Which specific numbered units are free to hand out right now, for the
-  // clerk to pick from at intake (create mode, loaner being provided, and a
-  // device type already chosen).
+  // Which specific numbered units are selectable right now: free units for
+  // anyone, plus -- in edit mode -- the one already checked out to *this*
+  // request (otherwise its own current value wouldn't even appear as an
+  // option, and there'd be no way to confirm/change it).
   useEffect(() => {
     if (
-      mode !== 'create' ||
       formData.type !== 'battery_charging' ||
       batteryChargingData.loanerProvided === false ||
       !batteryChargingData.batteryType
@@ -236,8 +236,12 @@ export function useRequestForm({
           const units: IBatteryUnit[] = await response.json();
           setAvailableBatteryNumbers(
             units
-              .filter((u) => u.device_type === batteryChargingData.batteryType && u.status === 'available')
+              .filter((u) =>
+                u.device_type === batteryChargingData.batteryType &&
+                (u.status === 'available' || (mode === 'edit' && u.request_id === request?.id))
+              )
               .map((u) => u.number)
+              .sort((a, b) => a - b)
           );
         }
       } catch (error) {
@@ -249,7 +253,7 @@ export function useRequestForm({
     return () => {
       cancelled = true;
     };
-  }, [mode, formData.type, batteryChargingData.loanerProvided, batteryChargingData.batteryType]);
+  }, [mode, formData.type, batteryChargingData.loanerProvided, batteryChargingData.batteryType, request?.id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: unknown } }) => {
     const { name, value } = e.target;
@@ -355,7 +359,6 @@ export function useRequestForm({
     const errors: { [key: string]: string } = {};
     if (!batteryChargingData.batteryType) errors.batteryType = "Please select a battery type";
     if (
-      mode === 'create' &&
       batteryChargingData.loanerProvided !== false &&
       batteryChargingData.batteryType &&
       !batteryChargingData.loanerBatteryNumber
@@ -527,7 +530,6 @@ export function useRequestForm({
             data={batteryChargingData}
             onChange={handleBatteryChargingChange}
             errors={validationErrors}
-            mode={mode}
             availableBatteryNumbers={availableBatteryNumbers}
           />
         );
