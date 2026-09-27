@@ -25,7 +25,6 @@ import {
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
-  Assessment as StatsIcon,
   Build as RequestsIcon,
   Computer as SoftwareIcon,
   PrecisionManufacturing as MachineShopIcon,
@@ -78,13 +77,9 @@ const navItems: NavItem[] = [
     // The landing page -- available to all authenticated users, even those
     // without requests.create, so there's always a way back to it.
   },
-  {
-    text: 'Stats',
-    icon: <StatsIcon />,
-    href: '/stats',
-    requiredPermissions: ['requests.view', 'hardware.view', 'software.view', 'machine_shop.view'],
-    requireAnyPermission: true,
-  },
+  // "Stats" nav entry pulled for now -- the /stats page and its
+  // /api/dashboard/analytics backing are still here, unlinked, pending a
+  // future revisit of the design rather than a rebuild from scratch.
 ];
 
 // Kept as its own list (with dividers around it) so the four queues read as
