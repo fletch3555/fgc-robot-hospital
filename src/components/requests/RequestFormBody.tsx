@@ -145,6 +145,29 @@ export default function RequestFormBody({ state }: RequestFormBodyProps) {
               minHeight: { xs: '72px', sm: '88px' },
               width: '100%',
             },
+            // These buttons stand alone in a grid (their own border on every
+            // side), but ToggleButtonGroup still assumes a connected
+            // horizontal strip: by index, it drops the border between
+            // "adjacent" buttons (border-left: transparent) and squares off
+            // the corresponding corners. Restore both, per side, so every
+            // button looks the same regardless of its position.
+            // Note: unlike the `borderRadius` shorthand above, these longhand
+            // per-corner properties aren't scaled by theme.shape.borderRadius
+            // -- values are literal, so they're spelled out in px to match.
+            '& .MuiToggleButton-root.MuiToggleButtonGroup-firstButton, & .MuiToggleButton-root.MuiToggleButtonGroup-middleButton': {
+              borderTopRightRadius: { xs: '4px', sm: '8px' },
+              borderBottomRightRadius: { xs: '4px', sm: '8px' },
+            },
+            '& .MuiToggleButton-root.MuiToggleButtonGroup-middleButton, & .MuiToggleButton-root.MuiToggleButtonGroup-lastButton': {
+              marginLeft: 0,
+              borderLeft: '1px solid',
+              borderColor: 'divider',
+              borderTopLeftRadius: { xs: '4px', sm: '8px' },
+              borderBottomLeftRadius: { xs: '4px', sm: '8px' },
+              '&.Mui-selected': {
+                borderColor: 'primary.main',
+              },
+            },
           }}
         >
           {typeOptions.map((option) => (
