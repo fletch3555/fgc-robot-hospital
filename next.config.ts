@@ -1,14 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'flagcdn.com',
-      },
-    ],
-  },
   // Security and caching headers
   async headers() {
     return [

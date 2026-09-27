@@ -2,28 +2,41 @@ import React from 'react';
 import {
   Grid,
   FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   Typography,
   ToggleButton,
   ToggleButtonGroup,
+  FormControlLabel,
+  Switch,
   Box,
   Alert,
 } from '@mui/material';
 import { BatteryChargingFullRounded } from '@mui/icons-material';
-import { BatteryChargingRequestData } from '@/lib/types';
+import { BatteryChargingRequestData, BatteryDeviceType } from '@/lib/types';
+
+const DEVICE_LABELS: Record<BatteryDeviceType, string> = {
+  robot_controller: 'Robot Controller',
+  driver_hub: 'Driver Hub',
+};
 
 export interface BatteryChargingFieldsProps {
   data: BatteryChargingRequestData;
   onChange: (data: Partial<BatteryChargingRequestData>) => void;
   errors?: {[key: string]: string};
+  /** Selectable numbers for the current device type: free units, plus --
+   * when editing an existing request -- the one already checked out to it. */
+  availableBatteryNumbers?: number[];
 }
 
 // Utility function to serialize form data for battery charging requests
 export const serializeBatteryChargingData = (formData: FormData): BatteryChargingRequestData => ({
-  batteryType: formData.get('batteryType')?.toString() as 'driver_hub' | 'robot_battery' | undefined,
-  initialCharge: formData.get('initialCharge') ? Number(formData.get('initialCharge')?.toString()) : undefined,
+  batteryType: formData.get('batteryType')?.toString() as BatteryDeviceType | undefined,
+  loanerProvided: formData.get('loanerProvided') !== null,
 });
 
-export default function BatteryChargingFields({ data, onChange, errors = {} }: BatteryChargingFieldsProps) {
+export default function BatteryChargingFields({ data, onChange, errors = {}, availableBatteryNumbers = [] }: BatteryChargingFieldsProps) {
   const handleChange = (field: string, value: string | null) => {
     onChange({ [field]: value });
   };
@@ -100,10 +113,10 @@ export default function BatteryChargingFields({ data, onChange, errors = {} }: B
                 <Typography>Driver Hub</Typography>
               </Box>
             </ToggleButton>
-            <ToggleButton 
-              value="robot_battery" 
-              aria-label="Robot Battery"
-              sx={{ 
+            <ToggleButton
+              value="robot_controller"
+              aria-label="Robot Controller"
+              sx={{
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
@@ -111,15 +124,15 @@ export default function BatteryChargingFields({ data, onChange, errors = {} }: B
                 flex: 1
               }}
             >
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
+              <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
                 gap: 1,
                 width: '100%'
               }}>
                 <BatteryChargingFullRounded />
-                <Typography>Robot Battery</Typography>
+                <Typography>Robot Controller</Typography>
               </Box>
             </ToggleButton>
           </ToggleButtonGroup>
@@ -130,6 +143,53 @@ export default function BatteryChargingFields({ data, onChange, errors = {} }: B
           )}
         </FormControl>
       </Grid>
+
+      <Grid size={12}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={data.loanerProvided !== false}
+              onChange={(e) => onChange({ loanerProvided: e.target.checked })}
+            />
+          }
+          label="Provide a loaner battery"
+        />
+        {data.loanerProvided === false && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+            Team&apos;s battery will just charge here — no spare handed out.
+          </Typography>
+        )}
+      </Grid>
+
+      {data.loanerProvided !== false && data.batteryType && (
+        <Grid size={12}>
+          <FormControl fullWidth required error={!!errors.loanerBatteryNumber}>
+            <InputLabel>Loaner Battery Number</InputLabel>
+            <Select
+              value={data.loanerBatteryNumber ?? ''}
+              label="Loaner Battery Number"
+              onChange={(e) => onChange({ loanerBatteryNumber: Number(e.target.value) })}
+            >
+              {availableBatteryNumbers.length === 0 ? (
+                <MenuItem value="" disabled>
+                  No {DEVICE_LABELS[data.batteryType]} batteries available
+                </MenuItem>
+              ) : (
+                availableBatteryNumbers.map((n) => (
+                  <MenuItem key={n} value={n}>
+                    {DEVICE_LABELS[data.batteryType as BatteryDeviceType]} #{n}
+                  </MenuItem>
+                ))
+              )}
+            </Select>
+            {errors.loanerBatteryNumber && (
+              <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                {errors.loanerBatteryNumber}
+              </Typography>
+            )}
+          </FormControl>
+        </Grid>
+      )}
     </Grid>
   );
 }

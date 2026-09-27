@@ -63,7 +63,9 @@ export type PermissionName =
   | 'battery_charging.create'
   | 'battery_charging.edit'
   | 'battery_charging.assignee'
-  
+  | 'battery_charging.return'
+  | 'battery_charging.configure'
+
   // Spare Parts
   | 'spare_parts.view'
   | 'spare_parts.create'

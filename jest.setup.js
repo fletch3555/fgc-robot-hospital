@@ -286,6 +286,13 @@ jest.mock("./src/models/Request", () => ({
   },
 }));
 
+jest.mock("./src/lib/batteryPool", () => ({
+  getBatteryPoolStatus: jest.fn(),
+  getBatteryUnits: jest.fn(),
+  addBatteryUnit: jest.fn(),
+  removeBatteryUnit: jest.fn(),
+}));
+
 jest.mock("./src/models/User", () => ({
   User: {
     findAll: jest.fn(),
@@ -305,18 +312,6 @@ jest.mock("./src/models/SparePart", () => ({
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
-  },
-}));
-
-jest.mock("./src/models/BatterySwap", () => ({
-  BatterySwap: {
-    findAll: jest.fn(),
-    findById: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    markReturned: jest.fn(),
-    getPoolStatus: jest.fn(),
-    setPoolCount: jest.fn(),
   },
 }));
 

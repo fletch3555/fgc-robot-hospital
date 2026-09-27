@@ -175,6 +175,52 @@ describe("/api/requests", () => {
       );
     });
 
+    it("should create a battery_charging request with loanerProvided data", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.create']);
+
+      (User.findById as jest.Mock).mockResolvedValue({
+        id: mockSession.user.id,
+        name: mockSession.user.name,
+        email: mockSession.user.email,
+      });
+
+      const batteryChargingData = { batteryType: "robot_controller", loanerProvided: true };
+      const mockCreatedRequest = {
+        id: "new-battery-request-id",
+        countryCode: "US",
+        type: "battery_charging",
+        status: "open",
+        battery_charging_data: batteryChargingData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      (Request.create as jest.Mock).mockResolvedValue(mockCreatedRequest);
+
+      const request = new NextRequest("http://localhost:3000/api/requests", {
+        method: "POST",
+        body: JSON.stringify({
+          countryCode: "US",
+          type: "battery_charging",
+          batteryChargingData,
+        }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data).toEqual(mockCreatedRequest);
+      expect(Request.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          countryCode: "US",
+          type: "battery_charging",
+          batteryChargingData,
+        })
+      );
+    });
+
     it("should return 400 for missing required fields", async () => {
       setupAuthMock(mockSession);
       setupUserPermissionsMock(['requests.create']); // User has requests create permission

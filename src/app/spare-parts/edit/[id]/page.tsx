@@ -6,6 +6,7 @@ import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { WithAuth } from '@/components/auth/WithAuth';
 import { WithPermissions } from '@/components/auth/WithPermissions';
 import { countries } from '@/data/countries';
+import CountryFlag from '@/components/common/CountryFlag';
 import {
   Typography,
   Box,
@@ -416,12 +417,30 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
                   onChange={(_, newValue) => {
                     handleChange('countryCode', newValue?.code || '');
                   }}
+                  renderOption={(props, option) => {
+                    const { key, ...otherProps } = props;
+                    return (
+                      <Box component="li" key={key} {...otherProps} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <CountryFlag code={option.code} />
+                        {option.name} ({option.code})
+                      </Box>
+                    );
+                  }}
                   renderInput={(params) => (
                     <TextField
                       {...params}
                       label="Country/Team"
                       required
                       fullWidth
+                      slotProps={{
+                        ...params.slotProps,
+                        input: {
+                          ...params.slotProps.input,
+                          startAdornment: formData.countryCode ? (
+                            <CountryFlag code={formData.countryCode} sx={{ ml: 0.5 }} />
+                          ) : undefined,
+                        },
+                      }}
                     />
                   )}
                 />

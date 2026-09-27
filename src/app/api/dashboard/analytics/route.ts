@@ -17,39 +17,32 @@ export async function GET(request: NextRequest) {
     const allSeasons = request.nextUrl.searchParams.get('allSeasons') === 'true';
     const season: Season = allSeasons ? 'all' : getCurrentSeason();
 
-    // Get comprehensive analytics data
+    // Get comprehensive analytics data. Events run ~4-5 days, so every query
+    // here is scoped to the season (== the event) rather than a rolling
+    // week/month window that wouldn't mean anything at this timescale.
     const [
       requestsByStatus,
       requestsByType,
-      dailyCompletions,
       openRequestsByType,
-      sparePartsStats,
       performanceMetrics,
       averageResolutionTime,
       completedByDay,
-      // priorityDistribution
     ] = await Promise.all([
       getRequestsByStatus(season),
       getRequestsByType(season),
-      getDailyCompletions(season),
       getOpenRequestsByType(season),
-      getSparePartsStats(season),
       getPerformanceMetrics(season),
       getAverageResolutionTime(season),
       getCompletedByDay(season),
-      // getPriorityDistribution()
     ]);
 
     return NextResponse.json({
       requestsByStatus,
       requestsByType,
-      dailyCompletions,
       openRequestsByType,
-      sparePartsStats,
       performanceMetrics,
       averageResolutionTime,
       completedByDay,
-      // priorityDistribution
     });
   } catch (error: unknown) {
     console.error("Error in GET /api/dashboard/analytics:", error instanceof Error ? error.message : error);
@@ -121,33 +114,6 @@ async function getRequestsByType(season: Season) {
   }));
 }
 
-async function getDailyCompletions(season: Season) {
-  const { clause, values } = seasonFilter(season, 1);
-  const result = await query(`
-    SELECT
-      DATE(updated_at) as date,
-      COUNT(*) as count
-    FROM requests
-    WHERE status = 'completed'
-      AND updated_at >= CURRENT_DATE - INTERVAL '7 days'
-      ${clause ? `AND ${clause}` : ''}
-    GROUP BY DATE(updated_at)
-    ORDER BY date DESC
-    LIMIT 7
-  `, values);
-
-  const today = new Date().toISOString().split('T')[0];
-  const todayCount = result.rows.find((row: {date: Date; count: string}) => row.date.toISOString().split('T')[0] === today)?.count || 0;
-
-  return {
-    today: parseInt(todayCount.toString()),
-    last7Days: result.rows.map((row: {date: Date; count: string}) => ({
-      date: row.date.toISOString().split('T')[0],
-      count: parseInt(row.count)
-    }))
-  };
-}
-
 async function getOpenRequestsByType(season: Season) {
   const { clause, values } = seasonFilter(season, 1);
   const result = await query(`
@@ -169,77 +135,12 @@ async function getOpenRequestsByType(season: Season) {
   }));
 }
 
-async function getSparePartsStats(season: Season) {
-  try {
-    const { clause, values } = seasonFilter(season, 1);
-
-    // Get overall spare parts statistics
-    const overallResult = await query(`
-      SELECT
-        COUNT(*) FILTER (WHERE status = 'issued') as total_issued,
-        COUNT(*) FILTER (WHERE status = 'returned') as total_returned,
-        COUNT(*) FILTER (WHERE status = 'issued' AND is_loan = true) as currently_loaned,
-        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as issued_today
-      FROM spare_parts
-      ${clause ? `WHERE ${clause}` : ''}
-    `, values);
-
-    // Get spare parts by category (using FGC inventory groups)
-    const categoryResult = await query(`
-      SELECT
-        COALESCE(sp.fgc_part_number, 'Unknown') as category,
-        COUNT(*) FILTER (WHERE status = 'issued') as issued,
-        COUNT(*) FILTER (WHERE status = 'returned') as returned,
-        COUNT(*) FILTER (WHERE status = 'issued' AND is_loan = true) as pending_return
-      FROM spare_parts sp
-      ${clause ? `WHERE ${clause}` : ''}
-      GROUP BY sp.fgc_part_number
-      ORDER BY issued DESC
-      LIMIT 10
-    `, values);
-
-    const overall = overallResult.rows[0] as {
-      total_issued: string;
-      total_returned: string;
-      currently_loaned: string;
-      issued_today: string;
-    };
-
-    return {
-      totalIssued: parseInt(overall.total_issued || '0'),
-      totalReturned: parseInt(overall.total_returned || '0'),
-      currentlyLoaned: parseInt(overall.currently_loaned || '0'),
-      pendingRequests: 0, // Not applicable for direct issuance workflow
-      issuedToday: parseInt(overall.issued_today || '0'),
-      byCategory: categoryResult.rows.map((row: {category: string; issued: string; returned: string; pending_return: string}) => ({
-        category: row.category,
-        issued: parseInt(row.issued),
-        returned: parseInt(row.returned),
-        pendingReturn: parseInt(row.pending_return)
-      }))
-    };
-  } catch (error) {
-    console.error('Error getting spare parts stats:', error);
-    // Return default structure if query fails
-    return {
-      totalIssued: 0,
-      totalReturned: 0,
-      currentlyLoaned: 0,
-      pendingRequests: 0,
-      issuedToday: 0,
-      byCategory: []
-    };
-  }
-}
-
 async function getPerformanceMetrics(season: Season) {
   const { clause, values } = seasonFilter(season, 1);
   const result = await query(`
     SELECT
       COUNT(*) FILTER (WHERE status = 'completed') as total_completed,
       COUNT(*) FILTER (WHERE status = 'completed' AND updated_at >= CURRENT_DATE) as completed_today,
-      COUNT(*) FILTER (WHERE status = 'completed' AND updated_at >= CURRENT_DATE - INTERVAL '7 days') as completed_week,
-      COUNT(*) FILTER (WHERE status = 'completed' AND updated_at >= CURRENT_DATE - INTERVAL '30 days') as completed_month,
       COUNT(*) FILTER (WHERE status IN ('open', 'in-progress')) as active_requests,
       AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/60) FILTER (WHERE status = 'completed') as avg_resolution_minutes
     FROM requests
@@ -249,21 +150,21 @@ async function getPerformanceMetrics(season: Season) {
   const row = result.rows[0] as {
     total_completed?: string;
     completed_today?: string;
-    completed_week?: string;
-    completed_month?: string;
     active_requests?: string;
     avg_resolution_minutes?: string;
   };
   return {
     totalCompleted: parseInt(row.total_completed || '0'),
     completedToday: parseInt(row.completed_today || '0'),
-    completedThisWeek: parseInt(row.completed_week || '0'),
-    completedThisMonth: parseInt(row.completed_month || '0'),
     activeRequests: parseInt(row.active_requests || '0'),
     averageResolutionMinutes: parseFloat(row.avg_resolution_minutes || '0')
   };
 }
 
+// No time-window filter beyond season -- a season is one ~4-5 day event, so
+// season scoping already bounds this to "the whole event" rather than an
+// arbitrary rolling window that would either clip event data or (past 30
+// days) never actually filter anything out.
 async function getAverageResolutionTime(season: Season) {
   const { clause, values } = seasonFilter(season, 1);
   const result = await query(`
@@ -273,7 +174,6 @@ async function getAverageResolutionTime(season: Season) {
       COUNT(*) as completed_count
     FROM requests
     WHERE status = 'completed'
-      AND updated_at >= CURRENT_DATE - INTERVAL '30 days'
       ${clause ? `AND ${clause}` : ''}
     GROUP BY type
   `, values);
@@ -285,6 +185,8 @@ async function getAverageResolutionTime(season: Season) {
   }));
 }
 
+// Ascending, whole-event span (see getAverageResolutionTime) -- reads as a
+// day-by-day timeline of the event rather than a "last N days" recency list.
 async function getCompletedByDay(season: Season) {
   const { clause, values } = seasonFilter(season, 1);
   const result = await query(`
@@ -293,10 +195,9 @@ async function getCompletedByDay(season: Season) {
       COUNT(*) as count
     FROM requests
     WHERE status = 'completed'
-      AND updated_at >= CURRENT_DATE - INTERVAL '5 days'
       ${clause ? `AND ${clause}` : ''}
     GROUP BY DATE(updated_at)
-    ORDER BY date DESC
+    ORDER BY date ASC
   `, values);
 
   return result.rows.map((row: {date: Date; count: string}) => ({

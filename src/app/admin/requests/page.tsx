@@ -25,8 +25,9 @@ import {
 import { Edit as EditIcon, Refresh as RefreshIcon } from "@mui/icons-material";
 import { IRequest } from '@/lib/types';
 import { getCountryName } from '@/lib/countryUtils';
+import CountryFlag from '@/components/common/CountryFlag';
 import { formatRequestDate } from '@/lib/dateUtils';
-import EditRequestModal from '@/components/requests/EditRequestModal';
+import RequestFormModal from '@/components/requests/RequestFormModal';
 
 function AdminRequestsPage() {
   const router = useRouter();
@@ -182,7 +183,10 @@ function AdminRequestsPage() {
                       {formatRequestType(request.type)}
                     </TableCell>
                     <TableCell>
-                      {getCountryName(request.country_code)}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <CountryFlag code={request.country_code} size={16} />
+                        {getCountryName(request.country_code)}
+                      </Box>
                     </TableCell>
                     <TableCell>
                       <Chip
@@ -246,7 +250,7 @@ function AdminRequestsPage() {
         </Box>
       </Container>
 
-      <EditRequestModal
+      <RequestFormModal
         open={editModalOpen}
         onClose={handleCloseEditModal}
         request={selectedRequest}

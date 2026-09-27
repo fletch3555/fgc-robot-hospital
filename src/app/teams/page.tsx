@@ -23,6 +23,7 @@ import {
   Info as InfoIcon,
 } from '@mui/icons-material';
 import { countries, searchTeams } from '@/data/countries';
+import CountryFlag from '@/components/common/CountryFlag';
 
 function TeamsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -145,7 +146,12 @@ function TeamsPage() {
                       {team.code}
                     </Typography>
                   </TableCell>
-                  <TableCell>{team.name}</TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CountryFlag code={team.code} />
+                      {team.name}
+                    </Box>
+                  </TableCell>
                 </TableRow>
               ))
             )}

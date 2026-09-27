@@ -29,7 +29,7 @@ export interface IUser {
 
 export type RequestType = 'hardware' | 'software' | 'machine_shop' | 'battery_charging';
 // export type RequestPriority = 'low' | 'medium' | 'high' | 'urgent';
-export type RequestStatus = 'open' | 'in-progress' | 'completed';
+export type RequestStatus = 'open' | 'in-progress' | 'completed' | 'cancelled';
 
 export interface IRequest {
   id: string;
@@ -40,10 +40,15 @@ export interface IRequest {
   status: RequestStatus;
   submitted_by: string; // UUID reference to users.id
   assigned_to?: string; // UUID reference to users.id
+  // Who processed a battery_charging request's return (mirrors spare_parts.handled_by);
+  // unused by the other three request types.
+  handled_by?: string; // UUID reference to users.id
   submitted_by_name?: string; // User name who submitted
   submitted_by_email?: string; // User email who submitted
   assigned_to_name?: string; // User name who is assigned
   assigned_to_email?: string; // User email who is assigned
+  handled_by_name?: string;
+  handled_by_email?: string;
   hardware_data?: HardwareRequestData;
   software_data?: SoftwareRequestData;
   machine_shop_data?: MachineShopRequestData;
@@ -72,35 +77,25 @@ export interface ISparePart {
 }
 
 export type BatteryDeviceType = 'robot_controller' | 'driver_hub';
-export type BatterySwapStatus = 'swapped' | 'returned';
 
-export interface IBatterySwap {
-  id: string;
-  country_code: string;
-  country_name: string;
-  device_type: BatteryDeviceType;
-  status: BatterySwapStatus;
-  submitted_by: string; // UUID reference to users.id
-  submitted_by_name?: string;
-  submitted_by_email?: string;
-  handled_by?: string; // UUID reference to users.id
-  handled_by_name?: string;
-  handled_by_email?: string;
-  notes?: string;
-  // False for a plain drop-off-for-charging with no spare handed out;
-  // these don't count against the loaner pool's outstanding total.
-  loaner_provided: boolean;
-  season: number;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface IBatterySwapPoolStatus {
+export interface IBatteryPoolStatus {
   device_type: BatteryDeviceType;
   season: number;
   total_count: number;
   outstanding_count: number;
   available_count: number;
+}
+
+// A specific physical loaner battery (e.g. "Robot Controller #7"), as
+// opposed to IBatteryPoolStatus's bare per-device-type count.
+export interface IBatteryUnit {
+  device_type: BatteryDeviceType;
+  number: number;
+  season: number;
+  status: 'available' | 'checked_out';
+  request_id?: string;
+  country_code?: string;
+  country_name?: string;
 }
 
 export interface ITeam {
@@ -133,8 +128,14 @@ export interface MachineShopRequestData {
 }
 
 export interface BatteryChargingRequestData {
-  batteryType?: 'driver_hub' | 'robot_battery';
-  initialCharge?: number;
+  batteryType?: BatteryDeviceType;
+  // False for a plain drop-off-for-charging with no spare handed out;
+  // these don't count against the loaner pool's outstanding total.
+  // Absent/undefined is treated as true (a loaner was provided).
+  loanerProvided?: boolean;
+  // Which specific physical unit (battery_units.number, scoped to
+  // batteryType) was handed out. Only meaningful when loanerProvided.
+  loanerBatteryNumber?: number;
 }
 
 // FGC Inventory Types (snake_case for database compatibility)
