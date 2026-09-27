@@ -145,6 +145,7 @@ export function useRequestForm({
       setBatteryChargingData({
         batteryType: (request.battery_charging_data as BatteryChargingRequestData)?.batteryType || undefined,
         loanerProvided: (request.battery_charging_data as BatteryChargingRequestData)?.loanerProvided !== false,
+        loanerBatteryNumber: (request.battery_charging_data as BatteryChargingRequestData)?.loanerBatteryNumber,
       });
 
       setError("");
