@@ -155,7 +155,7 @@ function SparePartsPage() {
             variant="contained" 
             startIcon={<AddIcon />}
           >
-            New Request
+            Issue Spare Part
           </Button>
         </Box>
 
