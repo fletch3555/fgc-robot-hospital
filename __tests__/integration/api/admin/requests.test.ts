@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { GET } from "../../../../src/app/api/admin/requests/route";
 import { Request } from "../../../../src/models/Request";
 import { query } from "../../../../src/lib/database";
@@ -32,18 +33,23 @@ function setupUserPermissionsMock(userPermissions: string[] = []) {
   });
 }
 
+function makeRequest(url = "http://localhost:3000/api/admin/requests") {
+  return new NextRequest(url);
+}
+
 describe("/api/admin/requests", () => {
   beforeEach(() => {
     resetMocks();
     setupDatabaseMock();
     mockQuery.mockReset();
+    (Request.findDistinctSeasons as jest.Mock).mockResolvedValue([2026, 2025]);
   });
 
   describe("GET", () => {
     it("should return 401 when user is not authenticated", async () => {
       setupAuthMock(null);
 
-      const response = await GET();
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -54,16 +60,51 @@ describe("/api/admin/requests", () => {
       setupAuthMock(mockSession); // regular volunteer user
       setupUserPermissionsMock([]); // No admin permissions
 
-      const response = await GET();
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data).toEqual({ 
+      expect(data).toEqual({
         error: "Insufficient permissions",
         required: ["admin.requests"],
         userPermissions: [],
         requireAll: true
       });
+    });
+
+    it("should default to the current season when no season is specified", async () => {
+      setupAuthMock(mockAdminSession);
+      setupUserPermissionsMock(['admin.requests']);
+      (Request.findAllForAdmin as jest.Mock).mockResolvedValue([]);
+
+      const response = await GET(makeRequest());
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.seasons).toEqual([2026, 2025]);
+      expect(typeof data.currentSeason).toBe("number");
+      // No explicit season argument -- findAllForAdmin applies its own default.
+      expect(Request.findAllForAdmin).toHaveBeenCalledWith(undefined);
+    });
+
+    it("should pass a specific ?season= through to findAllForAdmin", async () => {
+      setupAuthMock(mockAdminSession);
+      setupUserPermissionsMock(['admin.requests']);
+      (Request.findAllForAdmin as jest.Mock).mockResolvedValue([]);
+
+      await GET(makeRequest("http://localhost:3000/api/admin/requests?season=2025"));
+
+      expect(Request.findAllForAdmin).toHaveBeenCalledWith(2025);
+    });
+
+    it("should pass season=all through to findAllForAdmin", async () => {
+      setupAuthMock(mockAdminSession);
+      setupUserPermissionsMock(['admin.requests']);
+      (Request.findAllForAdmin as jest.Mock).mockResolvedValue([]);
+
+      await GET(makeRequest("http://localhost:3000/api/admin/requests?season=all"));
+
+      expect(Request.findAllForAdmin).toHaveBeenCalledWith("all");
     });
 
     it("should return all requests for admin user", async () => {
@@ -97,11 +138,11 @@ describe("/api/admin/requests", () => {
 
       (Request.findAllForAdmin as jest.Mock).mockResolvedValue(mockRequests);
 
-      const response = await GET();
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data).toEqual(mockRequests);
+      expect(data.requests).toEqual(mockRequests);
       expect(Request.findAllForAdmin).toHaveBeenCalledTimes(1);
     });
 
@@ -125,11 +166,11 @@ describe("/api/admin/requests", () => {
 
       (Request.findAllForAdmin as jest.Mock).mockResolvedValue(mockRequests);
 
-      const response = await GET();
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data).toEqual(mockRequests);
+      expect(data.requests).toEqual(mockRequests);
       expect(Request.findAllForAdmin).toHaveBeenCalledTimes(1);
     });
 
@@ -138,7 +179,7 @@ describe("/api/admin/requests", () => {
       setupUserPermissionsMock(['admin.requests']); // Admin has admin requests permission
       (Request.findAllForAdmin as jest.Mock).mockRejectedValue(new Error("Database error"));
 
-      const response = await GET();
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(response.status).toBe(500);
@@ -157,11 +198,11 @@ describe("/api/admin/requests", () => {
       setupAuthMock(sessionWithoutRole);
       setupUserPermissionsMock([]); // No admin permissions
 
-      const response = await GET();
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data).toEqual({ 
+      expect(data).toEqual({
         error: "Insufficient permissions",
         required: ["admin.requests"],
         userPermissions: [],

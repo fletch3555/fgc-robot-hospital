@@ -129,8 +129,16 @@ export class Request {
   }
 
 
-  static async findAllForAdmin(): Promise<IRequest[]> {
+  // Defaults to the current season, with an 'all' override -- same
+  // convention as findAll/findRecentlyClosed/findByUser (see AGENTS.md:
+  // Season scoping). This didn't follow that convention until now, which
+  // is exactly the bug being fixed: the admin view showed every season's
+  // requests mixed together with no way to tell them apart or narrow down.
+  static async findAllForAdmin(season: number | 'all' = getCurrentSeason()): Promise<IRequest[]> {
     try {
+      const whereClause = season === 'all' ? '' : 'WHERE r.season = $1';
+      const values = season === 'all' ? [] : [season];
+
       const result = await query(
         `SELECT r.*,
                 u1.name as submitted_by_name, u1.email as submitted_by_email,
@@ -140,18 +148,33 @@ export class Request {
          LEFT JOIN users u1 ON r.submitted_by = u1.id
          LEFT JOIN users u2 ON r.assigned_to = u2.id
          LEFT JOIN users u3 ON r.handled_by = u3.id
+         ${whereClause}
          ORDER BY
-           CASE r.status 
-             WHEN 'in-progress' THEN 1 
-             WHEN 'open' THEN 2 
-             WHEN 'completed' THEN 3 
-             ELSE 4 
+           CASE r.status
+             WHEN 'in-progress' THEN 1
+             WHEN 'open' THEN 2
+             WHEN 'completed' THEN 3
+             ELSE 4
            END,
-           r.created_at DESC`
+           r.created_at DESC`,
+        values
       );
       return result.rows;
     } catch (error) {
       console.error('Error finding all requests for admin:', error);
+      throw error;
+    }
+  }
+
+  // Every season with at least one request, newest first -- populates the
+  // admin season filter's options regardless of which season is currently
+  // selected.
+  static async findDistinctSeasons(): Promise<number[]> {
+    try {
+      const result = await query('SELECT DISTINCT season FROM requests ORDER BY season DESC');
+      return result.rows.map((row: { season: number }) => row.season);
+    } catch (error) {
+      console.error('Error finding distinct request seasons:', error);
       throw error;
     }
   }
