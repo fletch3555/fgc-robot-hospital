@@ -1,4 +1,4 @@
-import { Pool, Client } from 'pg';
+import { Pool, Client, PoolClient } from 'pg';
 
 const POSTGRES_URL = process.env.POSTGRES_URL || 'postgresql://robot_hospital_user:robot_hospital_password@localhost:5432/robot_hospital';
 
@@ -117,6 +117,47 @@ export async function query(text: string, params?: unknown[]): Promise<any> {
     } catch (error) {
       console.error('Database query error:', error);
       throw error;
+    }
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type QueryExecutor = (text: string, params?: unknown[]) => Promise<any>;
+
+// query() opens and closes a brand-new connection per call on Vercel (see
+// above), so it can't be used for a real transaction -- each statement
+// would land on a different connection and BEGIN/COMMIT would be no-ops.
+// This holds one connection for the whole callback instead, committing on
+// success and rolling back on any thrown error (including a caller's own
+// application-level rejection, e.g. a availability conflict).
+export async function withTransaction<T>(fn: (queryFn: QueryExecutor) => Promise<T>): Promise<T> {
+  if (process.env.VERCEL) {
+    const client = new Client({ connectionString: POSTGRES_URL, ssl: sslConfig });
+    await withTlsWorkaround(() => client.connect());
+    try {
+      await client.query('BEGIN');
+      const result = await fn((text, params) => client.query(text, params));
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      await client.end();
+    }
+  } else {
+    const pool = await connectToDatabase();
+    const client: PoolClient = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await fn((text, params) => client.query(text, params));
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
   }
 }

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { GET, POST, DELETE } from "../../../src/app/api/requests/battery-units/route";
-import { getBatteryUnits, addBatteryUnit, removeBatteryUnit } from "../../../src/lib/batteryPool";
+import { getBatteryUnits, addBatteryUnit, removeBatteryUnit, BatteryUnitCheckedOutError } from "../../../src/lib/batteryPool";
 import { query } from "../../../src/lib/database";
 import {
   setupAuthMock,
@@ -162,6 +162,25 @@ describe("/api/requests/battery-units", () => {
       expect(response.status).toBe(200);
       expect(data).toEqual([mockUnits[1]]);
       expect(removeBatteryUnit).toHaveBeenCalledWith("robot_controller", 1);
+    });
+
+    it("should return 409 when the unit is currently checked out", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(["battery_charging.configure"]);
+      (removeBatteryUnit as jest.Mock).mockRejectedValue(
+        new BatteryUnitCheckedOutError("robot_controller #1 is currently checked out and can't be removed")
+      );
+
+      const request = new NextRequest("http://localhost:3000/api/requests/battery-units", {
+        method: "DELETE",
+        body: JSON.stringify({ deviceType: "robot_controller", number: 1 }),
+      });
+
+      const response = await DELETE(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(data.error).toMatch(/checked out/);
     });
   });
 });

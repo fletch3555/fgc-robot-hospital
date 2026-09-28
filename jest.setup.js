@@ -272,6 +272,11 @@ jest.mock("./src/lib/supabase/session", () => ({
 jest.mock("./src/lib/database", () => ({
   connectToDatabase: jest.fn(),
   query: jest.fn(),
+  // Invokes the callback immediately with a stub queryFn and returns its
+  // result, so routes using withTransaction behave the same under test as
+  // the real thing (minus an actual transaction) without every test
+  // needing its own mock implementation.
+  withTransaction: jest.fn((fn) => fn(jest.fn())),
 }));
 
 jest.mock("./src/models/Request", () => ({
@@ -291,6 +296,11 @@ jest.mock("./src/lib/batteryPool", () => ({
   getBatteryUnits: jest.fn(),
   addBatteryUnit: jest.fn(),
   removeBatteryUnit: jest.fn(),
+  reserveBatteryUnit: jest.fn(),
+  // Real classes (not mocks) so `new BatteryUnit*Error(...)` and each
+  // route's `instanceof` check both refer to the same constructor.
+  BatteryUnitCheckedOutError: jest.requireActual("./src/lib/batteryPool").BatteryUnitCheckedOutError,
+  BatteryUnitConflictError: jest.requireActual("./src/lib/batteryPool").BatteryUnitConflictError,
 }));
 
 jest.mock("./src/models/User", () => ({

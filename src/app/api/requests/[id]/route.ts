@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/database";
+import { connectToDatabase, withTransaction } from "@/lib/database";
 import { Request } from "@/models/Request";
 import { checkPermissions } from "@/lib/authz";
 import { PermissionName } from "@/lib/auth-types";
+import { reserveBatteryUnit, BatteryUnitConflictError } from "@/lib/batteryPool";
 
 export async function GET(
   req: NextRequest,
@@ -55,14 +56,26 @@ export async function PATCH(
       return NextResponse.json({ error: "Request not found" }, { status: 404 });
     }
 
-    // Check for type-specific edit permission based on request type
+    const body = await req.json();
+
+    // Check for type-specific edit permission based on request type. A
+    // battery_charging request being marked returned also accepts the
+    // dedicated .return permission -- the queue's Return button is gated
+    // on it specifically (not .edit), so a role granted only .return
+    // must actually be able to complete this transition server-side too.
     const typeSpecificPermission = `${existingRequest.type}.edit` as PermissionName;
-    const authz = await checkPermissions([typeSpecificPermission, 'requests.edit'], false);
+    const isBatteryReturn =
+      existingRequest.type === 'battery_charging' &&
+      body.status === 'completed' &&
+      existingRequest.status !== 'completed';
+    const requiredPermissions: PermissionName[] = isBatteryReturn
+      ? [typeSpecificPermission, 'requests.edit', 'battery_charging.return']
+      : [typeSpecificPermission, 'requests.edit'];
+    const authz = await checkPermissions(requiredPermissions, false);
     if (!authz.authorized) {
       return authz.response!;
     }
 
-    const body = await req.json();
     const updateData: Record<string, unknown> = {};
     
     if (body.status) updateData.status = body.status;
@@ -76,11 +89,7 @@ export async function PATCH(
     // never taken from the request body -- this is what "Mark Returned"
     // means for this request type, mirroring the old battery_swaps
     // feature's markReturned behavior.
-    if (
-      existingRequest.type === 'battery_charging' &&
-      body.status === 'completed' &&
-      existingRequest.status !== 'completed'
-    ) {
+    if (isBatteryReturn) {
       updateData.handled_by = authz.session!.user.id;
     }
     
@@ -92,7 +101,28 @@ export async function PATCH(
 
     await connectToDatabase();
 
-    const updatedRequest = await Request.update(params.id, updateData);
+    // Reassigning/confirming a loaner number claims it atomically, same as
+    // create -- excluding this request's own id from the conflict check,
+    // since it may already legitimately reference this exact number.
+    const editedBatteryData = body.batteryChargingData;
+    const isLoanerCheckout =
+      existingRequest.type === 'battery_charging' &&
+      editedBatteryData?.loanerProvided !== false &&
+      editedBatteryData?.batteryType &&
+      editedBatteryData?.loanerBatteryNumber;
+
+    const updatedRequest = isLoanerCheckout
+      ? await withTransaction(async (queryFn) => {
+          await reserveBatteryUnit(
+            queryFn,
+            editedBatteryData.batteryType,
+            editedBatteryData.loanerBatteryNumber,
+            existingRequest.season,
+            existingRequest.id
+          );
+          return Request.update(params.id, updateData, queryFn);
+        })
+      : await Request.update(params.id, updateData);
 
     if (!updatedRequest) {
       return NextResponse.json({ error: "Request not found" }, { status: 404 });
@@ -103,6 +133,9 @@ export async function PATCH(
 
     return NextResponse.json(completeRequest, { status: 200 });
   } catch (error) {
+    if (error instanceof BatteryUnitConflictError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     console.error(`Error in PATCH /api/requests/${(await context.params).id}:`, error);
     return NextResponse.json(
       { error: "Internal server error" },

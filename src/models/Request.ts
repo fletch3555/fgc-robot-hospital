@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { query } from '@/lib/database';
+import { query, QueryExecutor } from '@/lib/database';
 import { 
   IRequest, 
   HardwareRequestData, 
@@ -167,12 +167,12 @@ export class Request {
     softwareData?: SoftwareRequestData;
     machineShopData?: MachineShopRequestData;
     batteryChargingData?: BatteryChargingRequestData;
-  }): Promise<IRequest> {
+  }, queryFn: QueryExecutor = query): Promise<IRequest> {
     try {
       const id = uuidv4();
       const utcTimestamp = getCurrentUTCTimestamp();
-      
-      const result = await query(
+
+      const result = await queryFn(
         `INSERT INTO requests (
            id, country_code, type, comments, assigned_to,
            status, submitted_by, hardware_data, software_data, machine_shop_data, battery_charging_data,
@@ -205,7 +205,7 @@ export class Request {
     }
   }
 
-  static async update(id: string, updates: Partial<IRequest>): Promise<IRequest | null> {
+  static async update(id: string, updates: Partial<IRequest>, queryFn: QueryExecutor = query): Promise<IRequest | null> {
     try {
       const setParts: string[] = [];
       const values: unknown[] = [id];
@@ -240,8 +240,8 @@ export class Request {
       }
 
       values.push(getCurrentUTCTimestamp());
-      const result = await query(
-        `UPDATE requests SET ${setParts.join(', ')}, updated_at = $${values.length} 
+      const result = await queryFn(
+        `UPDATE requests SET ${setParts.join(', ')}, updated_at = $${values.length}
          WHERE id = $1 RETURNING *`,
         values
       );

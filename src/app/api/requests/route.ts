@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/database";
+import { connectToDatabase, withTransaction } from "@/lib/database";
 import { Request } from "@/models/Request";
 import { User } from "@/models/User";
 import { checkPermissions } from "@/lib/authz";
+import { PermissionName } from "@/lib/auth-types";
+import { reserveBatteryUnit, BatteryUnitConflictError } from "@/lib/batteryPool";
+import { getCurrentSeason } from "@/lib/season";
 
 export async function GET(req: NextRequest) {
   try {
@@ -57,7 +60,13 @@ export async function GET(req: NextRequest) {
   }
 }
 
+const VALID_REQUEST_TYPES = ['hardware', 'software', 'machine_shop', 'battery_charging'];
+
 export async function POST(req: NextRequest) {
+  // Authentication (and the broad create permission) is checked first,
+  // unconditional on the request body, so an unauthenticated caller with a
+  // malformed/invalid body still gets 401 rather than a body-validation
+  // 400 jumping the queue.
   const authz = await checkPermissions(['requests.create']);
   if (!authz.authorized) {
     return authz.response!;
@@ -69,8 +78,19 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { countryCode, type, comments, assignedTo, hardwareData, softwareData, machineShopData, batteryChargingData } = body;
 
-    if (!countryCode || !type) {
+    if (!countryCode || !type || !VALID_REQUEST_TYPES.includes(type)) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Also require the type-specific create permission. requests.create
+    // alone used to be sufficient for any type -- a role without, say,
+    // hardware.create could still create a hardware request via
+    // useRequestForm's fixedType path (a locked-type create host like
+    // /requests/hardware), which only offers/locks the one type but
+    // didn't use to re-verify it server-side.
+    const typeAuthz = await checkPermissions([`${type}.create` as PermissionName]);
+    if (!typeAuthz.authorized) {
+      return typeAuthz.response!;
     }
 
     await connectToDatabase();
@@ -92,7 +112,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const newRequest = await Request.create({
+    const requestData = {
       countryCode,
       type,
       comments,
@@ -103,10 +123,36 @@ export async function POST(req: NextRequest) {
       softwareData,
       machineShopData,
       batteryChargingData,
-    });
+    };
+
+    // A loaner checkout claims a specific numbered unit -- do that
+    // atomically with the insert (same transaction, unit reserved via an
+    // advisory lock) so two intake stations can't both grab the same
+    // freshly-available number. Every other request type/case is
+    // unaffected and keeps using the plain single-connection query().
+    const isLoanerCheckout =
+      type === 'battery_charging' &&
+      batteryChargingData?.loanerProvided !== false &&
+      batteryChargingData?.batteryType &&
+      batteryChargingData?.loanerBatteryNumber;
+
+    const newRequest = isLoanerCheckout
+      ? await withTransaction(async (queryFn) => {
+          await reserveBatteryUnit(
+            queryFn,
+            batteryChargingData.batteryType,
+            batteryChargingData.loanerBatteryNumber,
+            getCurrentSeason()
+          );
+          return Request.create(requestData, queryFn);
+        })
+      : await Request.create(requestData);
 
     return NextResponse.json(newRequest, { status: 201 });
   } catch (error) {
+    if (error instanceof BatteryUnitConflictError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     console.error("Error in POST /api/requests:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

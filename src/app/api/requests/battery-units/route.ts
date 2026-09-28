@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkPermissions } from '@/lib/authz';
 import { connectToDatabase } from '@/lib/database';
-import { getBatteryUnits, addBatteryUnit, removeBatteryUnit } from '@/lib/batteryPool';
+import { getBatteryUnits, addBatteryUnit, removeBatteryUnit, BatteryUnitCheckedOutError } from '@/lib/batteryPool';
 import { BatteryDeviceType } from '@/lib/types';
 import { getCurrentSeason } from '@/lib/season';
 
@@ -87,6 +87,9 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json(units);
   } catch (error: unknown) {
+    if (error instanceof BatteryUnitCheckedOutError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }

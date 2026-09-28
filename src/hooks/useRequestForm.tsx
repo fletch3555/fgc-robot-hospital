@@ -542,7 +542,7 @@ export function useRequestForm({
   // fixedType (from a type-specific page) narrows that further to just
   // itself, so the picker shows a single, non-interactive option.
   const typeOptions = mode === 'create'
-    ? ALL_TYPE_OPTIONS.filter(option => (fixedType ? option.value === fixedType : canAccess(option.value, 'create')))
+    ? ALL_TYPE_OPTIONS.filter(option => canAccess(option.value, 'create') && (!fixedType || option.value === fixedType))
     : ALL_TYPE_OPTIONS;
   const typeLocked = mode === 'edit' || !!fixedType;
 
