@@ -21,6 +21,10 @@ import {
   IconButton,
   Tooltip,
   Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import { Edit as EditIcon, Refresh as RefreshIcon } from "@mui/icons-material";
 import { IRequest } from '@/lib/types';
@@ -33,6 +37,9 @@ function AdminRequestsPage() {
   const router = useRouter();
   const { fetchWithAuth, isAuthenticated } = useAuthenticatedFetch();
   const [requests, setRequests] = useState<IRequest[]>([]);
+  const [seasons, setSeasons] = useState<number[]>([]);
+  // null until the first fetch resolves and tells us the current season.
+  const [season, setSeason] = useState<number | 'all' | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -41,8 +48,13 @@ function AdminRequestsPage() {
   const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
-      // Fetch all requests including completed ones for admin view
-      const response = await fetchWithAuth("/api/admin/requests");
+      // Omit ?season= on the very first call (season state is still null)
+      // so the server applies its own current-season default; every call
+      // after that (including this same effect re-running once season is
+      // set) passes it explicitly, which is what makes the season filter
+      // and the 2-minute auto-refresh below stay in sync with it.
+      const url = season !== null ? `/api/admin/requests?season=${season}` : "/api/admin/requests";
+      const response = await fetchWithAuth(url);
       if (!response.ok) {
         if (response.status === 403) {
           setError("Access denied - Admin privileges required");
@@ -51,14 +63,16 @@ function AdminRequestsPage() {
         throw new Error("Failed to fetch requests");
       }
       const data = await response.json();
-      setRequests(data);
+      setRequests(data.requests || []);
+      setSeasons(data.seasons || []);
+      setSeason((prev) => (prev === null ? data.currentSeason : prev));
     } catch (err) {
       setError("Failed to load requests");
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [fetchWithAuth]);
+  }, [fetchWithAuth, season]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -140,7 +154,21 @@ function AdminRequestsPage() {
             <Typography variant="h4" component="h1">
               Admin - All Requests
             </Typography>
-            <Box sx={{ display: "flex", gap: 2 }}>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel id="season-filter-label">Season</InputLabel>
+                <Select
+                  labelId="season-filter-label"
+                  label="Season"
+                  value={season ?? ""}
+                  onChange={(e) => setSeason(e.target.value === "all" ? "all" : Number(e.target.value))}
+                >
+                  {seasons.map((s) => (
+                    <MenuItem key={s} value={s}>{s}</MenuItem>
+                  ))}
+                  <MenuItem value="all">All Seasons</MenuItem>
+                </Select>
+              </FormControl>
               <Button
                 variant="outlined"
                 startIcon={<RefreshIcon />}
@@ -152,7 +180,7 @@ function AdminRequestsPage() {
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => router.push("/requests/new")}
+                onClick={() => router.push("/")}
               >
                 New Request
               </Button>
@@ -163,6 +191,7 @@ function AdminRequestsPage() {
             <Table sx={{ minWidth: 650 }} aria-label="requests table">
               <TableHead>
                 <TableRow>
+                  <TableCell>Season</TableCell>
                   <TableCell>Type</TableCell>
                   <TableCell>Country</TableCell>
                   <TableCell>Status</TableCell>
@@ -179,6 +208,7 @@ function AdminRequestsPage() {
                     key={request.id}
                     sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                   >
+                    <TableCell>{request.season}</TableCell>
                     <TableCell component="th" scope="row">
                       {formatRequestType(request.type)}
                     </TableCell>
