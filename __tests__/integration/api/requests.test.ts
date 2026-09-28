@@ -3,6 +3,7 @@ import { GET, POST } from "../../../src/app/api/requests/route";
 import { Request } from "../../../src/models/Request";
 import { User } from "../../../src/models/User";
 import { query } from "../../../src/lib/database";
+import { reserveBatteryUnit, BatteryUnitConflictError } from "../../../src/lib/batteryPool";
 import {
   setupAuthMock,
   setupDatabaseMock,
@@ -37,6 +38,7 @@ describe("/api/requests", () => {
     resetMocks();
     setupDatabaseMock();
     mockQuery.mockReset();
+    (reserveBatteryUnit as jest.Mock).mockReset().mockResolvedValue(undefined);
   });
 
   describe("GET", () => {
@@ -136,7 +138,7 @@ describe("/api/requests", () => {
 
     it("should create a new request when authenticated with valid data", async () => {
       setupAuthMock(mockSession);
-      setupUserPermissionsMock(['requests.create']); // User has requests create permission
+      setupUserPermissionsMock(['requests.create', 'hardware.create']); // User has both the broad and type-specific create permission
 
       // Mock User.findById to return a valid user
       (User.findById as jest.Mock).mockResolvedValue({
@@ -175,9 +177,24 @@ describe("/api/requests", () => {
       );
     });
 
+    it("should return 403 for the broad create permission alone, without the type-specific one", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.create']); // no hardware.create
+
+      const request = new NextRequest("http://localhost:3000/api/requests", {
+        method: "POST",
+        body: JSON.stringify(validRequestData),
+      });
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(403);
+      expect(Request.create).not.toHaveBeenCalled();
+    });
+
     it("should create a battery_charging request with loanerProvided data", async () => {
       setupAuthMock(mockSession);
-      setupUserPermissionsMock(['requests.create']);
+      setupUserPermissionsMock(['requests.create', 'battery_charging.create']);
 
       (User.findById as jest.Mock).mockResolvedValue({
         id: mockSession.user.id,
@@ -221,6 +238,48 @@ describe("/api/requests", () => {
       );
     });
 
+    it("should reserve the loaner unit before creating a request that checks one out", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.create', 'battery_charging.create']);
+      (User.findById as jest.Mock).mockResolvedValue({ id: mockSession.user.id });
+
+      const batteryChargingData = { batteryType: "robot_controller", loanerProvided: true, loanerBatteryNumber: 3 };
+      const mockCreatedRequest = { id: "new-id", type: "battery_charging", battery_charging_data: batteryChargingData };
+      (Request.create as jest.Mock).mockResolvedValue(mockCreatedRequest);
+
+      const request = new NextRequest("http://localhost:3000/api/requests", {
+        method: "POST",
+        body: JSON.stringify({ countryCode: "US", type: "battery_charging", batteryChargingData }),
+      });
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(201);
+      expect(reserveBatteryUnit).toHaveBeenCalledWith(expect.anything(), "robot_controller", 3, expect.any(Number));
+    });
+
+    it("should return 409 when the requested loaner unit is already taken", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.create', 'battery_charging.create']);
+      (User.findById as jest.Mock).mockResolvedValue({ id: mockSession.user.id });
+      (reserveBatteryUnit as jest.Mock).mockRejectedValue(
+        new BatteryUnitConflictError("robot_controller #3 is already checked out to another team")
+      );
+
+      const batteryChargingData = { batteryType: "robot_controller", loanerProvided: true, loanerBatteryNumber: 3 };
+      const request = new NextRequest("http://localhost:3000/api/requests", {
+        method: "POST",
+        body: JSON.stringify({ countryCode: "US", type: "battery_charging", batteryChargingData }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(data.error).toMatch(/already checked out/);
+      expect(Request.create).not.toHaveBeenCalled();
+    });
+
     it("should return 400 for missing required fields", async () => {
       setupAuthMock(mockSession);
       setupUserPermissionsMock(['requests.create']); // User has requests create permission
@@ -244,8 +303,8 @@ describe("/api/requests", () => {
 
     it("should handle database errors during creation", async () => {
       setupAuthMock(mockSession);
-      setupUserPermissionsMock(['requests.create']); // User has requests create permission
-      
+      setupUserPermissionsMock(['requests.create', 'hardware.create']); // User has both the broad and type-specific create permission
+
       // Mock User.findById to return a valid user
       (User.findById as jest.Mock).mockResolvedValue({
         id: mockSession.user.id,

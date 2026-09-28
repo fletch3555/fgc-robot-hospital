@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { GET, PATCH } from "../../../src/app/api/requests/[id]/route";
 import { Request } from "../../../src/models/Request";
 import { query } from "../../../src/lib/database";
+import { reserveBatteryUnit, BatteryUnitConflictError } from "../../../src/lib/batteryPool";
 import {
   setupAuthMock,
   setupDatabaseMock,
@@ -36,6 +37,7 @@ describe("/api/requests/[id]", () => {
     resetMocks();
     setupDatabaseMock();
     mockQuery.mockReset();
+    (reserveBatteryUnit as jest.Mock).mockReset().mockResolvedValue(undefined);
   });
 
   describe("GET", () => {
@@ -168,6 +170,56 @@ describe("/api/requests/[id]", () => {
       expect(Request.update).toHaveBeenCalledWith("test-request-id", updateData);
     });
 
+    it("should reserve the loaner unit when editing a battery_charging request's number", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.view', 'battery_charging.edit']);
+
+      const mockExistingRequest = { id: "test-request-id", type: "battery_charging", status: "open", season: 2026 };
+      const mockUpdatedRequest = { ...mockExistingRequest };
+
+      (Request.findById as jest.Mock)
+        .mockResolvedValueOnce(mockExistingRequest)
+        .mockResolvedValueOnce(mockUpdatedRequest);
+      (Request.update as jest.Mock).mockResolvedValue(mockUpdatedRequest);
+
+      const batteryChargingData = { batteryType: "driver_hub", loanerProvided: true, loanerBatteryNumber: 7 };
+      const request = new NextRequest("http://localhost:3000/api/requests/test-request-id", {
+        method: "PATCH",
+        body: JSON.stringify({ batteryChargingData }),
+      });
+
+      const response = await PATCH(request, mockContext);
+
+      expect(response.status).toBe(200);
+      expect(reserveBatteryUnit).toHaveBeenCalledWith(
+        expect.anything(), "driver_hub", 7, 2026, "test-request-id"
+      );
+    });
+
+    it("should return 409 when editing to a loaner unit that's already taken", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.view', 'battery_charging.edit']);
+
+      const mockExistingRequest = { id: "test-request-id", type: "battery_charging", status: "open", season: 2026 };
+      (Request.findById as jest.Mock).mockResolvedValueOnce(mockExistingRequest);
+      (reserveBatteryUnit as jest.Mock).mockRejectedValue(
+        new BatteryUnitConflictError("driver_hub #7 is already checked out to another team")
+      );
+
+      const batteryChargingData = { batteryType: "driver_hub", loanerProvided: true, loanerBatteryNumber: 7 };
+      const request = new NextRequest("http://localhost:3000/api/requests/test-request-id", {
+        method: "PATCH",
+        body: JSON.stringify({ batteryChargingData }),
+      });
+
+      const response = await PATCH(request, mockContext);
+      const data = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(data.error).toMatch(/already checked out/);
+      expect(Request.update).not.toHaveBeenCalled();
+    });
+
     it("should stamp handled_by server-side when a battery_charging request is marked returned", async () => {
       setupAuthMock(mockSession);
       setupUserPermissionsMock(['requests.view', 'battery_charging.edit']);
@@ -206,6 +258,46 @@ describe("/api/requests/[id]", () => {
         status: "completed",
         handled_by: mockSession.user.id,
       });
+    });
+
+    it("should allow completing a battery_charging return with only battery_charging.return (no .edit)", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.view', 'battery_charging.return']);
+
+      const mockExistingRequest = { id: "test-request-id", type: "battery_charging", status: "open" };
+      const mockUpdatedRequest = { ...mockExistingRequest, status: "completed", handled_by: mockSession.user.id };
+
+      (Request.findById as jest.Mock)
+        .mockResolvedValueOnce(mockExistingRequest)
+        .mockResolvedValueOnce(mockUpdatedRequest);
+      (Request.update as jest.Mock).mockResolvedValue(mockUpdatedRequest);
+
+      const request = new NextRequest("http://localhost:3000/api/requests/test-request-id", {
+        method: "PATCH",
+        body: JSON.stringify({ status: "completed" }),
+      });
+
+      const response = await PATCH(request, mockContext);
+
+      expect(response.status).toBe(200);
+    });
+
+    it("should return 403 completing a battery_charging return with neither .edit nor .return", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.view']);
+
+      const mockExistingRequest = { id: "test-request-id", type: "battery_charging", status: "open" };
+      (Request.findById as jest.Mock).mockResolvedValueOnce(mockExistingRequest);
+
+      const request = new NextRequest("http://localhost:3000/api/requests/test-request-id", {
+        method: "PATCH",
+        body: JSON.stringify({ status: "completed" }),
+      });
+
+      const response = await PATCH(request, mockContext);
+
+      expect(response.status).toBe(403);
+      expect(Request.update).not.toHaveBeenCalled();
     });
 
     it("should not stamp handled_by for a non-battery_charging request", async () => {

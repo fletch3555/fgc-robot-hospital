@@ -168,14 +168,22 @@ export default function RequestTypeView({ type, title, icon }: RequestTypeViewPr
   };
 
   // Support deep-linking straight into the create modal (e.g. from a
-  // Sidebar nav link) via /requests/<type>?new=true.
+  // Sidebar nav link) via /requests/<type>?new=true. Gated on the same
+  // create permission as the button itself -- unlike the button, this
+  // triggers directly off the URL, so it's a real bypass otherwise: a
+  // user with only view access could navigate straight to
+  // ?new=true and reach a submittable create form for a type they
+  // can't create.
   useEffect(() => {
-    if (searchParams.get('new') === 'true') {
+    if (searchParams.get('new') === 'true' && hasPermission(createPermission)) {
       handleOpenCreateModal();
       router.replace(window.location.pathname);
     }
+    // Re-checks once permissions finish loading (hasPermission starts out
+    // false for everyone until then) -- router.replace already strips the
+    // query param after a successful open, so a harmless no-op on repeat.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, hasPermission, createPermission]);
 
   const handleEditRequest = (request: IRequest, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent card click from triggering
