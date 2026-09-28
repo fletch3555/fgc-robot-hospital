@@ -191,7 +191,7 @@ function AdminRequestsPage() {
             <Table sx={{ minWidth: 650 }} aria-label="requests table">
               <TableHead>
                 <TableRow>
-                  <TableCell>Season</TableCell>
+                  {season === 'all' && <TableCell>Season</TableCell>}
                   <TableCell>Type</TableCell>
                   <TableCell>Country</TableCell>
                   <TableCell>Status</TableCell>
@@ -208,7 +208,7 @@ function AdminRequestsPage() {
                     key={request.id}
                     sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                   >
-                    <TableCell>{request.season}</TableCell>
+                    {season === 'all' && <TableCell>{request.season}</TableCell>}
                     <TableCell component="th" scope="row">
                       {formatRequestType(request.type)}
                     </TableCell>
