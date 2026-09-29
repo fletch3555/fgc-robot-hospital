@@ -144,7 +144,7 @@ export class SparePart {
 
       Object.entries(updates).forEach(([key, value]) => {
         if (key === 'id' || key === 'countryName') return; // Skip ID updates and countryName (not stored in DB)
-        
+
         let columnName = key;
         // Convert camelCase to snake_case for database columns
         if (key === 'countryCode') columnName = 'country_code';
@@ -152,15 +152,14 @@ export class SparePart {
         else if (key === 'isLoan') columnName = 'is_loan';
         else if (key === 'submittedBy') columnName = 'submitted_by';
         else if (key === 'handledBy') columnName = 'handled_by';
-        
+        else if (key === 'fgcPartNumber') columnName = 'fgc_part_number';
+
         setParts.push(`${columnName} = $${++paramCount}`);
-        
-        // Handle JSON data for notes
-        if (key === 'notes') {
-          values.push(JSON.stringify(value));
-        } else {
-          values.push(value);
-        }
+        // notes is TEXT[] -- pass the array straight through and let pg
+        // serialize it natively. JSON.stringify-ing it here produced a
+        // string like '["a"]', which Postgres rejects as a malformed
+        // array literal for a text[] column.
+        values.push(value);
       });
 
       if (setParts.length === 0) {
