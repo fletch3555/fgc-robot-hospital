@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkPermissions } from '@/lib/authz';
 import { connectToDatabase, query } from '@/lib/database';
 import { isValidCountryCode, getCountryName } from '@/lib/countryUtils';
-import { kopInventory } from '@/data/kop-inventory';
+import { kopInventory, getDisplayName } from '@/data/kop-inventory';
 import { getCurrentSeason } from '@/lib/season';
 
 export async function POST(request: NextRequest) {
@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
         if (fgcItem) {
           fgcDetails = {
             part_number: fgcItem.part_number,
-            item_description: fgcItem.description,
+            item_description: getDisplayName(fgcItem.description),
             group_name: fgcItem.group_name
           };
         }

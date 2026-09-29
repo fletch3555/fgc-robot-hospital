@@ -9,6 +9,16 @@ export function getUnitsPerPackage(partNumber: string): number {
   return match ? parseInt(match[1], 10) : 1;
 }
 
+// Descriptions for multi-item packs restate the pack size in text (e.g.
+// "M3 x 20mm Hex Cap Screws - 100 Pack") even though the UI already
+// surfaces that via a "pack of N" chip derived from getUnitsPerPackage.
+// Strip the trailing suffix so it isn't shown twice. Only matches a
+// trailing "- <number> pack" -- names that just happen to end in the word
+// "Pack" (e.g. "UltraPlanetary Hardware Pack") are left alone.
+export function getDisplayName(description: string): string {
+  return description.replace(/\s*-\s*\d+\s*pack$/i, '');
+}
+
 export const kopInventory: IKoPItem[] = [
   {
     id: "REV-11-1130",
