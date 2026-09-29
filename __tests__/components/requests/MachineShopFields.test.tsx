@@ -135,18 +135,18 @@ describe('MachineShopFields', () => {
     render(<MachineShopFields data={defaultData} onChange={mockOnChange} />);
     
     await user.click(screen.getByLabelText('cut'));
-    
-    expect(mockOnChange).toHaveBeenCalledWith({ action: 'cut' });
+
+    expect(mockOnChange).toHaveBeenCalledWith({ action: 'cut', actionOther: '' });
   });
 
   it('calls onChange when material is selected', async () => {
     const user = userEvent.setup();
-    
+
     render(<MachineShopFields data={defaultData} onChange={mockOnChange} />);
-    
+
     await user.click(screen.getByLabelText('extrusion'));
-    
-    expect(mockOnChange).toHaveBeenCalledWith({ material: 'extrusion' });
+
+    expect(mockOnChange).toHaveBeenCalledWith({ material: 'extrusion', materialOther: '' });
   });
 
   it('calls onChange when checkbox is toggled', async () => {

@@ -66,7 +66,7 @@ export default function RequestFormModal({
         <RequestFormBody state={formState} />
       </DialogContent>
       <DialogActions sx={{ flexDirection: 'column', gap: 1, p: 3 }}>
-        {!formState.isFormValid() && !formState.loading && (
+        {!formState.canSubmit() && !formState.loading && (
           <Typography
             variant="body2"
             color="text.secondary"
@@ -85,7 +85,7 @@ export default function RequestFormModal({
           <Button
             onClick={formState.handleSubmit}
             variant="contained"
-            disabled={formState.loading || !formState.isFormValid()}
+            disabled={formState.loading || !formState.canSubmit()}
             startIcon={formState.loading ? <CircularProgress size={20} /> : null}
           >
             {formState.submitLabel}

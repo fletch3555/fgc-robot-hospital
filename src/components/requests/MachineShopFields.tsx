@@ -36,6 +36,16 @@ export default function MachineShopFields({ data, onChange, errors = {} }: Machi
     onChange({ [field]: value });
   };
 
+  // The "Specify Other" text fields only render while action/material is
+  // "other" -- switching away (or deselecting entirely) hides the field but
+  // leaves its stale text in state unless cleared here too.
+  const handleActionChange = (newValue: string) => {
+    onChange({ action: newValue, ...(newValue !== 'other' ? { actionOther: '' } : {}) });
+  };
+  const handleMaterialChange = (newValue: string) => {
+    onChange({ material: newValue, ...(newValue !== 'other' ? { materialOther: '' } : {}) });
+  };
+
   return (
     <Grid container spacing={2}>
       <Grid size={12}>
@@ -52,11 +62,7 @@ export default function MachineShopFields({ data, onChange, errors = {} }: Machi
           <ToggleButtonGroup
             value={data.action || ""}
             exclusive
-            onChange={(event, newValue) => {
-              if (newValue !== null) {
-                handleChange('action', newValue);
-              }
-            }}
+            onChange={(event, newValue) => handleActionChange(newValue || '')}
             aria-label="action needed"
             fullWidth
             sx={{
@@ -133,11 +139,7 @@ export default function MachineShopFields({ data, onChange, errors = {} }: Machi
           <ToggleButtonGroup
             value={data.material || ""}
             exclusive
-            onChange={(event, newValue) => {
-              if (newValue !== null) {
-                handleChange('material', newValue);
-              }
-            }}
+            onChange={(event, newValue) => handleMaterialChange(newValue || '')}
             aria-label="material type"
             fullWidth
             sx={{

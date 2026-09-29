@@ -61,6 +61,10 @@ export interface PendingEntry {
   type: string;
   comments: string;
   assigned_to: string;
+  /** Snapshotted at staging time -- the eligible-users list is scoped to
+   * whichever type is *currently* live, so a later type switch would
+   * otherwise make an earlier entry's assignee unresolvable by ID alone. */
+  assignedToName?: string;
   hardwareData?: HardwareRequestData;
   softwareData?: SoftwareRequestData;
   machineShopData?: MachineShopRequestData;
@@ -74,24 +78,74 @@ const TYPE_LABELS: Record<string, string> = {
   battery_charging: 'Battery Charging',
 };
 
+// Mirrors the button text in MachineShopFields -- action/material are
+// stored as the raw toggle value (e.g. "corrogated_plastic"), not
+// something presentable on their own.
+const MACHINE_SHOP_ACTION_LABELS: Record<string, string> = {
+  cut: 'Cut',
+  drill: 'Drill',
+  tools: 'Tools Needed',
+  other: 'Other',
+};
+const MACHINE_SHOP_MATERIAL_LABELS: Record<string, string> = {
+  extrusion: 'Extrusion',
+  shaft: 'Shaft',
+  corrogated_plastic: 'Corrugated Plastic',
+  other: 'Other',
+};
+
+export interface PendingEntrySummary {
+  title: string;
+  /** Assignee/comment, when the entry has either -- omitted otherwise. */
+  subtitle?: string;
+}
+
 // A short, human-readable summary of one entry for the queued-items list.
-function summarizeEntry(entry: PendingEntry): string {
+// Split into title (type + the one detail that identifies it) and an
+// optional subtitle (assignee/comment) so the queue stays scannable while
+// still surfacing everything that was captured when the entry was staged.
+function summarizeEntry(entry: PendingEntry): PendingEntrySummary {
   const label = TYPE_LABELS[entry.type] || entry.type;
+  let title: string;
   switch (entry.type) {
     case 'hardware':
-      return `${label} — ${entry.hardwareData?.type || 'Untitled'}`;
+      title = `${label} — ${entry.hardwareData?.type || 'Untitled'}`;
+      break;
     case 'software':
-      return `${label} — ${entry.softwareData?.type || 'Untitled'}`;
-    case 'machine_shop':
-      return `${label} — ${entry.machineShopData?.action || 'Untitled'}`;
+      title = `${label} — ${entry.softwareData?.type || 'Untitled'}`;
+      break;
+    case 'machine_shop': {
+      const msData = entry.machineShopData;
+      const actionLabel = msData?.action === 'other'
+        ? (msData.actionOther || 'Other')
+        : (msData?.action ? MACHINE_SHOP_ACTION_LABELS[msData.action] || msData.action : undefined);
+      const materialLabel = msData?.material === 'other'
+        ? (msData.materialOther || 'Other')
+        : (msData?.material ? MACHINE_SHOP_MATERIAL_LABELS[msData.material] || msData.material : undefined);
+      const parts = [actionLabel, materialLabel].filter((part): part is string => !!part);
+      title = `${label} — ${parts.length > 0 ? parts.join(', ') : 'Untitled'}`;
+      break;
+    }
     case 'battery_charging': {
       const deviceLabel = entry.batteryChargingData?.batteryType === 'driver_hub' ? 'Driver Hub' : 'Robot Controller';
       const number = entry.batteryChargingData?.loanerBatteryNumber;
-      return `${label} — ${deviceLabel}${number ? ` #${number}` : ''}`;
+      title = `${label} — ${deviceLabel}${number ? ` #${number}` : ''}`;
+      break;
     }
     default:
-      return label;
+      title = label;
   }
+
+  const subtitleParts: string[] = [];
+  if (entry.assignedToName) {
+    subtitleParts.push(`Assigned to ${entry.assignedToName}`);
+  }
+  if (entry.comments.trim()) {
+    const snippet = entry.comments.length > 60 ? `${entry.comments.slice(0, 60)}…` : entry.comments;
+    subtitleParts.push(`"${snippet}"`);
+  }
+
+  return subtitleParts.length > 0 ? { title, subtitle: subtitleParts.join(' · ') } : { title };
 }
 
 export const STATUS_OPTIONS = [
@@ -208,21 +262,31 @@ export function useRequestForm({
 
   // Fetch users based on request type
   useEffect(() => {
-    const fetchUsers = async () => {
-      if (!formData.type) return;
+    // Clear immediately (not just once the fetch resolves) so the picker
+    // never offers a type's assignees while the request for a *different*
+    // type is still in flight.
+    setUsers([]);
+    if (!formData.type) return;
 
+    let cancelled = false;
+    const fetchUsers = async () => {
       try {
         const response = await fetch(`/api/users?permissions=${formData.type}.assignee`);
-        if (response.ok) {
-          const fetchedUsers = await response.json();
-          setUsers(fetchedUsers);
-        }
+        if (!response.ok) return;
+        const fetchedUsers = await response.json();
+        // Recheck immediately before the state update -- a second type
+        // change could land during the response.json() await above too.
+        if (cancelled) return;
+        setUsers(fetchedUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
       }
     };
 
     fetchUsers();
+    return () => {
+      cancelled = true;
+    };
   }, [formData.type]);
 
   // Soft-warning check (create mode only): does this team already have an
@@ -244,15 +308,15 @@ export function useRequestForm({
     const checkOutstanding = async () => {
       try {
         const response = await fetch('/api/requests');
-        if (response.ok && !cancelled) {
-          const data = await response.json();
-          const outstanding = ((data.active || []) as IRequest[]).filter((r) =>
-            r.type === 'battery_charging' &&
-            r.country_code === formData.country_code &&
-            (r.battery_charging_data as BatteryChargingRequestData)?.batteryType === batteryChargingData.batteryType
-          );
-          setOutstandingBatteryRequests(outstanding);
-        }
+        if (!response.ok) return;
+        const data = await response.json();
+        if (cancelled) return;
+        const outstanding = ((data.active || []) as IRequest[]).filter((r) =>
+          r.type === 'battery_charging' &&
+          r.country_code === formData.country_code &&
+          (r.battery_charging_data as BatteryChargingRequestData)?.batteryType === batteryChargingData.batteryType
+        );
+        setOutstandingBatteryRequests(outstanding);
       } catch (error) {
         console.error('Error checking for outstanding battery charging requests:', error);
       }
@@ -292,19 +356,19 @@ export function useRequestForm({
     const fetchAvailable = async () => {
       try {
         const response = await fetch('/api/requests/battery-units');
-        if (response.ok && !cancelled) {
-          const units: IBatteryUnit[] = await response.json();
-          setAvailableBatteryNumbers(
-            units
-              .filter((u) =>
-                u.device_type === batteryChargingData.batteryType &&
-                (u.status === 'available' || (mode === 'edit' && u.request_id === request?.id)) &&
-                !stagedNumbers.has(u.number)
-              )
-              .map((u) => u.number)
-              .sort((a, b) => a - b)
-          );
-        }
+        if (!response.ok) return;
+        const units: IBatteryUnit[] = await response.json();
+        if (cancelled) return;
+        setAvailableBatteryNumbers(
+          units
+            .filter((u) =>
+              u.device_type === batteryChargingData.batteryType &&
+              (u.status === 'available' || (mode === 'edit' && u.request_id === request?.id)) &&
+              !stagedNumbers.has(u.number)
+            )
+            .map((u) => u.number)
+            .sort((a, b) => a - b)
+        );
       } catch (error) {
         console.error('Error fetching available battery units:', error);
       }
@@ -335,6 +399,15 @@ export function useRequestForm({
     setSoftwareData(EMPTY_SOFTWARE_DATA);
     setMachineShopData(EMPTY_MACHINE_SHOP_DATA);
     setBatteryChargingData(EMPTY_BATTERY_CHARGING_DATA);
+    // Eligible assignees are re-fetched per type (filtered by
+    // `${type}.assignee`) and that fetch is async, so a value carried over
+    // from the previous type could briefly (or, for battery_charging,
+    // permanently -- it has no assignee field at all) reference someone
+    // ineligible for the new type. Only staging another item of the *same*
+    // type (addEntry) should preserve it. Comments is similar: it's hidden
+    // entirely for battery_charging, so a comment typed for a prior type
+    // must not silently ride along once it's no longer visible to edit.
+    setFormData((prev) => ({ ...prev, assigned_to: '', comments: '' }));
   };
 
   const handleHardwareChange = (data: Partial<HardwareRequestData>) => {
@@ -460,6 +533,44 @@ export function useRequestForm({
 
   const isFormValid = () => Object.keys(validateFormData()).length === 0;
 
+  // Whether there's something submittable right now. A queued batch can be
+  // submitted with a blank live form (every item already staged via "Add
+  // Another Item") -- only a truly empty submission (no queue, invalid live
+  // form) should actually block the button. Country is the one exception:
+  // every queued POST is built from the current live country_code (see
+  // handleSubmit), so a batch can never be submitted without it, queue or not.
+  const canSubmit = () => {
+    if (mode !== 'create') return isFormValid();
+    if (!formData.country_code) return false;
+    // Mirrors handleSubmit's actual gate exactly: a queue only makes an
+    // invalid live form submittable if that form is genuinely untouched,
+    // not merely started. Otherwise the button would look ready while
+    // every click still rejects.
+    return isFormValid() || (pendingEntries.length > 0 && isLiveEntryBlank());
+  };
+
+  // An invalid live form is only safe to silently leave out of a batch
+  // submit if it's untouched (the user staged every item and never started
+  // a next one) -- not if they've begun filling it in but stopped partway,
+  // which should surface as a normal validation error instead of quietly
+  // discarding what they typed.
+  const isLiveEntryBlank = () => {
+    if (formData.comments.trim()) return false;
+
+    switch (formData.type) {
+      case 'hardware':
+        return JSON.stringify(hardwareData) === JSON.stringify(EMPTY_HARDWARE_DATA);
+      case 'software':
+        return JSON.stringify(softwareData) === JSON.stringify(EMPTY_SOFTWARE_DATA);
+      case 'machine_shop':
+        return JSON.stringify(machineShopData) === JSON.stringify(EMPTY_MACHINE_SHOP_DATA);
+      case 'battery_charging':
+        return JSON.stringify(batteryChargingData) === JSON.stringify(EMPTY_BATTERY_CHARGING_DATA);
+      default:
+        return true;
+    }
+  };
+
   // Only offered for types where a single visit plausibly needs several
   // (see MULTI_ENTRY_TYPES); fixedType hosts for hardware/software never
   // show it, and on the general intake page it appears/disappears as the
@@ -467,8 +578,9 @@ export function useRequestForm({
   const canAddMultiple = mode === 'create' && MULTI_ENTRY_TYPES.includes(formData.type);
 
   // Stages the current type-specific fields as a queued item and clears
-  // them for the next one. Country/type carry over -- a batch is one
-  // team's visit, usually (though not necessarily) all the same type.
+  // them for the next one. Country/type/assignee carry over -- a batch is
+  // one team's visit, usually worked by the same attendant; only the
+  // free-text comment is reset, since that's specific to each item.
   const addEntry = () => {
     const errors = validateFormData();
     if (Object.keys(errors).length > 0) {
@@ -481,6 +593,7 @@ export function useRequestForm({
       type: formData.type,
       comments: formData.comments,
       assigned_to: formData.assigned_to,
+      assignedToName: formData.assigned_to ? users.find((u) => u.id === formData.assigned_to)?.name : undefined,
       ...(formData.type === 'machine_shop' ? { machineShopData } : {}),
       ...(formData.type === 'battery_charging' ? { batteryChargingData } : {}),
     };
@@ -488,7 +601,7 @@ export function useRequestForm({
 
     setMachineShopData(EMPTY_MACHINE_SHOP_DATA);
     setBatteryChargingData(EMPTY_BATTERY_CHARGING_DATA);
-    setFormData((prev) => ({ ...prev, comments: '', assigned_to: '' }));
+    setFormData((prev) => ({ ...prev, comments: '' }));
     setError('');
     setValidationErrors({});
   };
@@ -500,8 +613,21 @@ export function useRequestForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // A queued batch can be submitted once every item has been staged via
+    // "Add Another Item", leaving the live form blank -- that blank form
+    // fails validation on its own, but that's fine as long as there's a
+    // queue to fall back on. An invalid form the user actually started
+    // typing into is different: silently dropping it would lose their
+    // work, so that still blocks submission like a normal validation error.
     const errors = validateFormData();
-    if (Object.keys(errors).length > 0) {
+    const liveEntryValid = Object.keys(errors).length === 0;
+    const hasQueue = mode === 'create' && pendingEntries.length > 0;
+    // Country is shared across the whole batch (every queued POST is built
+    // from this one live value, not a per-entry snapshot -- see
+    // buildCreateBody below), so a missing country blocks submission
+    // unconditionally, even if the rest of the live form is blank.
+    const missingCountry = mode === 'create' && !formData.country_code?.trim();
+    if (missingCountry || (!liveEntryValid && !(hasQueue && isLiveEntryBlank()))) {
       setValidationErrors(errors);
       setError(`Please fix the validation errors before ${mode === 'create' ? 'submitting' : 'saving'}`);
       return;
@@ -596,13 +722,14 @@ export function useRequestForm({
         };
 
         // The batch is whatever's already queued, plus whatever's live in
-        // the form right now (submitting without ever using "Add Another"
-        // is just a one-item batch).
+        // the form right now -- but only if it's actually filled in.
+        // Submitting without ever using "Add Another" is just a one-item
+        // batch; submitting after adding every item (leaving the form
+        // blank) is a queue-only batch.
         const queueSnapshot = pendingEntries;
-        const allEntries: PendingEntry[] = [
-          ...queueSnapshot,
-          { type: formData.type, comments: formData.comments, assigned_to: formData.assigned_to, hardwareData, softwareData, machineShopData, batteryChargingData },
-        ];
+        const allEntries: PendingEntry[] = liveEntryValid
+          ? [...queueSnapshot, { type: formData.type, comments: formData.comments, assigned_to: formData.assigned_to, hardwareData, softwareData, machineShopData, batteryChargingData }]
+          : [...queueSnapshot];
 
         let succeeded = 0;
         try {
@@ -694,6 +821,7 @@ export function useRequestForm({
     handleMachineShopChange,
     handleBatteryChargingChange,
     isFormValid,
+    canSubmit,
     handleSubmit,
     renderTypeSpecificFields,
     typeOptions,
@@ -708,9 +836,13 @@ export function useRequestForm({
       ? (mode === 'create' ? 'Creating...' : 'Updating...')
       : mode === 'edit'
         ? 'Update Request'
-        : pendingEntries.length > 0
-          ? `Create ${pendingEntries.length + 1} Requests`
-          : 'Create Request',
+        // The live form only contributes an extra request if it's actually
+        // filled in -- once every item has been staged via "Add Another
+        // Item", the count is just the queue.
+        : (() => {
+            const totalCount = pendingEntries.length + (isFormValid() ? 1 : 0);
+            return totalCount > 1 ? `Create ${totalCount} Requests` : 'Create Request';
+          })(),
   };
 }
 

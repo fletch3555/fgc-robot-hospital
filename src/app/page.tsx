@@ -70,7 +70,7 @@ function HospitalIntakePage() {
               onClick={formState.handleSubmit}
               variant="contained"
               size="large"
-              disabled={formState.loading || !formState.isFormValid()}
+              disabled={formState.loading || !formState.canSubmit()}
               startIcon={formState.loading ? <CircularProgress size={20} /> : null}
             >
               {formState.submitLabel}
