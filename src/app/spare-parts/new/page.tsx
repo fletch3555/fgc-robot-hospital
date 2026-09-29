@@ -222,7 +222,6 @@ function NewSparePart() {
             quantity: item.requestedQuantity
           })),
           notes: formData.notes || '',
-          isLoan: true // Default to loan since this is for tracking items given to teams
         }),
       });
 
@@ -268,7 +267,6 @@ function NewSparePart() {
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
                 <strong>How it works:</strong> Select items from the FGC Kit of Parts inventory.
-                Specify whether each item is for loan (must be returned) or consumable (to be kept).
                 Quantity is always the number of individual pieces — for items marked{' '}
                 <Chip label="pack of N" size="small" variant="outlined" component="span" sx={{ verticalAlign: 'middle' }} />, count out pieces, not packs.
               </Typography>

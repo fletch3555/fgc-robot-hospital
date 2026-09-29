@@ -307,8 +307,6 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
         <CardContent>
           <Alert severity="info" sx={{ mb: 3 }}>
             <Typography variant="body2">
-              <strong>Current Status:</strong> {sparePartData.status.charAt(0).toUpperCase() + sparePartData.status.slice(1)}
-              <br />
               Quantity is always the number of individual pieces — for items marked{' '}
               <Chip label="pack of N" size="small" variant="outlined" component="span" sx={{ verticalAlign: 'middle' }} />, count out pieces, not packs.
             </Typography>
