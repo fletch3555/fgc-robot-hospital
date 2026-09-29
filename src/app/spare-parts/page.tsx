@@ -192,7 +192,6 @@ function SparePartsPage() {
                     <TableCell>Item</TableCell>
                     <TableCell>Team</TableCell>
                     <TableCell align="center">Quantity (individual items)</TableCell>
-                    <TableCell align="center">Status</TableCell>
                     <TableCell>Issued</TableCell>
                     <TableCell align="center">Actions</TableCell>
                   </TableRow>
@@ -228,15 +227,6 @@ function SparePartsPage() {
                       <TableCell align="center">
                         <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
                           {part.quantity}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Typography
-                          variant="body2"
-                          color={part.status === 'issued' ? 'warning.main' : 'success.main'}
-                          sx={{ fontWeight: 'medium' }}
-                        >
-                          {part.status.toUpperCase()}
                         </Typography>
                       </TableCell>
                       <TableCell>
