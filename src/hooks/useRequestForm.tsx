@@ -460,6 +460,12 @@ export function useRequestForm({
 
   const isFormValid = () => Object.keys(validateFormData()).length === 0;
 
+  // Whether there's something submittable right now. A queued batch can be
+  // submitted with a blank live form (every item already staged via "Add
+  // Another Item") -- only a truly empty submission (no queue, invalid live
+  // form) should actually block the button.
+  const canSubmit = () => isFormValid() || (mode === 'create' && pendingEntries.length > 0);
+
   // Only offered for types where a single visit plausibly needs several
   // (see MULTI_ENTRY_TYPES); fixedType hosts for hardware/software never
   // show it, and on the general intake page it appears/disappears as the
@@ -467,8 +473,9 @@ export function useRequestForm({
   const canAddMultiple = mode === 'create' && MULTI_ENTRY_TYPES.includes(formData.type);
 
   // Stages the current type-specific fields as a queued item and clears
-  // them for the next one. Country/type carry over -- a batch is one
-  // team's visit, usually (though not necessarily) all the same type.
+  // them for the next one. Country/type/assignee carry over -- a batch is
+  // one team's visit, usually worked by the same attendant; only the
+  // free-text comment is reset, since that's specific to each item.
   const addEntry = () => {
     const errors = validateFormData();
     if (Object.keys(errors).length > 0) {
@@ -488,7 +495,7 @@ export function useRequestForm({
 
     setMachineShopData(EMPTY_MACHINE_SHOP_DATA);
     setBatteryChargingData(EMPTY_BATTERY_CHARGING_DATA);
-    setFormData((prev) => ({ ...prev, comments: '', assigned_to: '' }));
+    setFormData((prev) => ({ ...prev, comments: '' }));
     setError('');
     setValidationErrors({});
   };
@@ -500,8 +507,14 @@ export function useRequestForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // A queued batch can be submitted once every item has been staged via
+    // "Add Another Item", leaving the live form blank -- that blank form
+    // fails validation on its own, but that's fine as long as there's a
+    // queue to fall back on. Only block when there's neither.
     const errors = validateFormData();
-    if (Object.keys(errors).length > 0) {
+    const liveEntryValid = Object.keys(errors).length === 0;
+    const hasQueue = mode === 'create' && pendingEntries.length > 0;
+    if (!liveEntryValid && !hasQueue) {
       setValidationErrors(errors);
       setError(`Please fix the validation errors before ${mode === 'create' ? 'submitting' : 'saving'}`);
       return;
@@ -596,13 +609,14 @@ export function useRequestForm({
         };
 
         // The batch is whatever's already queued, plus whatever's live in
-        // the form right now (submitting without ever using "Add Another"
-        // is just a one-item batch).
+        // the form right now -- but only if it's actually filled in.
+        // Submitting without ever using "Add Another" is just a one-item
+        // batch; submitting after adding every item (leaving the form
+        // blank) is a queue-only batch.
         const queueSnapshot = pendingEntries;
-        const allEntries: PendingEntry[] = [
-          ...queueSnapshot,
-          { type: formData.type, comments: formData.comments, assigned_to: formData.assigned_to, hardwareData, softwareData, machineShopData, batteryChargingData },
-        ];
+        const allEntries: PendingEntry[] = liveEntryValid
+          ? [...queueSnapshot, { type: formData.type, comments: formData.comments, assigned_to: formData.assigned_to, hardwareData, softwareData, machineShopData, batteryChargingData }]
+          : [...queueSnapshot];
 
         let succeeded = 0;
         try {
@@ -694,6 +708,7 @@ export function useRequestForm({
     handleMachineShopChange,
     handleBatteryChargingChange,
     isFormValid,
+    canSubmit,
     handleSubmit,
     renderTypeSpecificFields,
     typeOptions,
@@ -708,9 +723,13 @@ export function useRequestForm({
       ? (mode === 'create' ? 'Creating...' : 'Updating...')
       : mode === 'edit'
         ? 'Update Request'
-        : pendingEntries.length > 0
-          ? `Create ${pendingEntries.length + 1} Requests`
-          : 'Create Request',
+        // The live form only contributes an extra request if it's actually
+        // filled in -- once every item has been staged via "Add Another
+        // Item", the count is just the queue.
+        : (() => {
+            const totalCount = pendingEntries.length + (isFormValid() ? 1 : 0);
+            return totalCount > 1 ? `Create ${totalCount} Requests` : 'Create Request';
+          })(),
   };
 }
 
