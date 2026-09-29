@@ -249,27 +249,6 @@ export class SparePart {
     }
   }
 
-  static async updateStatus(id: string, status: 'issued' | 'returned'): Promise<ISparePart | null> {
-    try {
-      const result = await query(
-        `UPDATE spare_parts SET status = $2, updated_at = CURRENT_TIMESTAMP 
-         WHERE id = $1 RETURNING *`,
-        [id, status]
-      );
-      
-      const sparePart = result.rows[0];
-      if (sparePart) {
-        // Add country name through lookup
-        sparePart.country_name = getCountryName(sparePart.country_code);
-      }
-      
-      return sparePart || null;
-    } catch (error) {
-      console.error('Error updating spare part status:', error);
-      throw error;
-    }
-  }
-
   static async addNote(id: string, note: string): Promise<ISparePart | null> {
     try {
       const result = await query(
