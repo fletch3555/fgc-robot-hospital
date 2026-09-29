@@ -153,13 +153,10 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
         countryCode: data.country_code,
         fgcInventoryId: inventoryItem?.id || '',
         partNumber: data.fgc_part_number || '',
-        // Older records may still have the pack size baked into the
-        // stored name (e.g. "... - 100 Pack") from before that became the
-        // pack chip's job -- clean it up here too, since saving this edit
-        // will persist whatever's in `description`. Only when there's an
-        // actual catalog match, though: a catalog-less free-text name has
-        // no chip to compensate for the removed text, so stripping it
-        // there would silently destroy real, user-authored content.
+        // Strip a redundant "- N Pack" suffix, but only when there's a
+        // catalog match with a chip to compensate -- a catalog-less
+        // free-text name has no chip, so stripping there would just
+        // destroy real content.
         description: inventoryItem ? getDisplayName(data.item_name) : data.item_name,
         quantity: data.quantity,
         // notes is a TEXT[] in the DB, but there's only ever one free-text
@@ -386,10 +383,10 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
                     setFormData(prev => ({
                       ...prev,
                       description,
-                      // Typing over it by hand means it's no longer the
-                      // selected catalog item -- drop the stale part number
-                      // link rather than silently keeping a mismatched one.
-                      ...(prev.fgcInventoryId ? { fgcInventoryId: '', partNumber: '' } : {}),
+                      // Typing over the name drops any part number link,
+                      // including a stale one not in the current catalog
+                      // (fgcInventoryId already '' there, so check partNumber).
+                      ...(prev.partNumber ? { fgcInventoryId: '', partNumber: '' } : {}),
                     }));
                   }}
                   required

@@ -5,14 +5,9 @@ import { getCountryName } from '@/lib/countryUtils';
 import { getCurrentSeason } from '@/lib/season';
 
 // The real accepted shape for SparePart.update() -- camelCase, matching
-// the PUT route's request body, not ISparePart's snake_case DB row shape
-// (update() never reads snake_case keys from its input).
-//
-// Deliberately excludes submittedBy/handledBy: those are audit identities
-// (who issued/returned the item), not client-editable fields. submitted_by
-// is stamped server-side from the session at creation (see the POST route);
-// handled_by should be stamped the same way whenever a return flow sets it
-// -- neither should ever come from a generic edit PUT body.
+// the PUT route's body, not ISparePart's snake_case DB row shape. Excludes
+// submittedBy/handledBy on purpose: those are audit identities that must
+// only ever be stamped server-side from the session, never client-supplied.
 export interface SparePartUpdateInput {
   countryCode?: string;
   itemName?: string;
