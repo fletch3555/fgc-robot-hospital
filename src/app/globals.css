@@ -15,6 +15,9 @@ html {
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  /* Belongs on html, not body: html is the element that actually scrolls.
+     Having it on body instead broke scrolling on any tall page. */
+  overscroll-behavior-y: contain;
 }
 
 body {
@@ -27,8 +30,6 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Prevent pull-to-refresh on mobile while allowing scroll */
-  overscroll-behavior-y: contain;
 }
 
 * {
