@@ -192,7 +192,6 @@ function SparePartsPage() {
                     <TableCell>Item</TableCell>
                     <TableCell>Team</TableCell>
                     <TableCell align="center">Quantity (individual items)</TableCell>
-                    <TableCell align="center">Status</TableCell>
                     <TableCell>Issued</TableCell>
                     <TableCell align="center">Actions</TableCell>
                   </TableRow>
@@ -208,11 +207,6 @@ function SparePartsPage() {
                           {part.fgc_details && (
                             <Typography variant="caption" color="text.secondary">
                               {part.fgc_details.part_number} • {part.fgc_details.group_name}
-                            </Typography>
-                          )}
-                          {part.is_loan && (
-                            <Typography variant="caption" color="warning.main" sx={{ display: 'block' }}>
-                              • LOAN ITEM
                             </Typography>
                           )}
                         </Box>
@@ -233,15 +227,6 @@ function SparePartsPage() {
                       <TableCell align="center">
                         <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
                           {part.quantity}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Typography
-                          variant="body2"
-                          color={part.status === 'issued' ? 'warning.main' : 'success.main'}
-                          sx={{ fontWeight: 'medium' }}
-                        >
-                          {part.status.toUpperCase()}
                         </Typography>
                       </TableCell>
                       <TableCell>

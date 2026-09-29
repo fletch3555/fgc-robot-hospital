@@ -4,6 +4,19 @@ import { ISparePart } from '@/lib/types';
 import { getCountryName } from '@/lib/countryUtils';
 import { getCurrentSeason } from '@/lib/season';
 
+// The real accepted shape for SparePart.update() -- camelCase, matching
+// the PUT route's body, not ISparePart's snake_case DB row shape. Excludes
+// submittedBy/handledBy on purpose: those are audit identities that must
+// only ever be stamped server-side from the session, never client-supplied.
+export interface SparePartUpdateInput {
+  countryCode?: string;
+  itemName?: string;
+  quantity?: number;
+  isLoan?: boolean;
+  fgcPartNumber?: string | null;
+  notes?: string[] | null;
+}
+
 export class SparePart {
   static async findById(id: string): Promise<ISparePart | null> {
     try {
@@ -136,31 +149,36 @@ export class SparePart {
     }
   }
 
-  static async update(id: string, updates: Partial<ISparePart>): Promise<ISparePart | null> {
+  // updates comes straight from the PUT request body -- an explicit
+  // allowlist here isn't just tidiness, it's what stops an arbitrary JSON
+  // key from being interpolated directly into the SQL SET clause. Typed
+  // against SparePartUpdateInput's keys so the two can't silently drift
+  // apart (a field added to one without the other is a compile error).
+  private static readonly UPDATABLE_COLUMNS: Record<keyof SparePartUpdateInput, string> = {
+    countryCode: 'country_code',
+    itemName: 'item_name',
+    quantity: 'quantity',
+    isLoan: 'is_loan',
+    fgcPartNumber: 'fgc_part_number',
+    notes: 'notes',
+  };
+
+  static async update(id: string, updates: SparePartUpdateInput): Promise<ISparePart | null> {
     try {
       const setParts: string[] = [];
       const values: unknown[] = [id];
       let paramCount = 1;
 
       Object.entries(updates).forEach(([key, value]) => {
-        if (key === 'id' || key === 'countryName') return; // Skip ID updates and countryName (not stored in DB)
-        
-        let columnName = key;
-        // Convert camelCase to snake_case for database columns
-        if (key === 'countryCode') columnName = 'country_code';
-        else if (key === 'itemName') columnName = 'item_name';
-        else if (key === 'isLoan') columnName = 'is_loan';
-        else if (key === 'submittedBy') columnName = 'submitted_by';
-        else if (key === 'handledBy') columnName = 'handled_by';
-        
+        const columnName = SparePart.UPDATABLE_COLUMNS[key as keyof SparePartUpdateInput];
+        if (!columnName) return; // Unknown/disallowed key -- never reaches the query.
+
         setParts.push(`${columnName} = $${++paramCount}`);
-        
-        // Handle JSON data for notes
-        if (key === 'notes') {
-          values.push(JSON.stringify(value));
-        } else {
-          values.push(value);
-        }
+        // notes is TEXT[] -- pass the array straight through and let pg
+        // serialize it natively. JSON.stringify-ing it here produced a
+        // string like '["a"]', which Postgres rejects as a malformed
+        // array literal for a text[] column.
+        values.push(value);
       });
 
       if (setParts.length === 0) {
@@ -234,17 +252,17 @@ export class SparePart {
   static async updateStatus(id: string, status: 'issued' | 'returned'): Promise<ISparePart | null> {
     try {
       const result = await query(
-        `UPDATE spare_parts SET status = $2, updated_at = CURRENT_TIMESTAMP 
+        `UPDATE spare_parts SET status = $2, updated_at = CURRENT_TIMESTAMP
          WHERE id = $1 RETURNING *`,
         [id, status]
       );
-      
+
       const sparePart = result.rows[0];
       if (sparePart) {
         // Add country name through lookup
         sparePart.country_name = getCountryName(sparePart.country_code);
       }
-      
+
       return sparePart || null;
     } catch (error) {
       console.error('Error updating spare part status:', error);

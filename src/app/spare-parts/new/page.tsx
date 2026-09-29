@@ -37,7 +37,7 @@ import {
   Code as CodeIcon,
 } from '@mui/icons-material';
 import Link from 'next/link';
-import { kopInventory, getUnitsPerPackage } from '@/data/kop-inventory';
+import { kopInventory, getUnitsPerPackage, getDisplayName } from '@/data/kop-inventory';
 import { ReviewStatus } from '@/lib/types';
 
 interface FGCInventoryItem {
@@ -173,7 +173,7 @@ function NewSparePart() {
             ...item, 
             fgcInventoryId: selectedItem.id,
             partNumber: selectedItem.part_number,
-            description: selectedItem.description,
+            description: getDisplayName(selectedItem.description),
           } : item
         )
       }));
@@ -222,7 +222,6 @@ function NewSparePart() {
             quantity: item.requestedQuantity
           })),
           notes: formData.notes || '',
-          isLoan: true // Default to loan since this is for tracking items given to teams
         }),
       });
 
@@ -268,7 +267,6 @@ function NewSparePart() {
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
                 <strong>How it works:</strong> Select items from the FGC Kit of Parts inventory.
-                Specify whether each item is for loan (must be returned) or consumable (to be kept).
                 Quantity is always the number of individual pieces — for items marked{' '}
                 <Chip label="pack of N" size="small" variant="outlined" component="span" sx={{ verticalAlign: 'middle' }} />, count out pieces, not packs.
               </Typography>
@@ -350,7 +348,7 @@ function NewSparePart() {
                                 <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                                   <Autocomplete
                                     options={fgcInventory}
-                                    getOptionLabel={(option) => `${option.description} - ${option.part_number}`}
+                                    getOptionLabel={(option) => `${getDisplayName(option.description)} - ${option.part_number}`}
                                     groupBy={(option) => option.group_name}
                                     value={fgcInventory.find(inv => inv.id === item.fgcInventoryId) || null}
                                     onChange={(_, newValue) => {
@@ -372,7 +370,7 @@ function NewSparePart() {
                                           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                                             <Box sx={{ flexGrow: 1 }}>
                                               <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                                                {option.description}
+                                                {getDisplayName(option.description)}
                                               </Typography>
                                               <Typography variant="caption" color="text.secondary">
                                                 Part #: {option.part_number}
