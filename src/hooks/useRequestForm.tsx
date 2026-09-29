@@ -74,6 +74,22 @@ const TYPE_LABELS: Record<string, string> = {
   battery_charging: 'Battery Charging',
 };
 
+// Mirrors the button text in MachineShopFields -- action/material are
+// stored as the raw toggle value (e.g. "corrogated_plastic"), not
+// something presentable on their own.
+const MACHINE_SHOP_ACTION_LABELS: Record<string, string> = {
+  cut: 'Cut',
+  drill: 'Drill',
+  tools: 'Tools Needed',
+  other: 'Other',
+};
+const MACHINE_SHOP_MATERIAL_LABELS: Record<string, string> = {
+  extrusion: 'Extrusion',
+  shaft: 'Shaft',
+  corrogated_plastic: 'Corrugated Plastic',
+  other: 'Other',
+};
+
 export interface PendingEntrySummary {
   title: string;
   /** Assignee/comment, when the entry has either -- omitted otherwise. */
@@ -94,9 +110,18 @@ function summarizeEntry(entry: PendingEntry, users: IUserSummary[]): PendingEntr
     case 'software':
       title = `${label} — ${entry.softwareData?.type || 'Untitled'}`;
       break;
-    case 'machine_shop':
-      title = `${label} — ${entry.machineShopData?.action || 'Untitled'}`;
+    case 'machine_shop': {
+      const msData = entry.machineShopData;
+      const actionLabel = msData?.action === 'other'
+        ? (msData.actionOther || 'Other')
+        : (msData?.action ? MACHINE_SHOP_ACTION_LABELS[msData.action] || msData.action : undefined);
+      const materialLabel = msData?.material === 'other'
+        ? (msData.materialOther || 'Other')
+        : (msData?.material ? MACHINE_SHOP_MATERIAL_LABELS[msData.material] || msData.material : undefined);
+      const parts = [actionLabel, materialLabel].filter((part): part is string => !!part);
+      title = `${label} — ${parts.length > 0 ? parts.join(', ') : 'Untitled'}`;
       break;
+    }
     case 'battery_charging': {
       const deviceLabel = entry.batteryChargingData?.batteryType === 'driver_hub' ? 'Driver Hub' : 'Robot Controller';
       const number = entry.batteryChargingData?.loanerBatteryNumber;
