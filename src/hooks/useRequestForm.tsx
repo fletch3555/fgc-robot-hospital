@@ -478,7 +478,11 @@ export function useRequestForm({
   const canSubmit = () => {
     if (mode !== 'create') return isFormValid();
     if (!formData.country_code) return false;
-    return isFormValid() || pendingEntries.length > 0;
+    // Mirrors handleSubmit's actual gate exactly: a queue only makes an
+    // invalid live form submittable if that form is genuinely untouched,
+    // not merely started. Otherwise the button would look ready while
+    // every click still rejects.
+    return isFormValid() || (pendingEntries.length > 0 && isLiveEntryBlank());
   };
 
   // An invalid live form is only safe to silently leave out of a batch
