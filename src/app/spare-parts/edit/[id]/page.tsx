@@ -199,8 +199,8 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
     setIsSubmitting(true);
     setError('');
 
-    if (!formData.fgcInventoryId) {
-      setError('Please select an FGC inventory item');
+    if (!formData.description.trim()) {
+      setError('Please enter or select an item');
       setIsSubmitting(false);
       return;
     }
@@ -373,6 +373,27 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
                 </Typography>
               </Grid>
 
+              <Grid size={12}>
+                <TextField
+                  fullWidth
+                  label="Item Name"
+                  value={formData.description}
+                  onChange={(e) => {
+                    const description = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      description,
+                      // Typing over it by hand means it's no longer the
+                      // selected catalog item -- drop the stale part number
+                      // link rather than silently keeping a mismatched one.
+                      ...(prev.fgcInventoryId ? { fgcInventoryId: '', partNumber: '' } : {}),
+                    }));
+                  }}
+                  required
+                  sx={{ mb: 2 }}
+                />
+              </Grid>
+
               <Grid size={{ xs: 12, sm: 8 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                   <Autocomplete
@@ -384,8 +405,8 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
                     renderInput={(params) => (
                       <TextField
                         {...params}
+                        label="Or search FGC catalog to autofill"
                         placeholder="Search FGC inventory..."
-                        required
                       />
                     )}
                     renderOption={(props, option) => {
@@ -420,6 +441,15 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
                       )}
                       {getReviewStatusChip(selectedInventoryItem.review_status)}
                     </>
+                  )}
+                  {!selectedInventoryItem && formData.partNumber && (
+                    <Chip
+                      label={`Not in current catalog (${formData.partNumber})`}
+                      size="small"
+                      variant="outlined"
+                      color="warning"
+                      sx={{ ml: 1 }}
+                    />
                   )}
                 </Box>
               </Grid>

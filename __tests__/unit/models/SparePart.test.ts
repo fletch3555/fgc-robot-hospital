@@ -71,6 +71,29 @@ describe("SparePart.update", () => {
     expect(values).toEqual(["spare-1", null]);
   });
 
+  it("never interpolates an unrecognized key into the SQL statement", async () => {
+    // updates comes straight from a PUT request body -- an arbitrary key
+    // must never reach the query string, or it's a SQL injection vector.
+    // A legitimate key alongside it should still work normally.
+    await update("spare-1", {
+      itemName: "Widget",
+      "status = 'returned'; --": "malicious",
+    });
+
+    const [sql, values] = lastCall();
+    expect(sql).not.toContain("--");
+    expect(sql).not.toContain("returned");
+    expect(sql).toContain("item_name = $2");
+    expect(values).toEqual(["spare-1", "Widget"]);
+  });
+
+  it("throws when no updatable fields are provided", async () => {
+    await expect(update("spare-1", { notAColumn: "x" })).rejects.toThrow(
+      "No valid updates provided"
+    );
+    expect(mockQuery).not.toHaveBeenCalled();
+  });
+
   it("still maps the previously-supported camelCase fields", async () => {
     await update("spare-1", {
       countryCode: "GBR",

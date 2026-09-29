@@ -136,6 +136,20 @@ export class SparePart {
     }
   }
 
+  // updates comes straight from the PUT request body -- an explicit
+  // allowlist here isn't just tidiness, it's what stops an arbitrary JSON
+  // key from being interpolated directly into the SQL SET clause.
+  private static readonly UPDATABLE_COLUMNS: Record<string, string> = {
+    countryCode: 'country_code',
+    itemName: 'item_name',
+    quantity: 'quantity',
+    isLoan: 'is_loan',
+    submittedBy: 'submitted_by',
+    handledBy: 'handled_by',
+    fgcPartNumber: 'fgc_part_number',
+    notes: 'notes',
+  };
+
   static async update(id: string, updates: Partial<ISparePart>): Promise<ISparePart | null> {
     try {
       const setParts: string[] = [];
@@ -143,16 +157,8 @@ export class SparePart {
       let paramCount = 1;
 
       Object.entries(updates).forEach(([key, value]) => {
-        if (key === 'id' || key === 'countryName') return; // Skip ID updates and countryName (not stored in DB)
-
-        let columnName = key;
-        // Convert camelCase to snake_case for database columns
-        if (key === 'countryCode') columnName = 'country_code';
-        else if (key === 'itemName') columnName = 'item_name';
-        else if (key === 'isLoan') columnName = 'is_loan';
-        else if (key === 'submittedBy') columnName = 'submitted_by';
-        else if (key === 'handledBy') columnName = 'handled_by';
-        else if (key === 'fgcPartNumber') columnName = 'fgc_part_number';
+        const columnName = SparePart.UPDATABLE_COLUMNS[key];
+        if (!columnName) return; // Unknown/disallowed key -- never reaches the query.
 
         setParts.push(`${columnName} = $${++paramCount}`);
         // notes is TEXT[] -- pass the array straight through and let pg
