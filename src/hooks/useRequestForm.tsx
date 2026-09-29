@@ -272,10 +272,12 @@ export function useRequestForm({
     const fetchUsers = async () => {
       try {
         const response = await fetch(`/api/users?permissions=${formData.type}.assignee`);
-        if (response.ok && !cancelled) {
-          const fetchedUsers = await response.json();
-          setUsers(fetchedUsers);
-        }
+        if (!response.ok) return;
+        const fetchedUsers = await response.json();
+        // Recheck immediately before the state update -- a second type
+        // change could land during the response.json() await above too.
+        if (cancelled) return;
+        setUsers(fetchedUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
       }
@@ -306,15 +308,15 @@ export function useRequestForm({
     const checkOutstanding = async () => {
       try {
         const response = await fetch('/api/requests');
-        if (response.ok && !cancelled) {
-          const data = await response.json();
-          const outstanding = ((data.active || []) as IRequest[]).filter((r) =>
-            r.type === 'battery_charging' &&
-            r.country_code === formData.country_code &&
-            (r.battery_charging_data as BatteryChargingRequestData)?.batteryType === batteryChargingData.batteryType
-          );
-          setOutstandingBatteryRequests(outstanding);
-        }
+        if (!response.ok) return;
+        const data = await response.json();
+        if (cancelled) return;
+        const outstanding = ((data.active || []) as IRequest[]).filter((r) =>
+          r.type === 'battery_charging' &&
+          r.country_code === formData.country_code &&
+          (r.battery_charging_data as BatteryChargingRequestData)?.batteryType === batteryChargingData.batteryType
+        );
+        setOutstandingBatteryRequests(outstanding);
       } catch (error) {
         console.error('Error checking for outstanding battery charging requests:', error);
       }
@@ -354,19 +356,19 @@ export function useRequestForm({
     const fetchAvailable = async () => {
       try {
         const response = await fetch('/api/requests/battery-units');
-        if (response.ok && !cancelled) {
-          const units: IBatteryUnit[] = await response.json();
-          setAvailableBatteryNumbers(
-            units
-              .filter((u) =>
-                u.device_type === batteryChargingData.batteryType &&
-                (u.status === 'available' || (mode === 'edit' && u.request_id === request?.id)) &&
-                !stagedNumbers.has(u.number)
-              )
-              .map((u) => u.number)
-              .sort((a, b) => a - b)
-          );
-        }
+        if (!response.ok) return;
+        const units: IBatteryUnit[] = await response.json();
+        if (cancelled) return;
+        setAvailableBatteryNumbers(
+          units
+            .filter((u) =>
+              u.device_type === batteryChargingData.batteryType &&
+              (u.status === 'available' || (mode === 'edit' && u.request_id === request?.id)) &&
+              !stagedNumbers.has(u.number)
+            )
+            .map((u) => u.number)
+            .sort((a, b) => a - b)
+        );
       } catch (error) {
         console.error('Error fetching available battery units:', error);
       }
