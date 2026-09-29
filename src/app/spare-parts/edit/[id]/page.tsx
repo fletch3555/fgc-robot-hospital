@@ -373,40 +373,40 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
                 </Typography>
               </Grid>
 
-              <Grid size={12}>
-                <TextField
-                  fullWidth
-                  label="Item Name"
-                  value={formData.description}
-                  onChange={(e) => {
-                    const description = e.target.value;
-                    setFormData(prev => ({
-                      ...prev,
-                      description,
-                      // Typing over the name drops any part number link,
-                      // including a stale one not in the current catalog
-                      // (fgcInventoryId already '' there, so check partNumber).
-                      ...(prev.partNumber ? { fgcInventoryId: '', partNumber: '' } : {}),
-                    }));
-                  }}
-                  required
-                  sx={{ mb: 2 }}
-                />
-              </Grid>
-
               <Grid size={{ xs: 12, sm: 8 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                   <Autocomplete
+                    freeSolo
                     options={fgcInventory}
-                    getOptionLabel={(option) => `${getDisplayName(option.description)} - ${option.part_number}`}
+                    getOptionLabel={(option) => typeof option === 'string' ? option : `${getDisplayName(option.description)} - ${option.part_number}`}
                     groupBy={(option) => option.group_name}
                     value={selectedInventoryItem || null}
-                    onChange={(_, newValue) => handleInventoryItemSelect(newValue)}
+                    inputValue={formData.description}
+                    onInputChange={(_, newInputValue, reason) => {
+                      // 'input' is the user actually typing; other reasons
+                      // (selecting an option, clearing) are handled by
+                      // onChange below via handleInventoryItemSelect.
+                      if (reason !== 'input') return;
+                      setFormData(prev => ({
+                        ...prev,
+                        description: newInputValue,
+                        // Typing over the name drops any part number link,
+                        // including a stale one not in the current catalog
+                        // (fgcInventoryId already '' there, check partNumber).
+                        ...(prev.partNumber ? { fgcInventoryId: '', partNumber: '' } : {}),
+                      }));
+                    }}
+                    onChange={(_, newValue) => {
+                      if (newValue === null || typeof newValue !== 'string') {
+                        handleInventoryItemSelect(newValue);
+                      }
+                    }}
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Or search FGC catalog to autofill"
-                        placeholder="Search FGC inventory..."
+                        label="Item Name"
+                        placeholder="Type a name, or search the FGC catalog to autofill"
+                        required
                       />
                     )}
                     renderOption={(props, option) => {
