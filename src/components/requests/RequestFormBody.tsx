@@ -224,31 +224,6 @@ export default function RequestFormBody({ state }: RequestFormBodyProps) {
         {renderTypeSpecificFields()}
       </Box>
 
-      {/* Multiple entries per visit -- only offered for types where that's
-          a real thing (machine shop jobs, loaner batteries), not hardware/
-          software (each report is its own distinct problem). */}
-      {(canAddMultiple || pendingEntrySummaries.length > 0) && (
-        <Box sx={{ mb: 3 }}>
-          {pendingEntrySummaries.length > 0 && (
-            <Stack spacing={1} sx={{ mb: 2 }}>
-              {pendingEntrySummaries.map((summary, index) => (
-                <Paper key={index} variant="outlined" sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography variant="body2">{summary}</Typography>
-                  <IconButton size="small" aria-label={`Remove item ${index + 1}`} onClick={() => removeEntry(index)}>
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-                </Paper>
-              ))}
-            </Stack>
-          )}
-          {canAddMultiple && (
-            <Button startIcon={<AddIcon />} onClick={addEntry} disabled={!formData.country_code}>
-              Add Another Item
-            </Button>
-          )}
-        </Box>
-      )}
-
       {formData.type === 'battery_charging' && mode === 'create' && outstandingBatteryRequests.length > 0 && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           {countries.find((c) => c.code === formData.country_code)?.name || formData.country_code} already has
@@ -293,6 +268,34 @@ export default function RequestFormBody({ state }: RequestFormBodyProps) {
           slotProps={{ htmlInput: { maxLength: 500 } }}
           sx={{ mb: 3 }}
         />
+      )}
+
+      {/* Multiple entries per visit -- only offered for types where that's
+          a real thing (machine shop jobs, loaner batteries), not hardware/
+          software (each report is its own distinct problem). Deliberately
+          last: staging an entry snapshots every field above, including
+          assignee/comments, so those need to already be filled in by the
+          time this button is reachable. */}
+      {(canAddMultiple || pendingEntrySummaries.length > 0) && (
+        <Box sx={{ mb: 3 }}>
+          {pendingEntrySummaries.length > 0 && (
+            <Stack spacing={1} sx={{ mb: 2 }}>
+              {pendingEntrySummaries.map((summary, index) => (
+                <Paper key={index} variant="outlined" sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">{summary}</Typography>
+                  <IconButton size="small" aria-label={`Remove item ${index + 1}`} onClick={() => removeEntry(index)}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Paper>
+              ))}
+            </Stack>
+          )}
+          {canAddMultiple && (
+            <Button startIcon={<AddIcon />} onClick={addEntry} disabled={!formData.country_code}>
+              Add Another Item
+            </Button>
+          )}
+        </Box>
       )}
     </Box>
   );
