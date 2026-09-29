@@ -52,11 +52,7 @@ export default function MachineShopFields({ data, onChange, errors = {} }: Machi
           <ToggleButtonGroup
             value={data.action || ""}
             exclusive
-            onChange={(event, newValue) => {
-              if (newValue !== null) {
-                handleChange('action', newValue);
-              }
-            }}
+            onChange={(event, newValue) => handleChange('action', newValue || '')}
             aria-label="action needed"
             fullWidth
             sx={{
@@ -133,11 +129,7 @@ export default function MachineShopFields({ data, onChange, errors = {} }: Machi
           <ToggleButtonGroup
             value={data.material || ""}
             exclusive
-            onChange={(event, newValue) => {
-              if (newValue !== null) {
-                handleChange('material', newValue);
-              }
-            }}
+            onChange={(event, newValue) => handleChange('material', newValue || '')}
             aria-label="material type"
             fullWidth
             sx={{

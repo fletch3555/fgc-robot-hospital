@@ -37,7 +37,7 @@ export const serializeBatteryChargingData = (formData: FormData): BatteryChargin
 });
 
 export default function BatteryChargingFields({ data, onChange, errors = {}, availableBatteryNumbers = [] }: BatteryChargingFieldsProps) {
-  const handleChange = (field: string, value: string | null) => {
+  const handleChange = (field: string, value: string | null | undefined) => {
     onChange({ [field]: value });
   };
 
@@ -52,11 +52,7 @@ export default function BatteryChargingFields({ data, onChange, errors = {}, ava
             exclusive
             fullWidth
             value={data.batteryType || ""}
-            onChange={(_, newValue) => {
-              if (newValue !== null) {
-                handleChange('batteryType', newValue);
-              }
-            }}
+            onChange={(_, newValue) => handleChange('batteryType', newValue || undefined)}
             aria-label="battery type"
             sx={{
               display: 'grid',

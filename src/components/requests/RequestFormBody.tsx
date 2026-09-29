@@ -126,7 +126,7 @@ export default function RequestFormBody({ state }: RequestFormBodyProps) {
           value={formData.type}
           exclusive
           onChange={mode === 'create' && !typeLocked ? (_, newValue) => {
-            if (newValue) handleTypeChange(newValue);
+            handleTypeChange(newValue || '');
           } : undefined}
           aria-label="request type"
           fullWidth
