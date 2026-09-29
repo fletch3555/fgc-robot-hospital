@@ -335,6 +335,12 @@ export function useRequestForm({
     setSoftwareData(EMPTY_SOFTWARE_DATA);
     setMachineShopData(EMPTY_MACHINE_SHOP_DATA);
     setBatteryChargingData(EMPTY_BATTERY_CHARGING_DATA);
+    // Battery charging has no assignee field (there's no one to work the
+    // ticket) -- a value carried over from a prior type must not silently
+    // ride along into a battery_charging entry.
+    if (newType === 'battery_charging') {
+      setFormData((prev) => ({ ...prev, assigned_to: '' }));
+    }
   };
 
   const handleHardwareChange = (data: Partial<HardwareRequestData>) => {
@@ -466,6 +472,26 @@ export function useRequestForm({
   // form) should actually block the button.
   const canSubmit = () => isFormValid() || (mode === 'create' && pendingEntries.length > 0);
 
+  // An invalid live form is only safe to silently leave out of a batch
+  // submit if it's untouched (the user staged every item and never started
+  // a next one) -- not if they've begun filling it in but stopped partway,
+  // which should surface as a normal validation error instead of quietly
+  // discarding what they typed.
+  const isLiveEntryBlank = () => {
+    switch (formData.type) {
+      case 'hardware':
+        return JSON.stringify(hardwareData) === JSON.stringify(EMPTY_HARDWARE_DATA);
+      case 'software':
+        return JSON.stringify(softwareData) === JSON.stringify(EMPTY_SOFTWARE_DATA);
+      case 'machine_shop':
+        return JSON.stringify(machineShopData) === JSON.stringify(EMPTY_MACHINE_SHOP_DATA);
+      case 'battery_charging':
+        return JSON.stringify(batteryChargingData) === JSON.stringify(EMPTY_BATTERY_CHARGING_DATA);
+      default:
+        return true;
+    }
+  };
+
   // Only offered for types where a single visit plausibly needs several
   // (see MULTI_ENTRY_TYPES); fixedType hosts for hardware/software never
   // show it, and on the general intake page it appears/disappears as the
@@ -510,11 +536,13 @@ export function useRequestForm({
     // A queued batch can be submitted once every item has been staged via
     // "Add Another Item", leaving the live form blank -- that blank form
     // fails validation on its own, but that's fine as long as there's a
-    // queue to fall back on. Only block when there's neither.
+    // queue to fall back on. An invalid form the user actually started
+    // typing into is different: silently dropping it would lose their
+    // work, so that still blocks submission like a normal validation error.
     const errors = validateFormData();
     const liveEntryValid = Object.keys(errors).length === 0;
     const hasQueue = mode === 'create' && pendingEntries.length > 0;
-    if (!liveEntryValid && !hasQueue) {
+    if (!liveEntryValid && !(hasQueue && isLiveEntryBlank())) {
       setValidationErrors(errors);
       setError(`Please fix the validation errors before ${mode === 'create' ? 'submitting' : 'saving'}`);
       return;
