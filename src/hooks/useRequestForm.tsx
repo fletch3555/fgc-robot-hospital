@@ -340,8 +340,10 @@ export function useRequestForm({
     // from the previous type could briefly (or, for battery_charging,
     // permanently -- it has no assignee field at all) reference someone
     // ineligible for the new type. Only staging another item of the *same*
-    // type (addEntry) should preserve it.
-    setFormData((prev) => ({ ...prev, assigned_to: '' }));
+    // type (addEntry) should preserve it. Comments is similar: it's hidden
+    // entirely for battery_charging, so a comment typed for a prior type
+    // must not silently ride along once it's no longer visible to edit.
+    setFormData((prev) => ({ ...prev, assigned_to: '', comments: '' }));
   };
 
   const handleHardwareChange = (data: Partial<HardwareRequestData>) => {
