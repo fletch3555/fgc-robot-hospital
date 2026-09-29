@@ -88,9 +88,7 @@ export default function RequestFormModal({
             disabled={formState.loading || !formState.isFormValid()}
             startIcon={formState.loading ? <CircularProgress size={20} /> : null}
           >
-            {formState.loading
-              ? (mode === 'create' ? 'Creating...' : 'Updating...')
-              : (mode === 'create' ? 'Create Request' : 'Update Request')}
+            {formState.submitLabel}
           </Button>
         </Box>
       </DialogActions>

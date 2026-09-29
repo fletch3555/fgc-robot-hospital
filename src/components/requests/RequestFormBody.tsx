@@ -11,7 +11,12 @@ import {
   Box,
   Alert,
   Typography,
+  Button,
+  Stack,
+  Paper,
+  IconButton,
 } from "@mui/material";
+import { Add as AddIcon, Close as CloseIcon } from "@mui/icons-material";
 import { countries } from '@/data/countries';
 import { RequestFormState, STATUS_OPTIONS } from '@/hooks/useRequestForm';
 import CountryFlag from '@/components/common/CountryFlag';
@@ -37,6 +42,10 @@ export default function RequestFormBody({ state }: RequestFormBodyProps) {
     typeOptions,
     typeLocked,
     renderTypeSpecificFields,
+    pendingEntrySummaries,
+    canAddMultiple,
+    addEntry,
+    removeEntry,
   } = state;
 
   // A fixedType page/host has nothing to actually pick from, so the whole
@@ -208,6 +217,29 @@ export default function RequestFormBody({ state }: RequestFormBodyProps) {
       <Box sx={{ mb: 3 }}>
         {renderTypeSpecificFields()}
       </Box>
+
+      {/* Multiple entries per visit -- only offered for types where that's
+          a real thing (machine shop jobs, loaner batteries), not hardware/
+          software (each report is its own distinct problem). */}
+      {canAddMultiple && (
+        <Box sx={{ mb: 3 }}>
+          {pendingEntrySummaries.length > 0 && (
+            <Stack spacing={1} sx={{ mb: 2 }}>
+              {pendingEntrySummaries.map((summary, index) => (
+                <Paper key={index} variant="outlined" sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">{summary}</Typography>
+                  <IconButton size="small" aria-label={`Remove item ${index + 1}`} onClick={() => removeEntry(index)}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Paper>
+              ))}
+            </Stack>
+          )}
+          <Button startIcon={<AddIcon />} onClick={addEntry} disabled={!formData.country_code}>
+            Add Another Item
+          </Button>
+        </Box>
+      )}
 
       {formData.type === 'battery_charging' && mode === 'create' && outstandingBatteryRequests.length > 0 && (
         <Alert severity="warning" sx={{ mb: 3 }}>

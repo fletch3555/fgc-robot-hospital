@@ -1,7 +1,7 @@
 "use client";
 
 import { WithAuth } from '@/components/auth/WithAuth';
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Container,
   Typography,
@@ -25,15 +25,27 @@ import RequestFormBody from '@/components/requests/RequestFormBody';
 // navigating away -- ready for the next team in line.
 function HospitalIntakePage() {
   const [successMessage, setSuccessMessage] = useState('');
+  // A batch submit (see "Add Another Item") fires onRequestCreated once
+  // per item before onSuccess fires once at the end -- collect them here
+  // so the toast can say "3 requests created" instead of flashing through
+  // 3 separate one-line messages.
+  const createdInBatchRef = useRef<IRequest[]>([]);
 
   const formState = useRequestForm({
     mode: 'create',
     request: null,
     active: true,
     onRequestCreated: (newRequest: IRequest) => {
-      setSuccessMessage(`${newRequest.type.replace('_', ' ')} request created.`);
+      createdInBatchRef.current.push(newRequest);
     },
     onSuccess: () => {
+      const created = createdInBatchRef.current;
+      createdInBatchRef.current = [];
+      setSuccessMessage(
+        created.length > 1
+          ? `${created.length} requests created.`
+          : `${created[0]?.type.replace('_', ' ')} request created.`
+      );
       formState.resetForm();
     },
   });
@@ -61,7 +73,7 @@ function HospitalIntakePage() {
               disabled={formState.loading || !formState.isFormValid()}
               startIcon={formState.loading ? <CircularProgress size={20} /> : null}
             >
-              {formState.loading ? 'Creating...' : 'Create Request'}
+              {formState.submitLabel}
             </Button>
           </Box>
         </>
