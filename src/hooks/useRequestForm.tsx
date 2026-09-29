@@ -61,6 +61,10 @@ export interface PendingEntry {
   type: string;
   comments: string;
   assigned_to: string;
+  /** Snapshotted at staging time -- the eligible-users list is scoped to
+   * whichever type is *currently* live, so a later type switch would
+   * otherwise make an earlier entry's assignee unresolvable by ID alone. */
+  assignedToName?: string;
   hardwareData?: HardwareRequestData;
   softwareData?: SoftwareRequestData;
   machineShopData?: MachineShopRequestData;
@@ -100,7 +104,7 @@ export interface PendingEntrySummary {
 // Split into title (type + the one detail that identifies it) and an
 // optional subtitle (assignee/comment) so the queue stays scannable while
 // still surfacing everything that was captured when the entry was staged.
-function summarizeEntry(entry: PendingEntry, users: IUserSummary[]): PendingEntrySummary {
+function summarizeEntry(entry: PendingEntry): PendingEntrySummary {
   const label = TYPE_LABELS[entry.type] || entry.type;
   let title: string;
   switch (entry.type) {
@@ -133,9 +137,8 @@ function summarizeEntry(entry: PendingEntry, users: IUserSummary[]): PendingEntr
   }
 
   const subtitleParts: string[] = [];
-  if (entry.assigned_to) {
-    const assignee = users.find((u) => u.id === entry.assigned_to);
-    if (assignee) subtitleParts.push(`Assigned to ${assignee.name}`);
+  if (entry.assignedToName) {
+    subtitleParts.push(`Assigned to ${entry.assignedToName}`);
   }
   if (entry.comments.trim()) {
     const snippet = entry.comments.length > 60 ? `${entry.comments.slice(0, 60)}…` : entry.comments;
@@ -259,12 +262,17 @@ export function useRequestForm({
 
   // Fetch users based on request type
   useEffect(() => {
-    const fetchUsers = async () => {
-      if (!formData.type) return;
+    // Clear immediately (not just once the fetch resolves) so the picker
+    // never offers a type's assignees while the request for a *different*
+    // type is still in flight.
+    setUsers([]);
+    if (!formData.type) return;
 
+    let cancelled = false;
+    const fetchUsers = async () => {
       try {
         const response = await fetch(`/api/users?permissions=${formData.type}.assignee`);
-        if (response.ok) {
+        if (response.ok && !cancelled) {
           const fetchedUsers = await response.json();
           setUsers(fetchedUsers);
         }
@@ -274,6 +282,9 @@ export function useRequestForm({
     };
 
     fetchUsers();
+    return () => {
+      cancelled = true;
+    };
   }, [formData.type]);
 
   // Soft-warning check (create mode only): does this team already have an
@@ -580,6 +591,7 @@ export function useRequestForm({
       type: formData.type,
       comments: formData.comments,
       assigned_to: formData.assigned_to,
+      assignedToName: formData.assigned_to ? users.find((u) => u.id === formData.assigned_to)?.name : undefined,
       ...(formData.type === 'machine_shop' ? { machineShopData } : {}),
       ...(formData.type === 'battery_charging' ? { batteryChargingData } : {}),
     };
@@ -814,7 +826,7 @@ export function useRequestForm({
     typeLocked,
     resetForm,
     pendingEntries,
-    pendingEntrySummaries: pendingEntries.map((entry) => summarizeEntry(entry, users)),
+    pendingEntrySummaries: pendingEntries.map(summarizeEntry),
     canAddMultiple,
     addEntry,
     removeEntry,
