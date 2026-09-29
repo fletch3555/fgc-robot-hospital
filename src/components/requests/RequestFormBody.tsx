@@ -282,7 +282,12 @@ export default function RequestFormBody({ state }: RequestFormBodyProps) {
             <Stack spacing={1} sx={{ mb: 2 }}>
               {pendingEntrySummaries.map((summary, index) => (
                 <Paper key={index} variant="outlined" sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography variant="body2">{summary}</Typography>
+                  <Box>
+                    <Typography variant="body2">{summary.title}</Typography>
+                    {summary.subtitle && (
+                      <Typography variant="caption" color="text.secondary">{summary.subtitle}</Typography>
+                    )}
+                  </Box>
                   <IconButton size="small" aria-label={`Remove item ${index + 1}`} onClick={() => removeEntry(index)}>
                     <CloseIcon fontSize="small" />
                   </IconButton>

@@ -74,24 +74,50 @@ const TYPE_LABELS: Record<string, string> = {
   battery_charging: 'Battery Charging',
 };
 
+export interface PendingEntrySummary {
+  title: string;
+  /** Assignee/comment, when the entry has either -- omitted otherwise. */
+  subtitle?: string;
+}
+
 // A short, human-readable summary of one entry for the queued-items list.
-function summarizeEntry(entry: PendingEntry): string {
+// Split into title (type + the one detail that identifies it) and an
+// optional subtitle (assignee/comment) so the queue stays scannable while
+// still surfacing everything that was captured when the entry was staged.
+function summarizeEntry(entry: PendingEntry, users: IUserSummary[]): PendingEntrySummary {
   const label = TYPE_LABELS[entry.type] || entry.type;
+  let title: string;
   switch (entry.type) {
     case 'hardware':
-      return `${label} — ${entry.hardwareData?.type || 'Untitled'}`;
+      title = `${label} — ${entry.hardwareData?.type || 'Untitled'}`;
+      break;
     case 'software':
-      return `${label} — ${entry.softwareData?.type || 'Untitled'}`;
+      title = `${label} — ${entry.softwareData?.type || 'Untitled'}`;
+      break;
     case 'machine_shop':
-      return `${label} — ${entry.machineShopData?.action || 'Untitled'}`;
+      title = `${label} — ${entry.machineShopData?.action || 'Untitled'}`;
+      break;
     case 'battery_charging': {
       const deviceLabel = entry.batteryChargingData?.batteryType === 'driver_hub' ? 'Driver Hub' : 'Robot Controller';
       const number = entry.batteryChargingData?.loanerBatteryNumber;
-      return `${label} — ${deviceLabel}${number ? ` #${number}` : ''}`;
+      title = `${label} — ${deviceLabel}${number ? ` #${number}` : ''}`;
+      break;
     }
     default:
-      return label;
+      title = label;
   }
+
+  const subtitleParts: string[] = [];
+  if (entry.assigned_to) {
+    const assignee = users.find((u) => u.id === entry.assigned_to);
+    if (assignee) subtitleParts.push(`Assigned to ${assignee.name}`);
+  }
+  if (entry.comments.trim()) {
+    const snippet = entry.comments.length > 60 ? `${entry.comments.slice(0, 60)}…` : entry.comments;
+    subtitleParts.push(`"${snippet}"`);
+  }
+
+  return subtitleParts.length > 0 ? { title, subtitle: subtitleParts.join(' · ') } : { title };
 }
 
 export const STATUS_OPTIONS = [
@@ -763,7 +789,7 @@ export function useRequestForm({
     typeLocked,
     resetForm,
     pendingEntries,
-    pendingEntrySummaries: pendingEntries.map(summarizeEntry),
+    pendingEntrySummaries: pendingEntries.map((entry) => summarizeEntry(entry, users)),
     canAddMultiple,
     addEntry,
     removeEntry,
