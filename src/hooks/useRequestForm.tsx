@@ -479,6 +479,8 @@ export function useRequestForm({
   // which should surface as a normal validation error instead of quietly
   // discarding what they typed.
   const isLiveEntryBlank = () => {
+    if (formData.comments.trim()) return false;
+
     switch (formData.type) {
       case 'hardware':
         return JSON.stringify(hardwareData) === JSON.stringify(EMPTY_HARDWARE_DATA);
