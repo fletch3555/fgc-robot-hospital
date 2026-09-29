@@ -210,11 +210,6 @@ function SparePartsPage() {
                               {part.fgc_details.part_number} • {part.fgc_details.group_name}
                             </Typography>
                           )}
-                          {part.is_loan && (
-                            <Typography variant="caption" color="warning.main" sx={{ display: 'block' }}>
-                              • LOAN ITEM
-                            </Typography>
-                          )}
                         </Box>
                       </TableCell>
                       <TableCell>
