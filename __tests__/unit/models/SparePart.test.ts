@@ -98,15 +98,27 @@ describe("SparePart.update", () => {
       countryCode: "GBR",
       itemName: "36in PWM Cable",
       isLoan: true,
-      submittedBy: "user-1",
-      handledBy: "user-2",
     });
 
     const [sql] = lastCall();
     expect(sql).toContain("country_code = $2");
     expect(sql).toContain("item_name = $3");
     expect(sql).toContain("is_loan = $4");
-    expect(sql).toContain("submitted_by = $5");
-    expect(sql).toContain("handled_by = $6");
+  });
+
+  it("rejects client-supplied audit identities (submittedBy/handledBy)", async () => {
+    // These are who-issued/who-returned facts, only ever meant to be
+    // stamped server-side from the authenticated session -- a generic
+    // edit PUT must never be able to forge them.
+    await updateWithArbitraryKeys("spare-1", {
+      itemName: "Widget",
+      submittedBy: "attacker-id",
+      handledBy: "attacker-id",
+    });
+
+    const [sql, values] = lastCall();
+    expect(sql).not.toContain("submitted_by");
+    expect(sql).not.toContain("handled_by");
+    expect(values).toEqual(["spare-1", "Widget"]);
   });
 });
