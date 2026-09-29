@@ -37,7 +37,7 @@ import {
   Code as CodeIcon,
 } from '@mui/icons-material';
 import Link from 'next/link';
-import { kopInventory, getUnitsPerPackage } from '@/data/kop-inventory';
+import { kopInventory, getUnitsPerPackage, getDisplayName } from '@/data/kop-inventory';
 import { ReviewStatus } from '@/lib/types';
 
 interface FGCInventoryItem {
@@ -173,7 +173,7 @@ function NewSparePart() {
             ...item, 
             fgcInventoryId: selectedItem.id,
             partNumber: selectedItem.part_number,
-            description: selectedItem.description,
+            description: getDisplayName(selectedItem.description),
           } : item
         )
       }));
@@ -348,7 +348,7 @@ function NewSparePart() {
                                 <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                                   <Autocomplete
                                     options={fgcInventory}
-                                    getOptionLabel={(option) => `${option.description} - ${option.part_number}`}
+                                    getOptionLabel={(option) => `${getDisplayName(option.description)} - ${option.part_number}`}
                                     groupBy={(option) => option.group_name}
                                     value={fgcInventory.find(inv => inv.id === item.fgcInventoryId) || null}
                                     onChange={(_, newValue) => {
@@ -370,7 +370,7 @@ function NewSparePart() {
                                           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                                             <Box sx={{ flexGrow: 1 }}>
                                               <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                                                {option.description}
+                                                {getDisplayName(option.description)}
                                               </Typography>
                                               <Typography variant="caption" color="text.secondary">
                                                 Part #: {option.part_number}

@@ -19,27 +19,18 @@ import {
   Divider,
   Autocomplete,
   CircularProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
   Chip,
 } from '@mui/material';
 import {
   Save as SaveIcon,
   ArrowBack as ArrowBackIcon,
-  Add as AddIcon,
-  Remove as RemoveIcon,
   Warning as WarningIcon,
   Build as BuildIcon,
   Code as CodeIcon,
 } from '@mui/icons-material';
 import Link from 'next/link';
-import { kopInventory, getUnitsPerPackage } from '@/data/kop-inventory';
-import { ReviewStatus } from '@/lib/types';
+import { kopInventory, getUnitsPerPackage, getDisplayName } from '@/data/kop-inventory';
+import { ReviewStatus, SparePartStatus } from '@/lib/types';
 
 interface FGCInventoryItem {
   id: string;
@@ -51,45 +42,29 @@ interface FGCInventoryItem {
   image_url?: string;
 }
 
-interface IssuedItem {
-  fgcInventoryId: string;
-  partNumber: string;
-  description: string;
-  requestedQuantity: number;
-}
-
+// The real GET /api/spare-parts/[id] response shape (a single spare_parts
+// row -- see SparePart.findById): one row is one issued item, not a batch.
 interface SparePartData {
-  _id: string;
-  countryCode: string;
-  issuedItems: Array<{
-    fgcPartNumber: string;
-    itemName: string;
-    quantity: number;
-  }>;
-  isLoan: boolean;
-  status: 'issued' | 'returned';
-  submittedBy: {
-    _id: string;
-    name: string;
-    email: string;
-  };
-  handledBy?: {
-    _id: string;
-    name: string;
-    email: string;
-  };
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
+  id: string;
+  country_code: string;
+  country_name: string;
+  item_name: string;
+  fgc_part_number?: string;
+  quantity: number;
+  is_loan: boolean;
+  status: SparePartStatus;
+  submitted_by_name?: string;
+  submitted_by_email?: string;
+  notes?: string[];
 }
 
 function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
   const { fetchWithAuth, session, isAuthenticated, isLoading: authLoading } = useAuthenticatedFetch();
   const router = useRouter();
-  
+
   // Unwrap the async params using React.use()
   const { id } = React.use(params);
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -98,13 +73,11 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
   const [loadingInventory, setLoadingInventory] = useState(true);
   const [formData, setFormData] = useState({
     countryCode: '',
+    fgcInventoryId: '',
+    partNumber: '',
+    description: '',
+    quantity: 1,
     notes: '',
-    requestedItems: [{
-      fgcInventoryId: '',
-      partNumber: '',
-      description: '',
-      requestedQuantity: 1,
-    }] as IssuedItem[],
   });
 
   // Load FGC inventory items from static data, filtering out "do not loan" items
@@ -166,37 +139,30 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
     try {
       setIsLoading(true);
       const response = await fetchWithAuth(`/api/spare-parts/${id}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch spare part request');
       }
-      
-      const data = await response.json();
-      setSparePartData(data);
-      
-      // Map issued items to the form structure
-      const mappedItems = data.issuedItems.map((item: { fgcPartNumber: string; itemName: string; quantity: number }) => {
-        // Try to find the matching inventory item
-        const inventoryItem = kopInventory.find(inv => inv.part_number === item.fgcPartNumber);
-        
-        return {
-          fgcInventoryId: inventoryItem?.id || '',
-          partNumber: item.fgcPartNumber,
-          description: item.itemName,
-          requestedQuantity: item.quantity,
-        };
-      });
 
-      // Populate form data
+      const data: SparePartData = await response.json();
+      setSparePartData(data);
+
+      const inventoryItem = kopInventory.find(inv => inv.part_number === data.fgc_part_number);
+
       setFormData({
-        countryCode: data.countryCode,
-        notes: data.notes || '',
-        requestedItems: mappedItems.length > 0 ? mappedItems : [{
-          fgcInventoryId: '',
-          partNumber: '',
-          description: '',
-          requestedQuantity: 1,
-        }],
+        countryCode: data.country_code,
+        fgcInventoryId: inventoryItem?.id || '',
+        partNumber: data.fgc_part_number || '',
+        // Strip a redundant "- N Pack" suffix, but only when there's a
+        // catalog match with a chip to compensate -- a catalog-less
+        // free-text name has no chip, so stripping there would just
+        // destroy real content.
+        description: inventoryItem ? getDisplayName(data.item_name) : data.item_name,
+        quantity: data.quantity,
+        // notes is a TEXT[] in the DB, but there's only ever one free-text
+        // box here (matching how the create form works) -- join for
+        // display and collapse back into a single entry on save.
+        notes: (data.notes || []).join('\n\n'),
       });
     } catch (error) {
       console.error('Error fetching spare part:', error);
@@ -212,58 +178,19 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
     }
   }, [isAuthenticated, fetchSparePart]);
 
-  const addRequestedItem = (afterIndex: number) => {
-    setFormData(prev => {
-      const newItems = [...prev.requestedItems];
-      newItems.splice(afterIndex + 1, 0, {
-        fgcInventoryId: '',
-        partNumber: '',
-        description: '',
-        requestedQuantity: 1,
-      });
-      return {
-        ...prev,
-        requestedItems: newItems
-      };
-    });
-  };
-
-  const removeRequestedItem = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      requestedItems: prev.requestedItems.filter((_, i) => i !== index)
-    }));
-  };
-
-  const handleRequestedItemChange = (index: number, field: keyof IssuedItem, value: string | number | boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      requestedItems: prev.requestedItems.map((item, i) => 
-        i === index ? { ...item, [field]: value } : item
-      )
-    }));
-  };
-
-  const handleInventoryItemSelect = (index: number, selectedItem: FGCInventoryItem | null) => {
-    if (selectedItem) {
-      setFormData(prev => ({
-        ...prev,
-        requestedItems: prev.requestedItems.map((item, i) => 
-          i === index ? { 
-            ...item, 
-            fgcInventoryId: selectedItem.id,
-            partNumber: selectedItem.part_number,
-            description: selectedItem.description,
-          } : item
-        )
-      }));
-    }
-  };
-
-  const handleChange = (field: string, value: string | number | boolean) => {
+  const handleChange = (field: string, value: string | number) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  const handleInventoryItemSelect = (selectedItem: FGCInventoryItem | null) => {
+    setFormData(prev => ({
+      ...prev,
+      fgcInventoryId: selectedItem?.id || '',
+      partNumber: selectedItem?.part_number || '',
+      description: selectedItem ? getDisplayName(selectedItem.description) : '',
     }));
   };
 
@@ -272,32 +199,26 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
     setIsSubmitting(true);
     setError('');
 
-    // Validate that all items have been selected
-    const hasUnselectedItems = formData.requestedItems.some(item => !item.fgcInventoryId);
-    if (hasUnselectedItems) {
-      setError('Please select an FGC inventory item for all items to issue');
+    if (!formData.description.trim()) {
+      setError('Please enter or select an item');
       setIsSubmitting(false);
       return;
     }
 
-    // Validate that all items have valid quantities
-    const hasInvalidQuantities = formData.requestedItems.some(item => item.requestedQuantity <= 0);
-    if (hasInvalidQuantities) {
-      setError('All items must have a quantity greater than 0');
+    if (formData.quantity <= 0) {
+      setError('Quantity must be greater than 0');
       setIsSubmitting(false);
       return;
     }
 
     try {
+      const trimmedNotes = formData.notes.trim();
       const updateData = {
         countryCode: formData.countryCode,
-        issuedItems: formData.requestedItems.map(item => ({
-          fgcPartNumber: item.partNumber,
-          itemName: item.description,
-          quantity: item.requestedQuantity
-        })),
-        notes: formData.notes || '',
-        isLoan: true // Default to loan since this is for tracking items given to teams
+        fgcPartNumber: formData.partNumber || null,
+        itemName: formData.description,
+        quantity: formData.quantity,
+        notes: trimmedNotes ? [trimmedNotes] : null,
       };
 
       const response = await fetchWithAuth(`/api/spare-parts/${id}`, {
@@ -358,6 +279,8 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
     return null;
   }
 
+  const selectedInventoryItem = fgcInventory.find(inv => inv.id === formData.fgcInventoryId);
+
   return (
     <Box sx={{ py: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
@@ -370,10 +293,10 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
           Back
         </Button>
         <Typography variant="h4" component="h1">
-          Edit Spare Parts Issue
+          Edit Spare Part Issue
         </Typography>
       </Box>
-      
+
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
@@ -386,20 +309,18 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
             <Typography variant="body2">
               <strong>Current Status:</strong> {sparePartData.status.charAt(0).toUpperCase() + sparePartData.status.slice(1)}
               <br />
-              <strong>How it works:</strong> Select items from the FGC Kit of Parts inventory.
-              Specify whether each item is for loan (must be returned) or consumable (to be kept).
               Quantity is always the number of individual pieces — for items marked{' '}
               <Chip label="pack of N" size="small" variant="outlined" component="span" sx={{ verticalAlign: 'middle' }} />, count out pieces, not packs.
             </Typography>
           </Alert>
-          
+
           {loadingInventory && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
               <CircularProgress />
               <Typography sx={{ ml: 2 }}>Loading FGC Inventory...</Typography>
             </Box>
           )}
-          
+
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
               <Grid size={12}>
@@ -448,111 +369,101 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
 
               <Grid size={12}>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                  Items to Issue
+                  Item
                 </Typography>
               </Grid>
 
-              <Grid size={12}>
-                <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold' }}>Item</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }} align="center">Qty (individual items)</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold' }} align="center">Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {formData.requestedItems.map((item, index) => (
-                        <TableRow key={`item-${index}`}>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                              <Autocomplete
-                                options={fgcInventory}
-                                getOptionLabel={(option) => `${option.description} - ${option.part_number}`}
-                                groupBy={(option) => option.group_name}
-                                value={fgcInventory.find(inv => inv.id === item.fgcInventoryId) || null}
-                                onChange={(_, newValue) => {
-                                  handleInventoryItemSelect(index, newValue);
-                                }}
-                                renderInput={(params) => (
-                                  <TextField
-                                    {...params}
-                                    size="small"
-                                    placeholder="Search FGC inventory..."
-                                    required
-                                  />
-                                )}
-                                renderOption={(props, option) => {
-                                  const { key, ...otherProps } = props;
-                                  const unitsPerPackage = getUnitsPerPackage(option.part_number);
-                                  return (
-                                    <Box component="li" key={key} {...otherProps}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                                        <Box sx={{ flexGrow: 1 }}>
-                                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                                            {option.description}
-                                          </Typography>
-                                          <Typography variant="caption" color="text.secondary">
-                                            Part #: {option.part_number}
-                                          </Typography>
-                                        </Box>
-                                        {unitsPerPackage > 1 && (
-                                          <Chip label={`pack of ${unitsPerPackage}`} size="small" variant="outlined" sx={{ mr: 1 }} />
-                                        )}
-                                        {getReviewStatusChip(option.review_status)}
-                                      </Box>
-                                    </Box>
-                                  );
-                                }}
-                                disabled={loadingInventory}
-                                sx={{ flexGrow: 1, minWidth: 300 }}
-                              />
-                              {item.fgcInventoryId && fgcInventory.find(inv => inv.id === item.fgcInventoryId) && (
-                                <>
-                                  {getUnitsPerPackage(item.partNumber) > 1 && (
-                                    <Chip label={`pack of ${getUnitsPerPackage(item.partNumber)}`} size="small" variant="outlined" sx={{ ml: 1 }} />
-                                  )}
-                                  {getReviewStatusChip(fgcInventory.find(inv => inv.id === item.fgcInventoryId)!.review_status)}
-                                </>
-                              )}
+              <Grid size={{ xs: 12, sm: 8 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                  <Autocomplete
+                    freeSolo
+                    options={fgcInventory}
+                    getOptionLabel={(option) => typeof option === 'string' ? option : `${getDisplayName(option.description)} - ${option.part_number}`}
+                    groupBy={(option) => option.group_name}
+                    value={selectedInventoryItem || null}
+                    inputValue={formData.description}
+                    onInputChange={(_, newInputValue, reason) => {
+                      // 'input' is the user actually typing; other reasons
+                      // (selecting an option, clearing) are handled by
+                      // onChange below via handleInventoryItemSelect.
+                      if (reason !== 'input') return;
+                      setFormData(prev => ({
+                        ...prev,
+                        description: newInputValue,
+                        // Typing over the name drops any part number link,
+                        // including a stale one not in the current catalog
+                        // (fgcInventoryId already '' there, check partNumber).
+                        ...(prev.partNumber ? { fgcInventoryId: '', partNumber: '' } : {}),
+                      }));
+                    }}
+                    onChange={(_, newValue) => {
+                      if (newValue === null || typeof newValue !== 'string') {
+                        handleInventoryItemSelect(newValue);
+                      }
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Item Name"
+                        placeholder="Type a name, or search the FGC catalog to autofill"
+                        required
+                      />
+                    )}
+                    renderOption={(props, option) => {
+                      const { key, ...otherProps } = props;
+                      const unitsPerPackage = getUnitsPerPackage(option.part_number);
+                      return (
+                        <Box component="li" key={key} {...otherProps}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                            <Box sx={{ flexGrow: 1 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                {getDisplayName(option.description)}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Part #: {option.part_number}
+                              </Typography>
                             </Box>
-                          </TableCell>
-                          <TableCell align="center">
-                            <TextField
-                              size="small"
-                              type="number"
-                              value={item.requestedQuantity}
-                              onChange={(e) => handleRequestedItemChange(index, 'requestedQuantity', parseInt(e.target.value) || 1)}
-                              required
-                              slotProps={{ htmlInput: { min: 1, style: { textAlign: 'center' } } }}
-                              sx={{ width: 80 }}
-                            />
-                          </TableCell>
-                          <TableCell align="center">
-                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                              <IconButton
-                                onClick={() => addRequestedItem(index)}
-                                size="small"
-                                color="primary"
-                              >
-                                <AddIcon />
-                              </IconButton>
-                              <IconButton
-                                onClick={() => removeRequestedItem(index)}
-                                size="small"
-                                color="error"
-                                disabled={formData.requestedItems.length === 1}
-                              >
-                                <RemoveIcon />
-                              </IconButton>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                            {unitsPerPackage > 1 && (
+                              <Chip label={`pack of ${unitsPerPackage}`} size="small" variant="outlined" sx={{ mr: 1 }} />
+                            )}
+                            {getReviewStatusChip(option.review_status)}
+                          </Box>
+                        </Box>
+                      );
+                    }}
+                    disabled={loadingInventory}
+                    sx={{ flexGrow: 1 }}
+                  />
+                  {selectedInventoryItem && (
+                    <>
+                      {getUnitsPerPackage(formData.partNumber) > 1 && (
+                        <Chip label={`pack of ${getUnitsPerPackage(formData.partNumber)}`} size="small" variant="outlined" sx={{ ml: 1 }} />
+                      )}
+                      {getReviewStatusChip(selectedInventoryItem.review_status)}
+                    </>
+                  )}
+                  {!selectedInventoryItem && formData.partNumber && (
+                    <Chip
+                      label={`Not in current catalog (${formData.partNumber})`}
+                      size="small"
+                      variant="outlined"
+                      color="warning"
+                      sx={{ ml: 1 }}
+                    />
+                  )}
+                </Box>
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Qty (individual items)"
+                  value={formData.quantity}
+                  onChange={(e) => handleChange('quantity', parseInt(e.target.value) || 1)}
+                  required
+                  slotProps={{ htmlInput: { min: 1 } }}
+                />
               </Grid>
 
               <Grid size={12}>
