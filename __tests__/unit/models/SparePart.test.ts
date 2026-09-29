@@ -6,7 +6,7 @@ jest.unmock("../../../src/models/SparePart");
 // module-level import still needs to resolve under Jest's CJS transform.
 jest.mock("uuid", () => ({ v4: () => "mock-uuid" }));
 
-import { SparePart } from "../../../src/models/SparePart";
+import { SparePart, SparePartUpdateInput } from "../../../src/models/SparePart";
 import { query } from "../../../src/lib/database";
 
 jest.mock("../../../src/lib/database", () => ({
@@ -24,12 +24,11 @@ jest.mock("../../../src/lib/season", () => ({
 
 const mockQuery = query as jest.MockedFunction<typeof query>;
 
-// SparePart.update() accepts camelCase update keys (fgcPartNumber, etc.)
-// that aren't part of the ISparePart interface itself -- these tests pass
-// them loosely, the same way the PUT route forwards an arbitrary request
-// body today.
-function update(id: string, updates: Record<string, unknown>) {
-  return SparePart.update(id, updates as never);
+// The two "rejects a bad key" tests below need to construct a payload that
+// isn't valid SparePartUpdateInput on purpose -- that's the whole point of
+// the test. Real callers go through SparePart.update() directly.
+function updateWithArbitraryKeys(id: string, updates: Record<string, unknown>) {
+  return SparePart.update(id, updates as SparePartUpdateInput);
 }
 
 function lastCall(): [string, unknown[]] {
@@ -45,7 +44,7 @@ describe("SparePart.update", () => {
   });
 
   it("maps fgcPartNumber to the fgc_part_number column", async () => {
-    await update("spare-1", { fgcPartNumber: "REV-41-1001" });
+    await SparePart.update("spare-1", { fgcPartNumber: "REV-41-1001" });
 
     const [sql, values] = lastCall();
     expect(sql).toContain("fgc_part_number = $2");
@@ -53,7 +52,7 @@ describe("SparePart.update", () => {
   });
 
   it("passes notes through as a real array, not a JSON string", async () => {
-    await update("spare-1", { notes: ["team requested extra"] });
+    await SparePart.update("spare-1", { notes: ["team requested extra"] });
 
     const [sql, values] = lastCall();
     expect(sql).toContain("notes = $2");
@@ -65,7 +64,7 @@ describe("SparePart.update", () => {
   });
 
   it("clears notes when given null", async () => {
-    await update("spare-1", { notes: null });
+    await SparePart.update("spare-1", { notes: null });
 
     const [, values] = lastCall();
     expect(values).toEqual(["spare-1", null]);
@@ -75,7 +74,7 @@ describe("SparePart.update", () => {
     // updates comes straight from a PUT request body -- an arbitrary key
     // must never reach the query string, or it's a SQL injection vector.
     // A legitimate key alongside it should still work normally.
-    await update("spare-1", {
+    await updateWithArbitraryKeys("spare-1", {
       itemName: "Widget",
       "status = 'returned'; --": "malicious",
     });
@@ -88,14 +87,14 @@ describe("SparePart.update", () => {
   });
 
   it("throws when no updatable fields are provided", async () => {
-    await expect(update("spare-1", { notAColumn: "x" })).rejects.toThrow(
-      "No valid updates provided"
-    );
+    await expect(
+      updateWithArbitraryKeys("spare-1", { notAColumn: "x" })
+    ).rejects.toThrow("No valid updates provided");
     expect(mockQuery).not.toHaveBeenCalled();
   });
 
   it("still maps the previously-supported camelCase fields", async () => {
-    await update("spare-1", {
+    await SparePart.update("spare-1", {
       countryCode: "GBR",
       itemName: "36in PWM Cable",
       isLoan: true,

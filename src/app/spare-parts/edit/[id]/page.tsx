@@ -154,10 +154,13 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
         fgcInventoryId: inventoryItem?.id || '',
         partNumber: data.fgc_part_number || '',
         // Older records may still have the pack size baked into the
-        // stored name (e.g. "... - 100 Pack") from before that became
-        // the pack chip's job -- clean it up here too, since saving this
-        // edit will persist whatever's in `description`.
-        description: getDisplayName(data.item_name),
+        // stored name (e.g. "... - 100 Pack") from before that became the
+        // pack chip's job -- clean it up here too, since saving this edit
+        // will persist whatever's in `description`. Only when there's an
+        // actual catalog match, though: a catalog-less free-text name has
+        // no chip to compensate for the removed text, so stripping it
+        // there would silently destroy real, user-authored content.
+        description: inventoryItem ? getDisplayName(data.item_name) : data.item_name,
         quantity: data.quantity,
         // notes is a TEXT[] in the DB, but there's only ever one free-text
         // box here (matching how the create form works) -- join for

@@ -4,6 +4,20 @@ import { ISparePart } from '@/lib/types';
 import { getCountryName } from '@/lib/countryUtils';
 import { getCurrentSeason } from '@/lib/season';
 
+// The real accepted shape for SparePart.update() -- camelCase, matching
+// the PUT route's request body, not ISparePart's snake_case DB row shape
+// (update() never reads snake_case keys from its input).
+export interface SparePartUpdateInput {
+  countryCode?: string;
+  itemName?: string;
+  quantity?: number;
+  isLoan?: boolean;
+  submittedBy?: string;
+  handledBy?: string;
+  fgcPartNumber?: string | null;
+  notes?: string[] | null;
+}
+
 export class SparePart {
   static async findById(id: string): Promise<ISparePart | null> {
     try {
@@ -138,8 +152,10 @@ export class SparePart {
 
   // updates comes straight from the PUT request body -- an explicit
   // allowlist here isn't just tidiness, it's what stops an arbitrary JSON
-  // key from being interpolated directly into the SQL SET clause.
-  private static readonly UPDATABLE_COLUMNS: Record<string, string> = {
+  // key from being interpolated directly into the SQL SET clause. Typed
+  // against SparePartUpdateInput's keys so the two can't silently drift
+  // apart (a field added to one without the other is a compile error).
+  private static readonly UPDATABLE_COLUMNS: Record<keyof SparePartUpdateInput, string> = {
     countryCode: 'country_code',
     itemName: 'item_name',
     quantity: 'quantity',
@@ -150,14 +166,14 @@ export class SparePart {
     notes: 'notes',
   };
 
-  static async update(id: string, updates: Partial<ISparePart>): Promise<ISparePart | null> {
+  static async update(id: string, updates: SparePartUpdateInput): Promise<ISparePart | null> {
     try {
       const setParts: string[] = [];
       const values: unknown[] = [id];
       let paramCount = 1;
 
       Object.entries(updates).forEach(([key, value]) => {
-        const columnName = SparePart.UPDATABLE_COLUMNS[key];
+        const columnName = SparePart.UPDATABLE_COLUMNS[key as keyof SparePartUpdateInput];
         if (!columnName) return; // Unknown/disallowed key -- never reaches the query.
 
         setParts.push(`${columnName} = $${++paramCount}`);
