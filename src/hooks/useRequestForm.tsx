@@ -335,12 +335,13 @@ export function useRequestForm({
     setSoftwareData(EMPTY_SOFTWARE_DATA);
     setMachineShopData(EMPTY_MACHINE_SHOP_DATA);
     setBatteryChargingData(EMPTY_BATTERY_CHARGING_DATA);
-    // Battery charging has no assignee field (there's no one to work the
-    // ticket) -- a value carried over from a prior type must not silently
-    // ride along into a battery_charging entry.
-    if (newType === 'battery_charging') {
-      setFormData((prev) => ({ ...prev, assigned_to: '' }));
-    }
+    // Eligible assignees are re-fetched per type (filtered by
+    // `${type}.assignee`) and that fetch is async, so a value carried over
+    // from the previous type could briefly (or, for battery_charging,
+    // permanently -- it has no assignee field at all) reference someone
+    // ineligible for the new type. Only staging another item of the *same*
+    // type (addEntry) should preserve it.
+    setFormData((prev) => ({ ...prev, assigned_to: '' }));
   };
 
   const handleHardwareChange = (data: Partial<HardwareRequestData>) => {
