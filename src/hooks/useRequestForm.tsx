@@ -48,6 +48,52 @@ export const ALL_TYPE_OPTIONS = [
   { value: "battery_charging", label: "Battery Charging", icon: <BatteryChargingFullRounded /> },
 ];
 
+// Hardware/software each report one distinct problem, so "add another"
+// doesn't map to anything real for them. A team visit legitimately often
+// needs several different machine shop jobs or loaner batteries at once.
+const MULTI_ENTRY_TYPES = ['machine_shop', 'battery_charging'];
+
+// One queued item in a multi-entry create batch (see addEntry/removeEntry
+// below) -- a snapshot of everything handleSubmit would otherwise read
+// straight off live state, since by the time this entry is actually
+// submitted the form has moved on to staging the next one.
+export interface PendingEntry {
+  type: string;
+  comments: string;
+  assigned_to: string;
+  hardwareData?: HardwareRequestData;
+  softwareData?: SoftwareRequestData;
+  machineShopData?: MachineShopRequestData;
+  batteryChargingData?: BatteryChargingRequestData;
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  hardware: 'Hardware',
+  software: 'Software',
+  machine_shop: 'Machine Shop',
+  battery_charging: 'Battery Charging',
+};
+
+// A short, human-readable summary of one entry for the queued-items list.
+function summarizeEntry(entry: PendingEntry): string {
+  const label = TYPE_LABELS[entry.type] || entry.type;
+  switch (entry.type) {
+    case 'hardware':
+      return `${label} — ${entry.hardwareData?.type || 'Untitled'}`;
+    case 'software':
+      return `${label} — ${entry.softwareData?.type || 'Untitled'}`;
+    case 'machine_shop':
+      return `${label} — ${entry.machineShopData?.action || 'Untitled'}`;
+    case 'battery_charging': {
+      const deviceLabel = entry.batteryChargingData?.batteryType === 'driver_hub' ? 'Driver Hub' : 'Robot Controller';
+      const number = entry.batteryChargingData?.loanerBatteryNumber;
+      return `${label} — ${deviceLabel}${number ? ` #${number}` : ''}`;
+    }
+    default:
+      return label;
+  }
+}
+
 export const STATUS_OPTIONS = [
   { value: "open", label: "Open" },
   { value: "in-progress", label: "In Progress" },
@@ -97,6 +143,9 @@ export function useRequestForm({
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [users, setUsers] = useState<IUserSummary[]>([]);
   const [outstandingBatteryRequests, setOutstandingBatteryRequests] = useState<IRequest[]>([]);
+  // Create mode only: items already staged for this batch, waiting behind
+  // whatever's currently live in the form fields. See addEntry/removeEntry.
+  const [pendingEntries, setPendingEntries] = useState<PendingEntry[]>([]);
   const [availableBatteryNumbers, setAvailableBatteryNumbers] = useState<number[]>([]);
 
   const resetForm = () => {
@@ -105,6 +154,7 @@ export function useRequestForm({
     setSoftwareData(EMPTY_SOFTWARE_DATA);
     setMachineShopData(EMPTY_MACHINE_SHOP_DATA);
     setBatteryChargingData(EMPTY_BATTERY_CHARGING_DATA);
+    setPendingEntries([]);
     setError("");
     setValidationErrors({});
   };
@@ -228,6 +278,16 @@ export function useRequestForm({
       return;
     }
 
+    // Numbers already staged in this batch aren't reserved server-side yet,
+    // so the fetch below would still call them "available" -- exclude them
+    // here or a batch could queue the same physical unit twice.
+    const stagedNumbers = new Set(
+      pendingEntries
+        .filter((entry) => entry.type === 'battery_charging' && entry.batteryChargingData?.batteryType === batteryChargingData.batteryType)
+        .map((entry) => entry.batteryChargingData?.loanerBatteryNumber)
+        .filter((n): n is number => n !== undefined)
+    );
+
     let cancelled = false;
     const fetchAvailable = async () => {
       try {
@@ -238,7 +298,8 @@ export function useRequestForm({
             units
               .filter((u) =>
                 u.device_type === batteryChargingData.batteryType &&
-                (u.status === 'available' || (mode === 'edit' && u.request_id === request?.id))
+                (u.status === 'available' || (mode === 'edit' && u.request_id === request?.id)) &&
+                !stagedNumbers.has(u.number)
               )
               .map((u) => u.number)
               .sort((a, b) => a - b)
@@ -253,7 +314,7 @@ export function useRequestForm({
     return () => {
       cancelled = true;
     };
-  }, [mode, formData.type, batteryChargingData.loanerProvided, batteryChargingData.batteryType, request?.id]);
+  }, [mode, formData.type, batteryChargingData.loanerProvided, batteryChargingData.batteryType, request?.id, pendingEntries]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: unknown } }) => {
     const { name, value } = e.target;
@@ -399,6 +460,43 @@ export function useRequestForm({
 
   const isFormValid = () => Object.keys(validateFormData()).length === 0;
 
+  // Only offered for types where a single visit plausibly needs several
+  // (see MULTI_ENTRY_TYPES); fixedType hosts for hardware/software never
+  // show it, and on the general intake page it appears/disappears as the
+  // clerk switches type.
+  const canAddMultiple = mode === 'create' && MULTI_ENTRY_TYPES.includes(formData.type);
+
+  // Stages the current type-specific fields as a queued item and clears
+  // them for the next one. Country/type carry over -- a batch is one
+  // team's visit, usually (though not necessarily) all the same type.
+  const addEntry = () => {
+    const errors = validateFormData();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setError('Please fix the validation errors before adding this item');
+      return;
+    }
+
+    const entry: PendingEntry = {
+      type: formData.type,
+      comments: formData.comments,
+      assigned_to: formData.assigned_to,
+      ...(formData.type === 'machine_shop' ? { machineShopData } : {}),
+      ...(formData.type === 'battery_charging' ? { batteryChargingData } : {}),
+    };
+    setPendingEntries((prev) => [...prev, entry]);
+
+    setMachineShopData(EMPTY_MACHINE_SHOP_DATA);
+    setBatteryChargingData(EMPTY_BATTERY_CHARGING_DATA);
+    setFormData((prev) => ({ ...prev, comments: '', assigned_to: '' }));
+    setError('');
+    setValidationErrors({});
+  };
+
+  const removeEntry = (index: number) => {
+    setPendingEntries((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -462,50 +560,79 @@ export function useRequestForm({
         const updatedRequest = await response.json();
         onRequestUpdated?.(updatedRequest);
       } else {
-        const requestBody: {
-          countryCode: string;
-          type: string;
-          comments?: string;
-          assignedTo?: string;
-          hardwareData?: HardwareRequestData;
-          softwareData?: SoftwareRequestData;
-          machineShopData?: MachineShopRequestData;
-          batteryChargingData?: BatteryChargingRequestData;
-        } = {
-          countryCode: formData.country_code,
-          type: formData.type,
-          comments: formData.comments?.trim() || undefined,
-          assignedTo: formData.assigned_to || undefined,
+        const buildCreateBody = (entry: PendingEntry) => {
+          const body: {
+            countryCode: string;
+            type: string;
+            comments?: string;
+            assignedTo?: string;
+            hardwareData?: HardwareRequestData;
+            softwareData?: SoftwareRequestData;
+            machineShopData?: MachineShopRequestData;
+            batteryChargingData?: BatteryChargingRequestData;
+          } = {
+            countryCode: formData.country_code,
+            type: entry.type,
+            comments: entry.comments?.trim() || undefined,
+            assignedTo: entry.assigned_to || undefined,
+          };
+
+          switch (entry.type) {
+            case "hardware":
+              body.hardwareData = entry.hardwareData;
+              break;
+            case "software":
+              body.softwareData = entry.softwareData;
+              break;
+            case "machine_shop":
+              body.machineShopData = entry.machineShopData;
+              break;
+            case "battery_charging":
+              body.batteryChargingData = entry.batteryChargingData;
+              break;
+          }
+
+          return body;
         };
 
-        switch (formData.type) {
-          case "hardware":
-            requestBody.hardwareData = hardwareData;
-            break;
-          case "software":
-            requestBody.softwareData = softwareData;
-            break;
-          case "machine_shop":
-            requestBody.machineShopData = machineShopData;
-            break;
-          case "battery_charging":
-            requestBody.batteryChargingData = batteryChargingData;
-            break;
+        // The batch is whatever's already queued, plus whatever's live in
+        // the form right now (submitting without ever using "Add Another"
+        // is just a one-item batch).
+        const queueSnapshot = pendingEntries;
+        const allEntries: PendingEntry[] = [
+          ...queueSnapshot,
+          { type: formData.type, comments: formData.comments, assigned_to: formData.assigned_to, hardwareData, softwareData, machineShopData, batteryChargingData },
+        ];
+
+        let succeeded = 0;
+        try {
+          for (const entry of allEntries) {
+            const response = await fetch('/api/requests', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(buildCreateBody(entry)),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Failed to create request');
+            }
+
+            const newRequest = await response.json();
+            onRequestCreated?.(newRequest);
+            succeeded++;
+          }
+          setPendingEntries([]);
+        } catch (batchErr) {
+          // Drop only the queued entries that already went through, so a
+          // retry doesn't resubmit them; leave the rest (including
+          // whatever's live in the form) exactly as the user left it.
+          setPendingEntries(queueSnapshot.slice(succeeded));
+          const message = batchErr instanceof Error ? batchErr.message : 'Failed to create request';
+          throw new Error(
+            allEntries.length > 1 ? `Created ${succeeded} of ${allEntries.length} item(s), then: ${message}` : message
+          );
         }
-
-        const response = await fetch('/api/requests', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create request');
-        }
-
-        const newRequest = await response.json();
-        onRequestCreated?.(newRequest);
       }
 
       onSuccess?.();
@@ -572,6 +699,18 @@ export function useRequestForm({
     typeOptions,
     typeLocked,
     resetForm,
+    pendingEntries,
+    pendingEntrySummaries: pendingEntries.map(summarizeEntry),
+    canAddMultiple,
+    addEntry,
+    removeEntry,
+    submitLabel: loading
+      ? (mode === 'create' ? 'Creating...' : 'Updating...')
+      : mode === 'edit'
+        ? 'Update Request'
+        : pendingEntries.length > 0
+          ? `Create ${pendingEntries.length + 1} Requests`
+          : 'Create Request',
   };
 }
 
