@@ -470,8 +470,14 @@ export function useRequestForm({
   // Whether there's something submittable right now. A queued batch can be
   // submitted with a blank live form (every item already staged via "Add
   // Another Item") -- only a truly empty submission (no queue, invalid live
-  // form) should actually block the button.
-  const canSubmit = () => isFormValid() || (mode === 'create' && pendingEntries.length > 0);
+  // form) should actually block the button. Country is the one exception:
+  // every queued POST is built from the current live country_code (see
+  // handleSubmit), so a batch can never be submitted without it, queue or not.
+  const canSubmit = () => {
+    if (mode !== 'create') return isFormValid();
+    if (!formData.country_code) return false;
+    return isFormValid() || pendingEntries.length > 0;
+  };
 
   // An invalid live form is only safe to silently leave out of a batch
   // submit if it's untouched (the user staged every item and never started
@@ -545,7 +551,12 @@ export function useRequestForm({
     const errors = validateFormData();
     const liveEntryValid = Object.keys(errors).length === 0;
     const hasQueue = mode === 'create' && pendingEntries.length > 0;
-    if (!liveEntryValid && !(hasQueue && isLiveEntryBlank())) {
+    // Country is shared across the whole batch (every queued POST is built
+    // from this one live value, not a per-entry snapshot -- see
+    // buildCreateBody below), so a missing country blocks submission
+    // unconditionally, even if the rest of the live form is blank.
+    const missingCountry = mode === 'create' && !formData.country_code?.trim();
+    if (missingCountry || (!liveEntryValid && !(hasQueue && isLiveEntryBlank()))) {
       setValidationErrors(errors);
       setError(`Please fix the validation errors before ${mode === 'create' ? 'submitting' : 'saving'}`);
       return;

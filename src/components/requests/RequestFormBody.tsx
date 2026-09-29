@@ -58,6 +58,12 @@ export default function RequestFormBody({ state }: RequestFormBodyProps) {
   // about, in either create or edit mode.
   const isBatteryCharging = formData.type === 'battery_charging';
 
+  // Country is shared across a whole staged batch (every queued POST is
+  // built from this one live value, not a per-entry snapshot) -- once
+  // there's a queue, changing or clearing it would silently reassign
+  // already-staged entries to a different team.
+  const hasQueuedEntries = pendingEntrySummaries.length > 0;
+
   return (
     <Box component="form" onSubmit={state.handleSubmit} sx={{ mt: 1 }}>
       {error && (
@@ -68,7 +74,7 @@ export default function RequestFormBody({ state }: RequestFormBodyProps) {
 
       {/* Country */}
       <Autocomplete
-        disabled={mode === 'edit'}
+        disabled={mode === 'edit' || hasQueuedEntries}
         sx={{ mb: 3 }}
         value={countries.find(c => c.code === formData.country_code) || null}
         options={countries}
