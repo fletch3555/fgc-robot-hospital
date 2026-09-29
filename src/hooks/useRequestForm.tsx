@@ -278,6 +278,16 @@ export function useRequestForm({
       return;
     }
 
+    // Numbers already staged in this batch aren't reserved server-side yet,
+    // so the fetch below would still call them "available" -- exclude them
+    // here or a batch could queue the same physical unit twice.
+    const stagedNumbers = new Set(
+      pendingEntries
+        .filter((entry) => entry.type === 'battery_charging' && entry.batteryChargingData?.batteryType === batteryChargingData.batteryType)
+        .map((entry) => entry.batteryChargingData?.loanerBatteryNumber)
+        .filter((n): n is number => n !== undefined)
+    );
+
     let cancelled = false;
     const fetchAvailable = async () => {
       try {
@@ -288,7 +298,8 @@ export function useRequestForm({
             units
               .filter((u) =>
                 u.device_type === batteryChargingData.batteryType &&
-                (u.status === 'available' || (mode === 'edit' && u.request_id === request?.id))
+                (u.status === 'available' || (mode === 'edit' && u.request_id === request?.id)) &&
+                !stagedNumbers.has(u.number)
               )
               .map((u) => u.number)
               .sort((a, b) => a - b)
@@ -303,7 +314,7 @@ export function useRequestForm({
     return () => {
       cancelled = true;
     };
-  }, [mode, formData.type, batteryChargingData.loanerProvided, batteryChargingData.batteryType, request?.id]);
+  }, [mode, formData.type, batteryChargingData.loanerProvided, batteryChargingData.batteryType, request?.id, pendingEntries]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: unknown } }) => {
     const { name, value } = e.target;

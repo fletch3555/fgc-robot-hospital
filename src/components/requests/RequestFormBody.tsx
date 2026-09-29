@@ -221,7 +221,7 @@ export default function RequestFormBody({ state }: RequestFormBodyProps) {
       {/* Multiple entries per visit -- only offered for types where that's
           a real thing (machine shop jobs, loaner batteries), not hardware/
           software (each report is its own distinct problem). */}
-      {canAddMultiple && (
+      {(canAddMultiple || pendingEntrySummaries.length > 0) && (
         <Box sx={{ mb: 3 }}>
           {pendingEntrySummaries.length > 0 && (
             <Stack spacing={1} sx={{ mb: 2 }}>
@@ -235,9 +235,11 @@ export default function RequestFormBody({ state }: RequestFormBodyProps) {
               ))}
             </Stack>
           )}
-          <Button startIcon={<AddIcon />} onClick={addEntry} disabled={!formData.country_code}>
-            Add Another Item
-          </Button>
+          {canAddMultiple && (
+            <Button startIcon={<AddIcon />} onClick={addEntry} disabled={!formData.country_code}>
+              Add Another Item
+            </Button>
+          )}
         </Box>
       )}
 
