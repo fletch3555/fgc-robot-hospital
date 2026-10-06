@@ -4,7 +4,7 @@
  * Tests for static country data structure and filtering logic
  */
 
-import { countries } from '@/data/countries';
+import { countries, matchesTeamQuery, searchTeams } from '@/data/countries';
 
 describe('Countries Data Unit Tests', () => {
   describe('Countries data structure', () => {
@@ -33,6 +33,30 @@ describe('Countries Data Unit Tests', () => {
         expect(country.name.trim()).toBeTruthy();
         expect(country.code.trim()).toBeTruthy();
       });
+    });
+  });
+
+  describe('matchesTeamQuery / searchTeams', () => {
+    it('matches by name or by 3-letter code', () => {
+      expect(matchesTeamQuery({ code: 'USA', name: 'United States' }, 'united')).toBe(true);
+      expect(matchesTeamQuery({ code: 'USA', name: 'United States' }, 'usa')).toBe(true);
+      expect(matchesTeamQuery({ code: 'USA', name: 'United States' }, 'mex')).toBe(false);
+    });
+
+    it('matches an unaccented query against an accented name', () => {
+      // These are real entries in countries -- an unaccented, ASCII-only
+      // query should still find them (see Copilot finding on PR #34).
+      expect(searchTeams('cote').some(c => c.code === 'CIV')).toBe(true);
+      expect(searchTeams('turkiye').some(c => c.code === 'TUR')).toBe(true);
+      expect(searchTeams('sao tome').some(c => c.code === 'STP')).toBe(true);
+    });
+
+    it('still matches when the query itself is accented', () => {
+      expect(searchTeams('Côte').some(c => c.code === 'CIV')).toBe(true);
+    });
+
+    it('returns every team for an empty query', () => {
+      expect(searchTeams('')).toHaveLength(countries.length);
     });
   });
 

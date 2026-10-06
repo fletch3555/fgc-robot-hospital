@@ -225,13 +225,19 @@ export const getTeamByCountryCode = (code: string): CountryInfo | undefined => {
   return countries.find(country => country.code === code);
 };
 
+// Strips combining diacritical marks after Unicode-decomposing accented
+// characters, so a plain-ASCII search (e.g. "cote", "turkiye") still matches
+// names like "Côte d'Ivoire" or "Türkiye" that a bare .toLowerCase() can't.
+const normalize = (value: string): string =>
+  value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
 // Shared by searchTeams below and every country/team Autocomplete's
 // filterOptions, so "matches" has one definition instead of each caller
 // relying on its own getOptionLabel string to incidentally support code search.
 export const matchesTeamQuery = (team: { code: string; name: string }, query: string): boolean => {
-  const searchTerm = query.toLowerCase().trim();
+  const searchTerm = normalize(query.trim());
   if (!searchTerm) return true;
-  return team.name.toLowerCase().includes(searchTerm) || team.code.toLowerCase().includes(searchTerm);
+  return normalize(team.name).includes(searchTerm) || team.code.toLowerCase().includes(searchTerm);
 };
 
 export const searchTeams = (query: string): CountryInfo[] => {
