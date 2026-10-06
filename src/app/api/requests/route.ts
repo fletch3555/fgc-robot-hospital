@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     const { session } = authz;
 
     const body = await req.json();
-    const { countryCode, type, comments, assignedTo, hardwareData, softwareData, machineShopData, batteryChargingData } = body;
+    const { countryCode, type, comments, assignedTo, hardwareData, softwareData, machineShopData, batteryChargingData, confirmedSupersedeRequestId } = body;
 
     if (!countryCode || !type || !VALID_REQUEST_TYPES.includes(type)) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -91,6 +91,16 @@ export async function POST(req: NextRequest) {
     const typeAuthz = await checkPermissions([`${type}.create` as PermissionName]);
     if (!typeAuthz.authorized) {
       return typeAuthz.response!;
+    }
+
+    // Confirming a battery is actually returned (by picking a checked-out unit and closing
+    // its stale loan) is what the dedicated Return button already requires -- gate it the
+    // same way here, server-side, regardless of what the client's UI allowed.
+    if (confirmedSupersedeRequestId) {
+      const returnAuthz = await checkPermissions(['battery_charging.return']);
+      if (!returnAuthz.authorized) {
+        return returnAuthz.response!;
+      }
     }
 
     await connectToDatabase();
@@ -142,7 +152,13 @@ export async function POST(req: NextRequest) {
             queryFn,
             batteryChargingData.batteryType,
             batteryChargingData.loanerBatteryNumber,
-            getCurrentSeason()
+            getCurrentSeason(),
+            undefined,
+            confirmedSupersedeRequestId || undefined,
+            confirmedSupersedeRequestId ? submittedById : undefined,
+            confirmedSupersedeRequestId
+              ? `Closed automatically: battery_charging #${batteryChargingData.loanerBatteryNumber} was re-loaned to ${countryCode.toUpperCase()} before being marked returned.`
+              : undefined
           );
           return Request.create(requestData, queryFn);
         })

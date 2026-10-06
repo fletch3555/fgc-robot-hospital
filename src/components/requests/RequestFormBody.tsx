@@ -17,7 +17,7 @@ import {
   IconButton,
 } from "@mui/material";
 import { Add as AddIcon, Close as CloseIcon } from "@mui/icons-material";
-import { countries } from '@/data/countries';
+import { countries, matchesTeamQuery } from '@/data/countries';
 import { RequestFormState, STATUS_OPTIONS } from '@/hooks/useRequestForm';
 import CountryFlag from '@/components/common/CountryFlag';
 
@@ -79,6 +79,7 @@ export default function RequestFormBody({ state }: RequestFormBodyProps) {
         value={countries.find(c => c.code === formData.country_code) || null}
         options={countries}
         getOptionLabel={(option) => option.name}
+        filterOptions={(options, { inputValue }) => options.filter((o) => matchesTeamQuery(o, inputValue))}
         onChange={mode === 'create' ? (_, newValue) => {
           handleChange({ target: { name: 'country_code', value: newValue?.code || "" } });
         } : undefined}

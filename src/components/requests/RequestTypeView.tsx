@@ -318,6 +318,13 @@ export default function RequestTypeView({ type, title, icon }: RequestTypeViewPr
               <Typography variant="caption" color="text.secondary">
                 {formatRequestDate(request.updated_at || request.created_at)}
               </Typography>
+              {/* battery_charging normally has no comments (hidden in the form) -- when
+                  present, it's the audit note from an auto-closed stale loan. */}
+              {request.comments && (
+                <Typography variant="caption" color="warning.dark" sx={{ display: 'block' }}>
+                  {request.comments}
+                </Typography>
+              )}
             </Box>
           </Stack>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>

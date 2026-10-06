@@ -255,7 +255,9 @@ describe("/api/requests", () => {
       const response = await POST(request);
 
       expect(response.status).toBe(201);
-      expect(reserveBatteryUnit).toHaveBeenCalledWith(expect.anything(), "robot_controller", 3, expect.any(Number));
+      expect(reserveBatteryUnit).toHaveBeenCalledWith(
+        expect.anything(), "robot_controller", 3, expect.any(Number), undefined, undefined, undefined, undefined
+      );
     });
 
     it("should return 409 when the requested loaner unit is already taken", async () => {
@@ -278,6 +280,63 @@ describe("/api/requests", () => {
       expect(response.status).toBe(409);
       expect(data.error).toMatch(/already checked out/);
       expect(Request.create).not.toHaveBeenCalled();
+    });
+
+    it("should return 403 when confirming a stale-loan override without battery_charging.return", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.create', 'battery_charging.create']); // no .return
+      (User.findById as jest.Mock).mockResolvedValue({ id: mockSession.user.id });
+
+      const batteryChargingData = { batteryType: "robot_controller", loanerProvided: true, loanerBatteryNumber: 3 };
+      const request = new NextRequest("http://localhost:3000/api/requests", {
+        method: "POST",
+        body: JSON.stringify({
+          countryCode: "US",
+          type: "battery_charging",
+          batteryChargingData,
+          confirmedSupersedeRequestId: "stale-request-id",
+        }),
+      });
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(403);
+      expect(reserveBatteryUnit).not.toHaveBeenCalled();
+      expect(Request.create).not.toHaveBeenCalled();
+    });
+
+    it("should pass the confirmed supersede id through to reserveBatteryUnit when authorized", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.create', 'battery_charging.create', 'battery_charging.return']);
+      (User.findById as jest.Mock).mockResolvedValue({ id: mockSession.user.id });
+
+      const batteryChargingData = { batteryType: "robot_controller", loanerProvided: true, loanerBatteryNumber: 3 };
+      const mockCreatedRequest = { id: "new-id", type: "battery_charging", battery_charging_data: batteryChargingData };
+      (Request.create as jest.Mock).mockResolvedValue(mockCreatedRequest);
+
+      const request = new NextRequest("http://localhost:3000/api/requests", {
+        method: "POST",
+        body: JSON.stringify({
+          countryCode: "US",
+          type: "battery_charging",
+          batteryChargingData,
+          confirmedSupersedeRequestId: "stale-request-id",
+        }),
+      });
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(201);
+      expect(reserveBatteryUnit).toHaveBeenCalledWith(
+        expect.anything(),
+        "robot_controller",
+        3,
+        expect.any(Number),
+        undefined,
+        "stale-request-id",
+        mockSession.user.id,
+        expect.stringContaining("US")
+      );
     });
 
     it("should return 400 for missing required fields", async () => {

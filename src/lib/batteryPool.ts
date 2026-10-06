@@ -82,7 +82,14 @@ export async function reserveBatteryUnit(
   deviceType: BatteryDeviceType,
   number: number,
   season: number,
-  excludeRequestId?: string
+  excludeRequestId?: string,
+  // When the conflicting request's id matches supersedeRequestId exactly (re-checked here,
+  // under the same advisory lock -- never trusted from the caller's earlier snapshot), close
+  // that stale loan instead of rejecting the claim. Covers a battery that was physically
+  // returned without anyone clicking "Return" first.
+  supersedeRequestId?: string,
+  supersededBy?: string,
+  supersedeNote?: string
 ): Promise<void> {
   await queryFn('SELECT pg_advisory_xact_lock(hashtext($1))', [`battery_unit:${season}:${deviceType}:${number}`]);
 
@@ -108,6 +115,15 @@ export async function reserveBatteryUnit(
     [deviceType, number, season, excludeRequestId ?? null]
   );
   if ((conflict.rowCount ?? 0) > 0) {
+    const conflictingId = conflict.rows[0].id;
+    if (supersedeRequestId && conflictingId === supersedeRequestId) {
+      await queryFn(
+        `UPDATE requests SET status = 'completed', handled_by = $2, comments = $3, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [conflictingId, supersededBy ?? null, supersedeNote ?? null]
+      );
+      return;
+    }
     throw new BatteryUnitConflictError(`${deviceType} #${number} is already checked out to another team`);
   }
 }

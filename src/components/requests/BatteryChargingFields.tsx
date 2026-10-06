@@ -14,7 +14,7 @@ import {
   Alert,
 } from '@mui/material';
 import { BatteryChargingFullRounded } from '@mui/icons-material';
-import { BatteryChargingRequestData, BatteryDeviceType } from '@/lib/types';
+import { BatteryChargingRequestData, BatteryDeviceType, IBatteryUnit } from '@/lib/types';
 
 const DEVICE_LABELS: Record<BatteryDeviceType, string> = {
   robot_controller: 'Robot Controller',
@@ -25,9 +25,16 @@ export interface BatteryChargingFieldsProps {
   data: BatteryChargingRequestData;
   onChange: (data: Partial<BatteryChargingRequestData>) => void;
   errors?: {[key: string]: string};
-  /** Selectable numbers for the current device type: free units, plus --
-   * when editing an existing request -- the one already checked out to it. */
-  availableBatteryNumbers?: number[];
+  /** Every unit of the current device type, available or checked out. */
+  batteryUnitOptions?: IBatteryUnit[];
+  /** Called with the chosen unit instead of onChange, so the confirm-before-
+   * overriding-a-stale-loan logic can live in the caller (which owns the
+   * submission-time bookkeeping) rather than here. */
+  onSelectNumber?: (unit: IBatteryUnit) => void;
+  /** Whether this user may pick a unit that's still shown checked out to
+   * someone else -- mirrors the battery_charging.return permission gating
+   * the existing one-click Return button. */
+  canOverrideLoan?: boolean;
 }
 
 // Utility function to serialize form data for battery charging requests
@@ -36,7 +43,7 @@ export const serializeBatteryChargingData = (formData: FormData): BatteryChargin
   loanerProvided: formData.get('loanerProvided') !== null,
 });
 
-export default function BatteryChargingFields({ data, onChange, errors = {}, availableBatteryNumbers = [] }: BatteryChargingFieldsProps) {
+export default function BatteryChargingFields({ data, onChange, errors = {}, batteryUnitOptions = [], onSelectNumber, canOverrideLoan = false }: BatteryChargingFieldsProps) {
   const handleChange = (field: string, value: string | null | undefined) => {
     onChange({ [field]: value });
   };
@@ -164,18 +171,30 @@ export default function BatteryChargingFields({ data, onChange, errors = {}, ava
             <Select
               value={data.loanerBatteryNumber ?? ''}
               label="Loaner Battery Number"
-              onChange={(e) => onChange({ loanerBatteryNumber: Number(e.target.value) })}
+              onChange={(e) => {
+                const unit = batteryUnitOptions.find((u) => u.number === Number(e.target.value));
+                if (unit) onSelectNumber?.(unit);
+              }}
             >
-              {availableBatteryNumbers.length === 0 ? (
+              {batteryUnitOptions.length === 0 ? (
                 <MenuItem value="" disabled>
-                  No {DEVICE_LABELS[data.batteryType]} batteries available
+                  No {DEVICE_LABELS[data.batteryType]} batteries in the pool
                 </MenuItem>
               ) : (
-                availableBatteryNumbers.map((n) => (
-                  <MenuItem key={n} value={n}>
-                    {DEVICE_LABELS[data.batteryType as BatteryDeviceType]} #{n}
-                  </MenuItem>
-                ))
+                batteryUnitOptions.map((unit) => {
+                  const checkedOut = unit.status !== 'available';
+                  return (
+                    <MenuItem
+                      key={unit.number}
+                      value={unit.number}
+                      disabled={checkedOut && !canOverrideLoan}
+                      sx={checkedOut ? { color: 'warning.dark', bgcolor: 'warning.light' } : undefined}
+                    >
+                      {DEVICE_LABELS[data.batteryType as BatteryDeviceType]} #{unit.number}
+                      {checkedOut && ` — checked out to ${unit.country_name || unit.country_code}`}
+                    </MenuItem>
+                  );
+                })
               )}
             </Select>
             {errors.loanerBatteryNumber && (

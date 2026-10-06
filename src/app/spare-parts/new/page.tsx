@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { WithAuth } from '@/components/auth/WithAuth';
-import { countries } from '@/data/countries';
+import { countries, matchesTeamQuery } from '@/data/countries';
 import CountryFlag from '@/components/common/CountryFlag';
 import {
   Typography,
@@ -292,6 +292,7 @@ function NewSparePart() {
                   <Autocomplete
                     options={countries}
                     getOptionLabel={(option) => `${option.name} (${option.code})`}
+                    filterOptions={(options, { inputValue }) => options.filter((o) => matchesTeamQuery(o, inputValue))}
                     value={countries.find(country => country.code === formData.countryCode) || null}
                     onChange={(_, newValue) => {
                       handleChange('countryCode', newValue?.code || '');

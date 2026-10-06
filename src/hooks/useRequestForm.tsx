@@ -69,6 +69,8 @@ export interface PendingEntry {
   softwareData?: SoftwareRequestData;
   machineShopData?: MachineShopRequestData;
   batteryChargingData?: BatteryChargingRequestData;
+  /** Snapshotted at staging time -- see pendingSupersedeRequestId. */
+  confirmedSupersedeRequestId?: string;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -185,7 +187,8 @@ export function useRequestForm({
   onRequestUpdated,
   onSuccess,
 }: UseRequestFormOptions) {
-  const { canAccess } = usePermissions();
+  const { canAccess, hasPermission } = usePermissions();
+  const canOverrideLoan = hasPermission('battery_charging.return');
 
   const [formData, setFormData] = useState(EMPTY_FORM_DATA);
   const [hardwareData, setHardwareData] = useState<HardwareRequestData>(EMPTY_HARDWARE_DATA);
@@ -200,7 +203,11 @@ export function useRequestForm({
   // Create mode only: items already staged for this batch, waiting behind
   // whatever's currently live in the form fields. See addEntry/removeEntry.
   const [pendingEntries, setPendingEntries] = useState<PendingEntry[]>([]);
-  const [availableBatteryNumbers, setAvailableBatteryNumbers] = useState<number[]>([]);
+  const [batteryUnitOptions, setBatteryUnitOptions] = useState<IBatteryUnit[]>([]);
+  // Set only when the clerk confirmed re-loaning a unit that's still shown checked out to
+  // another team (a stale loan nobody marked returned) -- not part of batteryChargingData
+  // since it's a one-shot instruction for this submission, not data to persist.
+  const [pendingSupersedeRequestId, setPendingSupersedeRequestId] = useState<string | undefined>(undefined);
 
   const resetForm = () => {
     setFormData({ ...EMPTY_FORM_DATA, type: fixedType || "" });
@@ -209,6 +216,7 @@ export function useRequestForm({
     setMachineShopData(EMPTY_MACHINE_SHOP_DATA);
     setBatteryChargingData(EMPTY_BATTERY_CHARGING_DATA);
     setPendingEntries([]);
+    setPendingSupersedeRequestId(undefined);
     setError("");
     setValidationErrors({});
   };
@@ -328,17 +336,20 @@ export function useRequestForm({
     };
   }, [mode, formData.type, formData.country_code, batteryChargingData.batteryType]);
 
-  // Which specific numbered units are selectable right now: free units for
-  // anyone, plus -- in edit mode -- the one already checked out to *this*
-  // request (otherwise its own current value wouldn't even appear as an
-  // option, and there'd be no way to confirm/change it).
+  // Which specific numbered units are selectable right now: every unit of the
+  // chosen device type, available or checked out (checked-out ones are shown
+  // but flagged -- see handleBatteryNumberSelect -- since a unit can be stuck
+  // "checked out" if it was physically returned without anyone clicking
+  // Return). The one already checked out to *this* request, in edit mode,
+  // counts as available (otherwise its own current value wouldn't even
+  // appear as an option, and there'd be no way to confirm/change it).
   useEffect(() => {
     if (
       formData.type !== 'battery_charging' ||
       batteryChargingData.loanerProvided === false ||
       !batteryChargingData.batteryType
     ) {
-      setAvailableBatteryNumbers([]);
+      setBatteryUnitOptions([]);
       return;
     }
 
@@ -353,28 +364,30 @@ export function useRequestForm({
     );
 
     let cancelled = false;
-    const fetchAvailable = async () => {
+    const fetchUnits = async () => {
       try {
         const response = await fetch('/api/requests/battery-units');
         if (!response.ok) return;
         const units: IBatteryUnit[] = await response.json();
         if (cancelled) return;
-        setAvailableBatteryNumbers(
+        setBatteryUnitOptions(
           units
             .filter((u) =>
               u.device_type === batteryChargingData.batteryType &&
-              (u.status === 'available' || (mode === 'edit' && u.request_id === request?.id)) &&
               !stagedNumbers.has(u.number)
             )
-            .map((u) => u.number)
-            .sort((a, b) => a - b)
+            // This request's own current unit behaves as available -- it's
+            // not a conflict to re-confirm the same assignment, and showing
+            // it as "checked out" would demand an unnecessary confirmation.
+            .map((u) => (mode === 'edit' && u.request_id === request?.id ? { ...u, status: 'available' as const } : u))
+            .sort((a, b) => a.number - b.number)
         );
       } catch (error) {
         console.error('Error fetching available battery units:', error);
       }
     };
 
-    fetchAvailable();
+    fetchUnits();
     return () => {
       cancelled = true;
     };
@@ -430,9 +443,33 @@ export function useRequestForm({
       const deviceTypeChanged = 'batteryType' in data && data.batteryType !== prev.batteryType;
       if (deviceTypeChanged || data.loanerProvided === false) {
         next.loanerBatteryNumber = undefined;
+        setPendingSupersedeRequestId(undefined);
       }
       return next;
     });
+  };
+
+  // Picking a unit from the dropdown. Available units (batteryUnitOptions
+  // already treats this request's own current unit, in edit mode, as
+  // available) are selected immediately; a unit still shown checked out to
+  // someone else needs the clerk to confirm it was actually handed back
+  // before this selection will close that stale loan.
+  const handleBatteryNumberSelect = (unit: IBatteryUnit) => {
+    if (unit.status === 'available') {
+      setBatteryChargingData((prev) => ({ ...prev, loanerBatteryNumber: unit.number }));
+      setPendingSupersedeRequestId(undefined);
+      return;
+    }
+
+    const holder = unit.country_name || unit.country_code || 'another team';
+    const confirmed = window.confirm(
+      `${unit.number} is currently checked out to ${holder}. If it has actually been returned, ` +
+      `confirm to mark that loan as returned and loan this battery out instead.`
+    );
+    if (!confirmed) return;
+
+    setBatteryChargingData((prev) => ({ ...prev, loanerBatteryNumber: unit.number }));
+    setPendingSupersedeRequestId(unit.request_id);
   };
 
   const validateHardwareData = () => {
@@ -595,12 +632,13 @@ export function useRequestForm({
       assigned_to: formData.assigned_to,
       assignedToName: formData.assigned_to ? users.find((u) => u.id === formData.assigned_to)?.name : undefined,
       ...(formData.type === 'machine_shop' ? { machineShopData } : {}),
-      ...(formData.type === 'battery_charging' ? { batteryChargingData } : {}),
+      ...(formData.type === 'battery_charging' ? { batteryChargingData, confirmedSupersedeRequestId: pendingSupersedeRequestId } : {}),
     };
     setPendingEntries((prev) => [...prev, entry]);
 
     setMachineShopData(EMPTY_MACHINE_SHOP_DATA);
     setBatteryChargingData(EMPTY_BATTERY_CHARGING_DATA);
+    setPendingSupersedeRequestId(undefined);
     setFormData((prev) => ({ ...prev, comments: '' }));
     setError('');
     setValidationErrors({});
@@ -650,6 +688,7 @@ export function useRequestForm({
           softwareData?: SoftwareRequestData;
           machineShopData?: MachineShopRequestData;
           batteryChargingData?: BatteryChargingRequestData;
+          confirmedSupersedeRequestId?: string;
         } = {
           comments: formData.comments,
           status: formData.status,
@@ -669,6 +708,7 @@ export function useRequestForm({
             break;
           case "battery_charging":
             requestBody.batteryChargingData = batteryChargingData;
+            requestBody.confirmedSupersedeRequestId = pendingSupersedeRequestId;
             break;
         }
 
@@ -696,6 +736,7 @@ export function useRequestForm({
             softwareData?: SoftwareRequestData;
             machineShopData?: MachineShopRequestData;
             batteryChargingData?: BatteryChargingRequestData;
+            confirmedSupersedeRequestId?: string;
           } = {
             countryCode: formData.country_code,
             type: entry.type,
@@ -715,6 +756,7 @@ export function useRequestForm({
               break;
             case "battery_charging":
               body.batteryChargingData = entry.batteryChargingData;
+              body.confirmedSupersedeRequestId = entry.confirmedSupersedeRequestId;
               break;
           }
 
@@ -728,7 +770,7 @@ export function useRequestForm({
         // blank) is a queue-only batch.
         const queueSnapshot = pendingEntries;
         const allEntries: PendingEntry[] = liveEntryValid
-          ? [...queueSnapshot, { type: formData.type, comments: formData.comments, assigned_to: formData.assigned_to, hardwareData, softwareData, machineShopData, batteryChargingData }]
+          ? [...queueSnapshot, { type: formData.type, comments: formData.comments, assigned_to: formData.assigned_to, hardwareData, softwareData, machineShopData, batteryChargingData, confirmedSupersedeRequestId: pendingSupersedeRequestId }]
           : [...queueSnapshot];
 
         let succeeded = 0;
@@ -750,6 +792,7 @@ export function useRequestForm({
             succeeded++;
           }
           setPendingEntries([]);
+          setPendingSupersedeRequestId(undefined);
         } catch (batchErr) {
           // Drop only the queued entries that already went through, so a
           // retry doesn't resubmit them; leave the rest (including
@@ -784,7 +827,9 @@ export function useRequestForm({
             data={batteryChargingData}
             onChange={handleBatteryChargingChange}
             errors={validationErrors}
-            availableBatteryNumbers={availableBatteryNumbers}
+            batteryUnitOptions={batteryUnitOptions}
+            onSelectNumber={handleBatteryNumberSelect}
+            canOverrideLoan={canOverrideLoan}
           />
         );
       default:
@@ -813,13 +858,15 @@ export function useRequestForm({
     validationErrors,
     users,
     outstandingBatteryRequests,
-    availableBatteryNumbers,
+    batteryUnitOptions,
+    canOverrideLoan,
     handleChange,
     handleTypeChange,
     handleHardwareChange,
     handleSoftwareChange,
     handleMachineShopChange,
     handleBatteryChargingChange,
+    handleBatteryNumberSelect,
     isFormValid,
     canSubmit,
     handleSubmit,
