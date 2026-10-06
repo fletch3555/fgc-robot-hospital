@@ -1083,6 +1083,51 @@ export const kopInventory: IKoPItem[] = [
     image_url: "/images/Visual_BOM_2025/REV-41-1600.webp"
   },
   {
+    id: "REV-41-1601",
+    group_name: "Motion",
+    part_number: "REV-41-1601",
+    description: "UltraPlanetary Cartridge - 3:1",
+    quantity: 0,
+    review_status: 'normal' as ReviewStatus,
+    image_url: "/images/Visual_BOM_2026/REV-41-1601.png"
+  },
+  {
+    id: "REV-41-1602",
+    group_name: "Motion",
+    part_number: "REV-41-1602",
+    description: "UltraPlanetary Cartridge - 4:1",
+    quantity: 0,
+    review_status: 'normal' as ReviewStatus,
+    image_url: "/images/Visual_BOM_2026/REV-41-1602.png"
+  },
+  {
+    id: "REV-41-1603",
+    group_name: "Motion",
+    part_number: "REV-41-1603",
+    description: "UltraPlanetary Cartridge - 5:1",
+    quantity: 0,
+    review_status: 'normal' as ReviewStatus,
+    image_url: "/images/Visual_BOM_2026/REV-41-1603.png"
+  },
+  {
+    id: "REV-41-1607",
+    group_name: "Brackets",
+    part_number: "REV-41-1607",
+    description: "UltraPlanetary 550 Motor Plate",
+    quantity: 0,
+    review_status: 'normal' as ReviewStatus,
+    image_url: "/images/Visual_BOM_2026/REV-41-1607.png"
+  },
+  {
+    id: "REV-41-1608",
+    group_name: "Motion",
+    part_number: "REV-41-1608-PK2",
+    description: "UltraPlanetary 550 Motor Pinion Gear - 13 Tooth - 2 Pack",
+    quantity: 0,
+    review_status: 'normal' as ReviewStatus,
+    image_url: "/images/Visual_BOM_2026/REV-41-1608-PK2.webp"
+  },
+  {
     id: "REV-41-1609",
     group_name: "Bearings & Hardware",
     part_number: "REV-41-1609",
@@ -1090,6 +1135,15 @@ export const kopInventory: IKoPItem[] = [
     quantity: 1,
     review_status: 'normal' as ReviewStatus,
     image_url: "/images/Visual_BOM_2025/REV-41-1609.png"
+  },
+  {
+    id: "REV-41-1615",
+    group_name: "Motion",
+    part_number: "REV-41-1615",
+    description: "UltraPlanetary Female 5mm Hex Output V2",
+    quantity: 0,
+    review_status: 'normal' as ReviewStatus,
+    image_url: "/images/Visual_BOM_2026/REV-41-1615.png"
   },
   {
     id: "REV-41-1621",
