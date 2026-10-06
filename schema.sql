@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS roles (
 );
 
 -- Insert default roles
+-- robot_inspector/lead_robot_inspector were removed (see the commented-out
+-- Role union members in src/lib/auth-types.ts) and don't exist in the
+-- current roles table -- don't reintroduce them here.
 INSERT INTO roles (id, name, description) VALUES
 ('guest', 'Guest', 'Read-only access to basic information'),
 ('intake_clerk', 'Intake Clerk', 'Can create and view requests'),
@@ -20,8 +23,6 @@ INSERT INTO roles (id, name, description) VALUES
 ('spare_parts_attendant', 'Spare Parts Attendant', 'Can manage spare parts requests'),
 ('flying_squad_software', 'Flying Squad - Software', 'Can handle software support requests'),
 ('flying_squad_hardware', 'Flying Squad - Hardware', 'Can handle hardware support requests'),
-('robot_inspector', 'Robot Inspector', 'Can inspect and approve robots'),
-('lead_robot_inspector', 'Lead Robot Inspector', 'Senior inspector with additional permissions'),
 ('admin', 'Administrator', 'Full system access')
 ON CONFLICT (id) DO NOTHING;
 
@@ -164,166 +165,193 @@ CREATE TABLE IF NOT EXISTS role_permissions (
 );
 
 -- Insert default role permissions
--- Guest (default) - very limited access + documentation
+-- These blocks mirror live Production's role_permissions as of 2026-10-06
+-- (dumped via introspection, not the original hand-written baseline --
+-- /admin/roles has been used to broaden every non-admin role well beyond
+-- what this file originally seeded, so a fresh install should start from
+-- that same broadened state rather than the stale narrower one).
+-- Guest (default) - documentation + reference pages only
 INSERT INTO role_permissions (role, permission_name) VALUES
-('guest', 'requests.view'),
 ('guest', 'documentation.view'),
-('guest', 'matches.view')
+('guest', 'inventory.view'),
+('guest', 'matches.view'),
+('guest', 'teams.view')
 ON CONFLICT DO NOTHING;
 
 -- Intake Clerk - can create and manage initial requests
 INSERT INTO role_permissions (role, permission_name) VALUES
-('intake_clerk', 'requests.view'),
-('intake_clerk', 'requests.create'),
-('intake_clerk', 'requests.edit'),
-('intake_clerk', 'requests.assign'),
-('intake_clerk', 'hardware.view'),
-('intake_clerk', 'hardware.create'),
-('intake_clerk', 'software.view'),
-('intake_clerk', 'software.create'),
-('intake_clerk', 'machine_shop.view'),
-('intake_clerk', 'machine_shop.create'),
-('intake_clerk', 'spare_parts.view'),
-('intake_clerk', 'documentation.view'),
-('intake_clerk', 'inventory.view'),
-('intake_clerk', 'matches.view'),
-('intake_clerk', 'battery_swaps.view'),
+('intake_clerk', 'battery_charging.assignee'),
+('intake_clerk', 'battery_charging.create'),
+('intake_clerk', 'battery_charging.edit'),
+('intake_clerk', 'battery_charging.return'),
+('intake_clerk', 'battery_charging.view'),
 ('intake_clerk', 'battery_swaps.create'),
 ('intake_clerk', 'battery_swaps.edit'),
 ('intake_clerk', 'battery_swaps.return'),
-('intake_clerk', 'battery_charging.view'),
-('intake_clerk', 'battery_charging.create'),
-('intake_clerk', 'battery_charging.edit'),
-('intake_clerk', 'battery_charging.return')
+('intake_clerk', 'battery_swaps.view'),
+('intake_clerk', 'documentation.view'),
+('intake_clerk', 'hardware.create'),
+('intake_clerk', 'hardware.edit'),
+('intake_clerk', 'hardware.view'),
+('intake_clerk', 'inventory.view'),
+('intake_clerk', 'machine_shop.create'),
+('intake_clerk', 'machine_shop.edit'),
+('intake_clerk', 'machine_shop.view'),
+('intake_clerk', 'matches.view'),
+('intake_clerk', 'requests.assign'),
+('intake_clerk', 'requests.create'),
+('intake_clerk', 'requests.edit'),
+('intake_clerk', 'requests.view'),
+('intake_clerk', 'software.create'),
+('intake_clerk', 'software.edit'),
+('intake_clerk', 'software.view'),
+('intake_clerk', 'spare_parts.create'),
+('intake_clerk', 'spare_parts.view'),
+('intake_clerk', 'teams.view')
 ON CONFLICT DO NOTHING;
 
--- Machine Shop Operator - machine shop focused
+-- Machine Shop Operator - machine shop focused, plus the same
+-- broadened cross-queue view/create access as every other non-admin role
 INSERT INTO role_permissions (role, permission_name) VALUES
-('machine_shop_operator', 'requests.view'),
-('machine_shop_operator', 'requests.status_update'),
-('machine_shop_operator', 'machine_shop.view'),
+('machine_shop_operator', 'battery_charging.assignee'),
+('machine_shop_operator', 'battery_charging.create'),
+('machine_shop_operator', 'battery_charging.view'),
+('machine_shop_operator', 'documentation.view'),
+('machine_shop_operator', 'hardware.create'),
+('machine_shop_operator', 'hardware.view'),
+('machine_shop_operator', 'inventory.view'),
+('machine_shop_operator', 'machine_shop.assignee'),
 ('machine_shop_operator', 'machine_shop.create'),
 ('machine_shop_operator', 'machine_shop.edit'),
-('machine_shop_operator', 'machine_shop.assignee'),
+('machine_shop_operator', 'machine_shop.view'),
+('machine_shop_operator', 'matches.view'),
+('machine_shop_operator', 'requests.create'),
+('machine_shop_operator', 'requests.status_update'),
+('machine_shop_operator', 'requests.view'),
+('machine_shop_operator', 'software.create'),
+('machine_shop_operator', 'software.view'),
+('machine_shop_operator', 'spare_parts.create'),
 ('machine_shop_operator', 'spare_parts.view'),
-('machine_shop_operator', 'documentation.view'),
-('machine_shop_operator', 'inventory.view')
+('machine_shop_operator', 'teams.view')
 ON CONFLICT DO NOTHING;
 
--- Spare Parts Attendant - inventory management
+-- Spare Parts Attendant - inventory management, plus the same
+-- broadened cross-queue view/create access as every other non-admin role
 INSERT INTO role_permissions (role, permission_name) VALUES
+('spare_parts_attendant', 'battery_charging.assignee'),
+('spare_parts_attendant', 'battery_charging.create'),
+('spare_parts_attendant', 'battery_charging.view'),
+('spare_parts_attendant', 'documentation.view'),
+('spare_parts_attendant', 'hardware.create'),
+('spare_parts_attendant', 'hardware.view'),
+('spare_parts_attendant', 'inventory.view'),
+('spare_parts_attendant', 'machine_shop.create'),
+('spare_parts_attendant', 'machine_shop.view'),
+('spare_parts_attendant', 'matches.view'),
+('spare_parts_attendant', 'requests.create'),
 ('spare_parts_attendant', 'requests.view'),
-('spare_parts_attendant', 'spare_parts.view'),
+('spare_parts_attendant', 'software.create'),
+('spare_parts_attendant', 'software.view'),
 ('spare_parts_attendant', 'spare_parts.create'),
 ('spare_parts_attendant', 'spare_parts.edit'),
 ('spare_parts_attendant', 'spare_parts.issue'),
 ('spare_parts_attendant', 'spare_parts.receive'),
-('spare_parts_attendant', 'inventory.view'),
-('spare_parts_attendant', 'documentation.view')
+('spare_parts_attendant', 'spare_parts.view'),
+('spare_parts_attendant', 'teams.view')
 ON CONFLICT DO NOTHING;
 
--- Flying Squad Software - software repair specialists
+-- Flying Squad Software - software repair specialists, plus the same
+-- broadened cross-queue view/create access as every other non-admin role
 INSERT INTO role_permissions (role, permission_name) VALUES
-('flying_squad_software', 'requests.view'),
+('flying_squad_software', 'battery_charging.create'),
+('flying_squad_software', 'battery_charging.view'),
+('flying_squad_software', 'documentation.view'),
+('flying_squad_software', 'hardware.create'),
+('flying_squad_software', 'hardware.view'),
+('flying_squad_software', 'inventory.view'),
+('flying_squad_software', 'machine_shop.create'),
+('flying_squad_software', 'machine_shop.view'),
+('flying_squad_software', 'matches.view'),
+('flying_squad_software', 'requests.create'),
 ('flying_squad_software', 'requests.status_update'),
-('flying_squad_software', 'software.view'),
+('flying_squad_software', 'requests.view'),
+('flying_squad_software', 'software.assignee'),
 ('flying_squad_software', 'software.create'),
 ('flying_squad_software', 'software.edit'),
-('flying_squad_software', 'software.assignee'),
-('flying_squad_software', 'spare_parts.view'),
+('flying_squad_software', 'software.view'),
 ('flying_squad_software', 'spare_parts.create'),
-('flying_squad_software', 'documentation.view'),
-('flying_squad_software', 'inventory.view')
+('flying_squad_software', 'spare_parts.view'),
+('flying_squad_software', 'teams.view')
 ON CONFLICT DO NOTHING;
 
--- Flying Squad Hardware - hardware repair specialists  
+-- Flying Squad Hardware - hardware repair specialists, plus the same
+-- broadened cross-queue view/create access as every other non-admin role
 INSERT INTO role_permissions (role, permission_name) VALUES
-('flying_squad_hardware', 'requests.view'),
-('flying_squad_hardware', 'requests.status_update'),
-('flying_squad_hardware', 'hardware.view'),
+('flying_squad_hardware', 'battery_charging.create'),
+('flying_squad_hardware', 'battery_charging.view'),
+('flying_squad_hardware', 'documentation.view'),
+('flying_squad_hardware', 'hardware.assignee'),
 ('flying_squad_hardware', 'hardware.create'),
 ('flying_squad_hardware', 'hardware.edit'),
-('flying_squad_hardware', 'hardware.assignee'),
-('flying_squad_hardware', 'spare_parts.view'),
+('flying_squad_hardware', 'hardware.view'),
+('flying_squad_hardware', 'inventory.view'),
+('flying_squad_hardware', 'machine_shop.create'),
+('flying_squad_hardware', 'machine_shop.view'),
+('flying_squad_hardware', 'matches.view'),
+('flying_squad_hardware', 'requests.create'),
+('flying_squad_hardware', 'requests.status_update'),
+('flying_squad_hardware', 'requests.view'),
+('flying_squad_hardware', 'software.create'),
+('flying_squad_hardware', 'software.view'),
+('flying_squad_hardware', 'spare_parts.create'),
 ('flying_squad_hardware', 'spare_parts.issue'),
-('flying_squad_hardware', 'documentation.view'),
-('flying_squad_hardware', 'inventory.view')
+('flying_squad_hardware', 'spare_parts.view'),
+('flying_squad_hardware', 'teams.view')
 ON CONFLICT DO NOTHING;
-
--- -- Robot Inspector - inspection focused
--- INSERT INTO role_permissions (role, permission_name) VALUES
--- ('robot_inspector', 'requests.view'),
--- ('robot_inspector', 'inspection.view'),
--- ('robot_inspector', 'inspection.create'),
--- ('robot_inspector', 'inspection.edit'),
--- ('robot_inspector', 'hardware.view'),
--- ('robot_inspector', 'software.view'),
--- ('robot_inspector', 'documentation.view'),
--- ('robot_inspector', 'matches.view')
--- ON CONFLICT DO NOTHING;
-
--- -- Lead Robot Inspector - senior inspection role
--- INSERT INTO role_permissions (role, permission_name) VALUES
--- ('lead_robot_inspector', 'requests.view'),
--- ('lead_robot_inspector', 'requests.assign'),
--- ('lead_robot_inspector', 'inspection.view'),
--- ('lead_robot_inspector', 'inspection.create'),
--- ('lead_robot_inspector', 'inspection.edit'),
--- ('lead_robot_inspector', 'inspection.approve'),
--- ('lead_robot_inspector', 'hardware.view'),
--- ('lead_robot_inspector', 'software.view'),
--- ('lead_robot_inspector', 'documentation.view'),
--- ('lead_robot_inspector', 'inventory.view'),
--- ('lead_robot_inspector', 'matches.view')
--- ON CONFLICT DO NOTHING;
 
 -- Admin - full access
 INSERT INTO role_permissions (role, permission_name) VALUES
-('admin', 'requests.view'),
-('admin', 'requests.create'),
-('admin', 'requests.edit'),
-('admin', 'requests.delete'),
-('admin', 'requests.assign'),
-('admin', 'requests.status_update'),
-('admin', 'hardware.view'),
+('admin', 'admin.dashboard'),
+('admin', 'admin.permissions'),
+('admin', 'admin.reports'),
+('admin', 'admin.requests'),
+('admin', 'admin.roles'),
+('admin', 'admin.system'),
+('admin', 'admin.users'),
+('admin', 'battery_charging.configure'),
+('admin', 'battery_charging.create'),
+('admin', 'battery_charging.edit'),
+('admin', 'battery_charging.return'),
+('admin', 'battery_charging.view'),
+('admin', 'battery_swaps.configure'),
+('admin', 'battery_swaps.create'),
+('admin', 'battery_swaps.edit'),
+('admin', 'battery_swaps.return'),
+('admin', 'battery_swaps.view'),
+('admin', 'documentation.view'),
 ('admin', 'hardware.create'),
 ('admin', 'hardware.edit'),
-('admin', 'software.view'),
-('admin', 'software.create'),
-('admin', 'software.edit'),
-('admin', 'machine_shop.view'),
+('admin', 'hardware.view'),
+('admin', 'inventory.view'),
 ('admin', 'machine_shop.create'),
 ('admin', 'machine_shop.edit'),
-('admin', 'machine_shop.assignee'),
-('admin', 'spare_parts.view'),
+('admin', 'machine_shop.view'),
+('admin', 'matches.view'),
+('admin', 'requests.assign'),
+('admin', 'requests.create'),
+('admin', 'requests.delete'),
+('admin', 'requests.edit'),
+('admin', 'requests.status_update'),
+('admin', 'requests.view'),
+('admin', 'software.create'),
+('admin', 'software.edit'),
+('admin', 'software.view'),
 ('admin', 'spare_parts.create'),
 ('admin', 'spare_parts.edit'),
 ('admin', 'spare_parts.issue'),
 ('admin', 'spare_parts.receive'),
--- ('admin', 'inspection.view'),
--- ('admin', 'inspection.create'),
--- ('admin', 'inspection.edit'),
--- ('admin', 'inspection.approve'),
-('admin', 'admin.dashboard'),
-('admin', 'admin.roles'),
-('admin', 'admin.permissions'),
-('admin', 'admin.users'),
-('admin', 'admin.requests'),
-('admin', 'admin.system'),
-('admin', 'admin.reports'),
-('admin', 'documentation.view'),
-('admin', 'inventory.view'),
-('admin', 'matches.view'),
-('admin', 'battery_swaps.view'),
-('admin', 'battery_swaps.create'),
-('admin', 'battery_swaps.edit'),
-('admin', 'battery_swaps.return'),
-('admin', 'battery_swaps.configure'),
-('admin', 'battery_charging.view'),
-('admin', 'battery_charging.create'),
-('admin', 'battery_charging.edit'),
-('admin', 'battery_charging.return'),
-('admin', 'battery_charging.configure')
+('admin', 'spare_parts.view'),
+('admin', 'teams.view')
 ON CONFLICT DO NOTHING;
 
 -- Indexes for performance
