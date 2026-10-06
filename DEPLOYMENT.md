@@ -56,19 +56,16 @@ environments") for why. Requires manual setup, once:
    `NEXT_PUBLIC_SUPABASE_URL`) pointing at the original project.
 3. Update your local `.env` to the same Preview project's values, so local development
    stops touching production data and Auth users.
-4. Don't run `schema.sql` against the new database by hand — the next Preview deployment's
-   build automatically provisions its schema from scratch (see `migrations/README.md`).
+4. No manual schema step needed — the next Preview deployment's build automatically
+   provisions its schema from scratch (see `migrations/README.md`).
 5. Bootstrap the first admin account for the new project (see "First admin account" below)
    — a brand-new Supabase project has no users at all yet.
 
-### 4. Database Schema (Production, first time only)
-For a brand-new Production database, run `schema.sql` against it once to create the
-initial tables.
-
-After that, schema changes ship as files under `migrations/` and apply automatically on
-every Production and Preview deploy, each against its own database — see
-`migrations/README.md`. There's no manual step needed beyond the initial `schema.sql` run
-against Production.
+### 4. Database Schema
+Fully automatic for both environments — `scripts/migrate.js` runs on every Production
+and Preview deploy (see `migrations/README.md`), bootstrapping a brand-new database
+from empty on its first deploy the same way Preview's does in step 3 above. No manual
+step is needed, including for a brand-new Production database.
 
 ### 5. Deploy
 1. Click "Deploy" in Vercel
