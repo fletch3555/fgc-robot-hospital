@@ -225,12 +225,15 @@ export const getTeamByCountryCode = (code: string): CountryInfo | undefined => {
   return countries.find(country => country.code === code);
 };
 
-export const searchTeams = (query: string): CountryInfo[] => {
+// Shared by searchTeams below and every country/team Autocomplete's
+// filterOptions, so "matches" has one definition instead of each caller
+// relying on its own getOptionLabel string to incidentally support code search.
+export const matchesTeamQuery = (team: { code: string; name: string }, query: string): boolean => {
   const searchTerm = query.toLowerCase().trim();
-  if (!searchTerm) return countries;
-  
-  return countries.filter(country =>
-    country.name.toLowerCase().includes(searchTerm) ||
-    country.code.toLowerCase().includes(searchTerm)
-  );
+  if (!searchTerm) return true;
+  return team.name.toLowerCase().includes(searchTerm) || team.code.toLowerCase().includes(searchTerm);
+};
+
+export const searchTeams = (query: string): CountryInfo[] => {
+  return countries.filter(country => matchesTeamQuery(country, query));
 };

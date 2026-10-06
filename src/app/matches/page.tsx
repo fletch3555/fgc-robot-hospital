@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import moment from 'moment';
-import { countries } from '@/data/countries';
+import { countries, matchesTeamQuery } from '@/data/countries';
 import { WithAuth } from '@/components/auth/WithAuth';
 import { WithPermissions } from '@/components/auth/WithPermissions';
 import CountryFlag from '@/components/common/CountryFlag';
@@ -363,6 +363,7 @@ const MatchSchedulePage: React.FC = () => {
           sx={{ minWidth: 200 }}
           options={availableCountries}
           getOptionLabel={(option) => `${option.name} (${option.code})`}
+          filterOptions={(options, { inputValue }) => options.filter((o) => matchesTeamQuery(o, inputValue))}
           value={selectedCountry}
           onChange={handleCountryChange}
           clearText="Clear filter"
