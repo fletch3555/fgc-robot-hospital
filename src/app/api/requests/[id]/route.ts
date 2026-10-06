@@ -51,7 +51,6 @@ export async function PATCH(
     // Get the request to determine its type
     await connectToDatabase();
     const existingRequest = await Request.findById(params.id);
-    
     if (!existingRequest) {
       return NextResponse.json({ error: "Request not found" }, { status: 404 });
     }
@@ -74,6 +73,17 @@ export async function PATCH(
     const authz = await checkPermissions(requiredPermissions, false);
     if (!authz.authorized) {
       return authz.response!;
+    }
+
+    // Confirming a battery is actually returned (by picking a checked-out unit and closing
+    // its stale loan) requires battery_charging.return specifically, same as the dedicated
+    // Return button -- checked as a separate, strictly-required permission (unlike the OR-style
+    // check above) since .edit alone must NOT be enough to force-close someone else's loan.
+    if (body.confirmedSupersedeRequestId) {
+      const returnAuthz = await checkPermissions(['battery_charging.return']);
+      if (!returnAuthz.authorized) {
+        return returnAuthz.response!;
+      }
     }
 
     const updateData: Record<string, unknown> = {};
@@ -118,7 +128,12 @@ export async function PATCH(
             editedBatteryData.batteryType,
             editedBatteryData.loanerBatteryNumber,
             existingRequest.season,
-            existingRequest.id
+            existingRequest.id,
+            body.confirmedSupersedeRequestId || undefined,
+            body.confirmedSupersedeRequestId ? authz.session!.user.id : undefined,
+            body.confirmedSupersedeRequestId
+              ? `Closed automatically: battery_charging #${editedBatteryData.loanerBatteryNumber} was re-loaned to ${(body.country_code || existingRequest.country_code).toUpperCase()} before being marked returned.`
+              : undefined
           );
           return Request.update(params.id, updateData, queryFn);
         })

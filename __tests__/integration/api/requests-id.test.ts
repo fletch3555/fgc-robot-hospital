@@ -192,7 +192,7 @@ describe("/api/requests/[id]", () => {
 
       expect(response.status).toBe(200);
       expect(reserveBatteryUnit).toHaveBeenCalledWith(
-        expect.anything(), "driver_hub", 7, 2026, "test-request-id"
+        expect.anything(), "driver_hub", 7, 2026, "test-request-id", undefined, undefined, undefined
       );
     });
 
@@ -218,6 +218,58 @@ describe("/api/requests/[id]", () => {
       expect(response.status).toBe(409);
       expect(data.error).toMatch(/already checked out/);
       expect(Request.update).not.toHaveBeenCalled();
+    });
+
+    it("should return 403 when confirming a stale-loan override without battery_charging.return", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.view', 'battery_charging.edit']); // no .return
+
+      const mockExistingRequest = { id: "test-request-id", type: "battery_charging", status: "open", season: 2026, country_code: "US" };
+      (Request.findById as jest.Mock).mockResolvedValueOnce(mockExistingRequest);
+
+      const batteryChargingData = { batteryType: "driver_hub", loanerProvided: true, loanerBatteryNumber: 7 };
+      const request = new NextRequest("http://localhost:3000/api/requests/test-request-id", {
+        method: "PATCH",
+        body: JSON.stringify({ batteryChargingData, confirmedSupersedeRequestId: "stale-request-id" }),
+      });
+
+      const response = await PATCH(request, mockContext);
+
+      expect(response.status).toBe(403);
+      expect(reserveBatteryUnit).not.toHaveBeenCalled();
+      expect(Request.update).not.toHaveBeenCalled();
+    });
+
+    it("should pass the confirmed supersede id through to reserveBatteryUnit when authorized", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.view', 'battery_charging.edit', 'battery_charging.return']);
+
+      const mockExistingRequest = { id: "test-request-id", type: "battery_charging", status: "open", season: 2026, country_code: "US" };
+      const mockUpdatedRequest = { ...mockExistingRequest };
+      (Request.findById as jest.Mock)
+        .mockResolvedValueOnce(mockExistingRequest)
+        .mockResolvedValueOnce(mockUpdatedRequest);
+      (Request.update as jest.Mock).mockResolvedValue(mockUpdatedRequest);
+
+      const batteryChargingData = { batteryType: "driver_hub", loanerProvided: true, loanerBatteryNumber: 7 };
+      const request = new NextRequest("http://localhost:3000/api/requests/test-request-id", {
+        method: "PATCH",
+        body: JSON.stringify({ batteryChargingData, confirmedSupersedeRequestId: "stale-request-id" }),
+      });
+
+      const response = await PATCH(request, mockContext);
+
+      expect(response.status).toBe(200);
+      expect(reserveBatteryUnit).toHaveBeenCalledWith(
+        expect.anything(),
+        "driver_hub",
+        7,
+        2026,
+        "test-request-id",
+        "stale-request-id",
+        mockSession.user.id,
+        expect.stringContaining("US")
+      );
     });
 
     it("should stamp handled_by server-side when a battery_charging request is marked returned", async () => {
