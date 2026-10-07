@@ -1,4 +1,4 @@
-import { countries } from '@/data/countries';
+import { countries, isSelectableCountry } from '@/data/countries';
 
 /**
  * Get country name from country code
@@ -13,14 +13,16 @@ export function getCountryName(countryCode: string): string {
 }
 
 /**
- * Validate if a country code exists
+ * Validate that a country code can be used for a new record, i.e. it's a
+ * known country that's participating this season. Lookups of existing
+ * records (getCountryName) accept any code in the full catalog.
  * @param countryCode - The 3-letter country code to validate
- * @returns true if the country code exists, false otherwise
+ * @returns true if the country code is selectable, false otherwise
  */
 export function isValidCountryCode(countryCode: string): boolean {
   if (!countryCode) return false;
   
-  return countries.some(c => c.code.toUpperCase() === countryCode.toUpperCase());
+  return isSelectableCountry(countryCode);
 }
 
 /**

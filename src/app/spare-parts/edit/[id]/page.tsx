@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { WithAuth } from '@/components/auth/WithAuth';
 import { WithPermissions } from '@/components/auth/WithPermissions';
-import { countries, matchesTeamQuery } from '@/data/countries';
+import { countries, getCountryOptions, matchesTeamQuery } from '@/data/countries';
 import CountryFlag from '@/components/common/CountryFlag';
 import {
   Typography,
@@ -334,7 +334,7 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
 
               <Grid size={12}>
                 <Autocomplete
-                  options={countries}
+                  options={getCountryOptions(formData.countryCode)}
                   getOptionLabel={(option) => `${option.name} (${option.code})`}
                   filterOptions={(options, { inputValue }) => options.filter((o) => matchesTeamQuery(o, inputValue))}
                   value={countries.find(country => country.code === formData.countryCode) || null}

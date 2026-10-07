@@ -14,11 +14,11 @@ export const countries: CountryInfo[] = [
   { code: 'ALB', name: 'Albania', iso2: 'AL' },
   { code: 'ALG', name: 'Algeria', iso2: 'DZ' },
   { code: 'ASA', name: 'American Samoa', iso2: 'AS' },
-//  { code: 'AND', name: 'Andorra', iso2: 'AD' },
+  { code: 'AND', name: 'Andorra', iso2: 'AD' },
   { code: 'ANG', name: 'Angola', iso2: 'AO' },
   { code: 'ANT', name: 'Antigua and Barbuda', iso2: 'AG' },
   { code: 'ARG', name: 'Argentina', iso2: 'AR' },
-//  { code: 'ARM', name: 'Armenia', iso2: 'AM' },
+  { code: 'ARM', name: 'Armenia', iso2: 'AM' },
   { code: 'ARU', name: 'Aruba', iso2: 'AW' },
   { code: 'AUS', name: 'Australia', iso2: 'AU' },
   { code: 'AUT', name: 'Austria', iso2: 'AT' },
@@ -41,7 +41,7 @@ export const countries: CountryInfo[] = [
   { code: 'BRU', name: 'Brunei Darussalam', iso2: 'BN' },
   { code: 'BUL', name: 'Bulgaria', iso2: 'BG' },
   { code: 'BUR', name: 'Burkina Faso', iso2: 'BF' },
-//  { code: 'BDI', name: 'Burundi', iso2: 'BI' },
+  { code: 'BDI', name: 'Burundi', iso2: 'BI' },
   { code: 'CPV', name: 'Cabo Verde', iso2: 'CV' },
   { code: 'CAM', name: 'Cambodia', iso2: 'KH' },
   { code: 'CMR', name: 'Cameroon', iso2: 'CM' },
@@ -59,7 +59,7 @@ export const countries: CountryInfo[] = [
   { code: 'CIV', name: 'Côte d\'Ivoire', iso2: 'CI' },
   { code: 'CRO', name: 'Croatia', iso2: 'HR' },
   { code: 'CUB', name: 'Cuba', iso2: 'CU' },
-//  { code: 'CYP', name: 'Cyprus', iso2: 'CY' },
+  { code: 'CYP', name: 'Cyprus', iso2: 'CY' },
   { code: 'CZE', name: 'Czechia', iso2: 'CZ' },
   { code: 'PRK', name: 'Democratic People\'s Republic of Korea', iso2: 'KP' },
   { code: 'COD', name: 'Democratic Republic of the Congo', iso2: 'CD' },
@@ -97,7 +97,7 @@ export const countries: CountryInfo[] = [
   { code: 'HKG', name: 'Hong Kong, China', iso2: 'HK' },
   { code: 'HPE', name: 'Hope', iso2: null },
   { code: 'HUN', name: 'Hungary', iso2: 'HU' },
-//  { code: 'ISL', name: 'Iceland', iso2: 'IS' },
+  { code: 'ISL', name: 'Iceland', iso2: 'IS' },
   { code: 'IND', name: 'India', iso2: 'IN' },
   { code: 'INA', name: 'Indonesia', iso2: 'ID' },
   { code: 'IRQ', name: 'Iraq', iso2: 'IQ' },
@@ -112,7 +112,7 @@ export const countries: CountryInfo[] = [
   { code: 'KEN', name: 'Kenya', iso2: 'KE' },
   { code: 'KIR', name: 'Kiribati', iso2: 'KI' },
   { code: 'KOS', name: 'Kosovo', iso2: 'XK' },
-//  { code: 'KUW', name: 'Kuwait', iso2: 'KW' },
+  { code: 'KUW', name: 'Kuwait', iso2: 'KW' },
   { code: 'KGZ', name: 'Kyrgyzstan', iso2: 'KG' },
   { code: 'LAO', name: 'Lao People\'s Democratic Republic', iso2: 'LA' },
   { code: 'LAT', name: 'Latvia', iso2: 'LV' },
@@ -120,7 +120,7 @@ export const countries: CountryInfo[] = [
   { code: 'LES', name: 'Lesotho', iso2: 'LS' },
   { code: 'LBR', name: 'Liberia', iso2: 'LR' },
   { code: 'LBA', name: 'Libya', iso2: 'LY' },
-//  { code: 'LIE', name: 'Liechtenstein', iso2: 'LI' },
+  { code: 'LIE', name: 'Liechtenstein', iso2: 'LI' },
   { code: 'LTU', name: 'Lithuania', iso2: 'LT' },
   { code: 'LUX', name: 'Luxembourg', iso2: 'LU' },
   { code: 'MAD', name: 'Madagascar', iso2: 'MG' },
@@ -133,17 +133,17 @@ export const countries: CountryInfo[] = [
   { code: 'MTN', name: 'Mauritania', iso2: 'MR' },
   { code: 'MRI', name: 'Mauritius', iso2: 'MU' },
   { code: 'MEX', name: 'Mexico', iso2: 'MX' },
-//  { code: 'MON', name: 'Monaco', iso2: 'MC' },
+  { code: 'MON', name: 'Monaco', iso2: 'MC' },
   { code: 'MGL', name: 'Mongolia', iso2: 'MN' },
   { code: 'MNE', name: 'Montenegro', iso2: 'ME' },
   { code: 'MAR', name: 'Morocco', iso2: 'MA' },
   { code: 'MOZ', name: 'Mozambique', iso2: 'MZ' },
   { code: 'MYA', name: 'Myanmar', iso2: 'MM' },
   { code: 'NAM', name: 'Namibia', iso2: 'NA' },
-//  { code: 'NRU', name: 'Nauru', iso2: 'NR' },
+  { code: 'NRU', name: 'Nauru', iso2: 'NR' },
   { code: 'NEP', name: 'Nepal', iso2: 'NP' },
   { code: 'NED', name: 'Netherlands', iso2: 'NL' },
-//  { code: 'NZL', name: 'New Zealand', iso2: 'NZ' },
+  { code: 'NZL', name: 'New Zealand', iso2: 'NZ' },
   { code: 'NCA', name: 'Nicaragua', iso2: 'NI' },
   { code: 'NIG', name: 'Niger', iso2: 'NE' },
   { code: 'NGR', name: 'Nigeria', iso2: 'NG' },
@@ -151,7 +151,7 @@ export const countries: CountryInfo[] = [
   { code: 'NOR', name: 'Norway', iso2: 'NO' },
   { code: 'OMA', name: 'Oman', iso2: 'OM' },
   { code: 'PAK', name: 'Pakistan', iso2: 'PK' },
-//  { code: 'PLW', name: 'Palau', iso2: 'PW' },
+  { code: 'PLW', name: 'Palau', iso2: 'PW' },
   { code: 'PLE', name: 'Palestine', iso2: 'PS' },
   { code: 'PAN', name: 'Panama', iso2: 'PA' },
   { code: 'PNG', name: 'Papua New Guinea', iso2: 'PG' },
@@ -171,15 +171,15 @@ export const countries: CountryInfo[] = [
   { code: 'SKN', name: 'Saint Kitts and Nevis', iso2: 'KN' },
   { code: 'LCA', name: 'Saint Lucia', iso2: 'LC' },
   { code: 'VIN', name: 'Saint Vincent and the Grenadines', iso2: 'VC' },
-//  { code: 'SAM', name: 'Samoa', iso2: 'WS' },
-//  { code: 'SMR', name: 'San Marino', iso2: 'SM' },
+  { code: 'SAM', name: 'Samoa', iso2: 'WS' },
+  { code: 'SMR', name: 'San Marino', iso2: 'SM' },
   { code: 'STP', name: 'São Tomé and Príncipe', iso2: 'ST' },
-//  { code: 'KSA', name: 'Saudi Arabia', iso2: 'SA' },
+  { code: 'KSA', name: 'Saudi Arabia', iso2: 'SA' },
   { code: 'SEN', name: 'Senegal', iso2: 'SN' },
   { code: 'SRB', name: 'Serbia', iso2: 'RS' },
   { code: 'SEY', name: 'Seychelles', iso2: 'SC' },
   { code: 'SLE', name: 'Sierra Leone', iso2: 'SL' },
-//  { code: 'SGP', name: 'Singapore', iso2: 'SG' },
+  { code: 'SGP', name: 'Singapore', iso2: 'SG' },
   { code: 'SVK', name: 'Slovakia', iso2: 'SK' },
   { code: 'SLO', name: 'Slovenia', iso2: 'SI' },
   { code: 'SOL', name: 'Solomon Islands', iso2: 'SB' },
@@ -189,9 +189,9 @@ export const countries: CountryInfo[] = [
   { code: 'ESP', name: 'Spain', iso2: 'ES' },
   { code: 'SRI', name: 'Sri Lanka', iso2: 'LK' },
   { code: 'SUD', name: 'Sudan', iso2: 'SD' },
-//  { code: 'SUR', name: 'Suriname', iso2: 'SR' },
+  { code: 'SUR', name: 'Suriname', iso2: 'SR' },
   { code: 'SWE', name: 'Sweden', iso2: 'SE' },
-//  { code: 'SUI', name: 'Switzerland', iso2: 'CH' },
+  { code: 'SUI', name: 'Switzerland', iso2: 'CH' },
   { code: 'SYR', name: 'Syrian Arab Republic', iso2: 'SY' },
   { code: 'TJK', name: 'Tajikistan', iso2: 'TJ' },
   { code: 'THA', name: 'Thailand', iso2: 'TH' },
@@ -202,7 +202,7 @@ export const countries: CountryInfo[] = [
   { code: 'TUN', name: 'Tunisia', iso2: 'TN' },
   { code: 'TUR', name: 'Türkiye', iso2: 'TR' },
   { code: 'TKM', name: 'Turkmenistan', iso2: 'TM' },
-//  { code: 'TUV', name: 'Tuvalu', iso2: 'TV' },
+  { code: 'TUV', name: 'Tuvalu', iso2: 'TV' },
   { code: 'ISV', name: 'U.S. Virgin Islands', iso2: 'VI' },
   { code: 'UGA', name: 'Uganda', iso2: 'UG' },
   { code: 'UKR', name: 'Ukraine', iso2: 'UA' },
@@ -223,6 +223,56 @@ export const countries: CountryInfo[] = [
 // Helper functions for team management
 export const getTeamByCountryCode = (code: string): CountryInfo | undefined => {
   return countries.find(country => country.code === code);
+};
+
+// Teams participating in each season's event, by code. `countries` above is
+// the full catalog and must stay complete: it's the lookup table for names and
+// flags on existing requests, spare parts and match data, which can reference
+// any code from any season. This list only controls which teams are offered
+// when creating something new. Add a new entry each season (once the
+// participant list is published); the most recent season listed is the one
+// used. Anything not listed for that season is not selectable.
+const PARTICIPANTS_BY_SEASON: Record<number, readonly string[]> = {
+  2026: [
+    'AFG', 'ALB', 'ALG', 'ASA', 'ANG', 'ANT', 'ARG', 'ARU', 'AUS', 'AUT',
+    'AZE', 'BAH', 'BRN', 'BAN', 'BAR', 'BLR', 'BEL', 'BIZ', 'BEN', 'BER',
+    'BHU', 'BOL', 'BIH', 'BOT', 'BRA', 'IVB', 'BRU', 'BUL', 'BUR', 'CPV',
+    'CAM', 'CMR', 'CAN', 'CAY', 'CAF', 'CHA', 'CHI', 'TPE', 'COL', 'COM',
+    'CGO', 'COK', 'CRC', 'CIV', 'CRO', 'CUB', 'CZE', 'PRK', 'COD', 'DEN',
+    'DJI', 'DMA', 'DOM', 'ECU', 'EGY', 'ESA', 'GEQ', 'ERI', 'EST', 'SWZ',
+    'ETH', 'FSM', 'FIJ', 'FIN', 'FRA', 'GAB', 'GAM', 'GEO', 'GER', 'GHA',
+    'GBR', 'GRE', 'GRN', 'GUM', 'GUA', 'GUI', 'GBS', 'GUY', 'HAI', 'HON',
+    'HKG', 'HPE', 'HUN', 'IND', 'INA', 'IRQ', 'IRL', 'IRI', 'ISR', 'ITA',
+    'JAM', 'JPN', 'JOR', 'KAZ', 'KEN', 'KIR', 'KOS', 'KGZ', 'LAO', 'LAT',
+    'LBN', 'LES', 'LBR', 'LBA', 'LTU', 'LUX', 'MAD', 'MAW', 'MAS', 'MDV',
+    'MLI', 'MLT', 'MHL', 'MTN', 'MRI', 'MEX', 'MGL', 'MNE', 'MAR', 'MOZ',
+    'MYA', 'NAM', 'NEP', 'NED', 'NCA', 'NIG', 'NGR', 'MKD', 'NOR', 'OMA',
+    'PAK', 'PLE', 'PAN', 'PNG', 'PAR', 'CHN', 'PER', 'PHI', 'POL', 'POR',
+    'PUR', 'QAT', 'KOR', 'MDA', 'ROU', 'RUS', 'RWA', 'SKN', 'LCA', 'VIN',
+    'STP', 'SEN', 'SRB', 'SEY', 'SLE', 'SVK', 'SLO', 'SOL', 'SOM', 'RSA',
+    'SSD', 'ESP', 'SRI', 'SUD', 'SWE', 'SYR', 'TJK', 'THA', 'TLS', 'TOG',
+    'TGA', 'TTO', 'TUN', 'TUR', 'TKM', 'ISV', 'UGA', 'UKR', 'UAE', 'TAN',
+    'USA', 'URU', 'UZB', 'VAN', 'VEN', 'VIE', 'YEM', 'ZAM', 'ZIM',
+  ],
+};
+
+const latestSeason = Math.max(...Object.keys(PARTICIPANTS_BY_SEASON).map(Number));
+const participantCodes = new Set(PARTICIPANTS_BY_SEASON[latestSeason]);
+
+/** Teams that can be picked when creating a request or spare part. */
+export const selectableCountries: CountryInfo[] = countries.filter(c => participantCodes.has(c.code));
+
+export const isSelectableCountry = (code: string): boolean => participantCodes.has(code.toUpperCase());
+
+/**
+ * Picker options: the selectable teams, plus `currentCode`'s team if it's
+ * not among them (e.g. editing a record from a season that team attended),
+ * so the current value never disappears from the picker.
+ */
+export const getCountryOptions = (currentCode?: string | null): CountryInfo[] => {
+  if (!currentCode || isSelectableCountry(currentCode)) return selectableCountries;
+  const current = getTeamByCountryCode(currentCode);
+  return current ? [...selectableCountries, current] : selectableCountries;
 };
 
 // Strips combining diacritical marks after Unicode-decomposing accented

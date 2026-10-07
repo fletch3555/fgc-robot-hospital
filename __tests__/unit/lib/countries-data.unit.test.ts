@@ -4,7 +4,16 @@
  * Tests for static country data structure and filtering logic
  */
 
-import { countries, matchesTeamQuery, searchTeams } from '@/data/countries';
+import {
+  countries,
+  getCountryOptions,
+  getTeamByCountryCode,
+  isSelectableCountry,
+  matchesTeamQuery,
+  searchTeams,
+  selectableCountries,
+} from '@/data/countries';
+import { getCountryName, isValidCountryCode } from '@/lib/countryUtils';
 
 describe('Countries Data Unit Tests', () => {
   describe('Countries data structure', () => {
@@ -33,6 +42,39 @@ describe('Countries Data Unit Tests', () => {
         expect(country.name.trim()).toBeTruthy();
         expect(country.code.trim()).toBeTruthy();
       });
+    });
+  });
+
+  describe('Season participants vs. full catalog', () => {
+    // Not participating in 2026, but must stay resolvable for old records.
+    const absent = 'NZL';
+
+    it('keeps non-participating teams in the full catalog for lookups', () => {
+      expect(getTeamByCountryCode(absent)?.iso2).toBe('NZ');
+      expect(getCountryName(absent)).toBe('New Zealand');
+    });
+
+    it('excludes non-participating teams from the selectable list', () => {
+      expect(selectableCountries.some(c => c.code === absent)).toBe(false);
+      expect(isSelectableCountry(absent)).toBe(false);
+      expect(isValidCountryCode(absent)).toBe(false);
+    });
+
+    it('keeps participating teams selectable', () => {
+      expect(isSelectableCountry('USA')).toBe(true);
+      expect(isValidCountryCode('usa')).toBe(true);
+    });
+
+    it('only lists participants that exist in the catalog', () => {
+      const codes = new Set(countries.map(c => c.code));
+      selectableCountries.forEach(c => expect(codes.has(c.code)).toBe(true));
+      expect(selectableCountries.length).toBeLessThan(countries.length);
+    });
+
+    it("adds a record's current team to picker options even if not participating", () => {
+      expect(getCountryOptions(absent).some(c => c.code === absent)).toBe(true);
+      expect(getCountryOptions('USA')).toBe(selectableCountries);
+      expect(getCountryOptions(null)).toBe(selectableCountries);
     });
   });
 
