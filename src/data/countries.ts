@@ -300,8 +300,11 @@ const currentParticipants = getParticipantCodes(currentSeason);
 /** Teams that can be picked when creating a request or spare part this season. */
 export const selectableCountries: CountryInfo[] = getSelectableCountries(currentSeason);
 
-export const isSelectableCountry = (code: string): boolean =>
-  !currentParticipants || currentParticipants.has(code.toUpperCase());
+export const isSelectableCountry = (code: string): boolean => {
+  const normalizedCode = code.toUpperCase();
+  return countries.some(country => country.code === normalizedCode) &&
+    (!currentParticipants || currentParticipants.has(normalizedCode));
+};
 
 /**
  * Picker options: the selectable teams, plus `currentCode`'s team if it's
