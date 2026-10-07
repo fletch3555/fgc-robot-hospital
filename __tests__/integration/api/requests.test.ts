@@ -125,7 +125,7 @@ describe("/api/requests", () => {
       setupAuthMock(mockSession);
       setupUserPermissionsMock(['requests.create', 'hardware.create']);
 
-      for (const countryCode of ["NZL", "XXX"]) {
+      for (const countryCode of ["NZL", "XXX", 123]) {
         const request = new NextRequest("http://localhost:3000/api/requests", {
           method: "POST",
           body: JSON.stringify({ ...validRequestData, countryCode }),
