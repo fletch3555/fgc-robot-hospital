@@ -233,26 +233,47 @@ export const getTeamByCountryCode = (code: string): CountryInfo | undefined => {
 // participant list is published); the most recent season listed is the one
 // used. Anything not listed for that season is not selectable.
 const PARTICIPANTS_BY_SEASON: Record<number, readonly string[]> = {
+  2025: [
+    'AFG', 'ALB', 'ALG', 'ASA', 'ANG', 'ANT', 'ARG', 'ARM', 'ARU', 'AUS', // 10
+    'AUT', 'AZE', 'BAH', 'BAN', 'BAR', 'BLR', 'BIZ', 'BEN', 'BER', 'BHU', // 20
+    'BOL', 'BIH', 'BOT', 'BRA', 'IVB', 'BRU', 'BUL', 'BUR', 'BDI', 'CPV', // 30
+    'CAM', 'CMR', 'CAN', 'CAY', 'CAF', 'CHA', 'CHI', 'TPE', 'COL', 'COM', // 40
+    'CGO', 'COK', 'CRC', 'CIV', 'CRO', 'CUB', 'CYP', 'CZE', 'COD', 'DEN', // 50
+    'DJI', 'DMA', 'DOM', 'ECU', 'EGY', 'ESA', 'GEQ', 'ERI', 'EST', 'SWZ', // 60
+    'ETH', 'FSM', 'FIJ', 'FIN', 'FRA', 'GAB', 'GAM', 'GEO', 'GER', 'GHA', // 70
+    'GBR', 'GRE', 'GRN', 'GUM', 'GUA', 'GUI', 'GBS', 'GUY', 'HAI', 'HON', // 80
+    'HKG', 'HPE', 'HUN', 'IND', 'INA', 'IRQ', 'IRL', 'IRI', 'ISR', 'ITA', // 90
+    'JAM', 'JPN', 'JOR', 'KAZ', 'KEN', 'KIR', 'KOS', 'KGZ', 'LAO', 'LAT', // 100
+    'LBN', 'LES', 'LBR', 'LBA', 'LTU', 'LUX', 'MAD', 'MAW', 'MAS', 'MDV', // 110
+    'MLI', 'MLT', 'MHL', 'MTN', 'MRI', 'MEX', 'MGL', 'MNE', 'MAR', 'MOZ', // 120
+    'MYA', 'NAM', 'NEP', 'NED', 'NCA', 'NIG', 'NGR', 'MKD', 'NOR', 'OMA', // 130
+    'PAK', 'PLE', 'PAN', 'PNG', 'PAR', 'CHN', 'PER', 'PHI', 'POL', 'POR', // 140
+    'PUR', 'QAT', 'KOR', 'MDA', 'ROU', 'RWA', 'SKN', 'LCA', 'VIN', 'SMR', // 150
+    'STP', 'KSA', 'SEN', 'SRB', 'SEY', 'SLE', 'SVK', 'SLO', 'SOL', 'SOM', // 160
+    'RSA', 'SSD', 'ESP', 'SRI', 'SUD', 'SUR', 'SWE', 'SUI', 'SYR', 'TJK', // 170
+    'TLS', 'TOG', 'TGA', 'TTO', 'TUN', 'TUR', 'TKM', 'ISV', 'UGA', 'UKR', // 180
+    'UAE', 'TAN', 'USA', 'UZB', 'VAN', 'VEN', 'VIE', 'YEM', 'ZAM', 'ZIM', // 190
+  ],
   2026: [
-    'AFG', 'ALB', 'ALG', 'ASA', 'ANG', 'ANT', 'ARG', 'ARU', 'AUS', 'AUT',
-    'AZE', 'BAH', 'BRN', 'BAN', 'BAR', 'BLR', 'BEL', 'BIZ', 'BEN', 'BER',
-    'BHU', 'BOL', 'BIH', 'BOT', 'BRA', 'IVB', 'BRU', 'BUL', 'BUR', 'CPV',
-    'CAM', 'CMR', 'CAN', 'CAY', 'CAF', 'CHA', 'CHI', 'TPE', 'COL', 'COM',
-    'CGO', 'COK', 'CRC', 'CIV', 'CRO', 'CUB', 'CZE', 'PRK', 'COD', 'DEN',
-    'DJI', 'DMA', 'DOM', 'ECU', 'EGY', 'ESA', 'GEQ', 'ERI', 'EST', 'SWZ',
-    'ETH', 'FSM', 'FIJ', 'FIN', 'FRA', 'GAB', 'GAM', 'GEO', 'GER', 'GHA',
-    'GBR', 'GRE', 'GRN', 'GUM', 'GUA', 'GUI', 'GBS', 'GUY', 'HAI', 'HON',
-    'HKG', 'HPE', 'HUN', 'IND', 'INA', 'IRQ', 'IRL', 'IRI', 'ISR', 'ITA',
-    'JAM', 'JPN', 'JOR', 'KAZ', 'KEN', 'KIR', 'KOS', 'KGZ', 'LAO', 'LAT',
-    'LBN', 'LES', 'LBR', 'LBA', 'LTU', 'LUX', 'MAD', 'MAW', 'MAS', 'MDV',
-    'MLI', 'MLT', 'MHL', 'MTN', 'MRI', 'MEX', 'MGL', 'MNE', 'MAR', 'MOZ',
-    'MYA', 'NAM', 'NEP', 'NED', 'NCA', 'NIG', 'NGR', 'MKD', 'NOR', 'OMA',
-    'PAK', 'PLE', 'PAN', 'PNG', 'PAR', 'CHN', 'PER', 'PHI', 'POL', 'POR',
-    'PUR', 'QAT', 'KOR', 'MDA', 'ROU', 'RUS', 'RWA', 'SKN', 'LCA', 'VIN',
-    'STP', 'SEN', 'SRB', 'SEY', 'SLE', 'SVK', 'SLO', 'SOL', 'SOM', 'RSA',
-    'SSD', 'ESP', 'SRI', 'SUD', 'SWE', 'SYR', 'TJK', 'THA', 'TLS', 'TOG',
-    'TGA', 'TTO', 'TUN', 'TUR', 'TKM', 'ISV', 'UGA', 'UKR', 'UAE', 'TAN',
-    'USA', 'URU', 'UZB', 'VAN', 'VEN', 'VIE', 'YEM', 'ZAM', 'ZIM',
+    'AFG', 'ALB', 'ALG', 'ASA', 'ANG', 'ANT', 'ARG', 'ARU', 'AUS', 'AUT', // 10
+    'AZE', 'BAH', 'BRN', 'BAN', 'BAR', 'BLR', 'BEL', 'BIZ', 'BEN', 'BER', // 20
+    'BHU', 'BOL', 'BIH', 'BOT', 'BRA', 'IVB', 'BRU', 'BUL', 'BUR', 'CPV', // 30
+    'CAM', 'CMR', 'CAN', 'CAY', 'CAF', 'CHA', 'CHI', 'TPE', 'COL', 'COM', // 40
+    'CGO', 'COK', 'CRC', 'CIV', 'CRO', 'CUB', 'CZE', 'PRK', 'COD', 'DEN', // 50
+    'DJI', 'DMA', 'DOM', 'ECU', 'EGY', 'ESA', 'GEQ', 'ERI', 'EST', 'SWZ', // 60
+    'ETH', 'FSM', 'FIJ', 'FIN', 'FRA', 'GAB', 'GAM', 'GEO', 'GER', 'GHA', // 70
+    'GBR', 'GRE', 'GRN', 'GUM', 'GUA', 'GUI', 'GBS', 'GUY', 'HAI', 'HON', // 80
+    'HKG', 'HPE', 'HUN', 'IND', 'INA', 'IRQ', 'IRL', 'IRI', 'ISR', 'ITA', // 90
+    'JAM', 'JPN', 'JOR', 'KAZ', 'KEN', 'KIR', 'KOS', 'KGZ', 'LAO', 'LAT', // 100
+    'LBN', 'LES', 'LBR', 'LBA', 'LTU', 'LUX', 'MAD', 'MAW', 'MAS', 'MDV', // 110
+    'MLI', 'MLT', 'MHL', 'MTN', 'MRI', 'MEX', 'MGL', 'MNE', 'MAR', 'MOZ', // 120
+    'MYA', 'NAM', 'NEP', 'NED', 'NCA', 'NIG', 'NGR', 'MKD', 'NOR', 'OMA', // 130
+    'PAK', 'PLE', 'PAN', 'PNG', 'PAR', 'CHN', 'PER', 'PHI', 'POL', 'POR', // 140
+    'PUR', 'QAT', 'KOR', 'MDA', 'ROU', 'RUS', 'RWA', 'SKN', 'LCA', 'VIN', // 150
+    'STP', 'SEN', 'SRB', 'SEY', 'SLE', 'SVK', 'SLO', 'SOL', 'SOM', 'RSA', // 160
+    'SSD', 'ESP', 'SRI', 'SUD', 'SWE', 'SYR', 'TJK', 'THA', 'TLS', 'TOG', // 170
+    'TGA', 'TTO', 'TUN', 'TUR', 'TKM', 'ISV', 'UGA', 'UKR', 'UAE', 'TAN', // 180
+    'USA', 'URU', 'UZB', 'VAN', 'VEN', 'VIE', 'YEM', 'ZAM', 'ZIM',        // 190
   ],
 };
 
