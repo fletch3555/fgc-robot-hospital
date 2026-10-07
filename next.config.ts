@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Expose EVENT_SEASON to client components (see getCurrentSeason in
+  // src/lib/season.ts) without a second variable to keep in sync.
+  env: {
+    NEXT_PUBLIC_EVENT_SEASON: process.env.EVENT_SEASON,
+  },
   // Security and caching headers
   async headers() {
     return [

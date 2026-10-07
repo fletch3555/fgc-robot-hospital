@@ -112,7 +112,7 @@ describe("/api/requests", () => {
 
   describe("POST", () => {
     const validRequestData = {
-      countryCode: "US",
+      countryCode: "USA",
       type: "hardware",
       comments: "New hardware request",
       hardware: {
@@ -120,6 +120,23 @@ describe("/api/requests", () => {
         location: "hospital",
       },
     };
+
+    it("rejects a country that isn't participating or doesn't exist", async () => {
+      setupAuthMock(mockSession);
+      setupUserPermissionsMock(['requests.create', 'hardware.create']);
+
+      for (const countryCode of ["NZL", "XXX", 123]) {
+        const request = new NextRequest("http://localhost:3000/api/requests", {
+          method: "POST",
+          body: JSON.stringify({ ...validRequestData, countryCode }),
+          headers: { "Content-Type": "application/json" },
+        });
+
+        const response = await POST(request);
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toBe("Invalid country code");
+      }
+    });
 
     it("should return 401 when user is not authenticated", async () => {
       setupAuthMock(null);
@@ -169,7 +186,7 @@ describe("/api/requests", () => {
       expect(data).toEqual(mockCreatedRequest);
       expect(Request.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          countryCode: "US",
+          countryCode: "USA",
           type: "hardware",
           comments: "New hardware request",
           submittedBy: mockSession.user.id,
@@ -205,7 +222,7 @@ describe("/api/requests", () => {
       const batteryChargingData = { batteryType: "robot_controller", loanerProvided: true };
       const mockCreatedRequest = {
         id: "new-battery-request-id",
-        countryCode: "US",
+        countryCode: "USA",
         type: "battery_charging",
         status: "open",
         battery_charging_data: batteryChargingData,
@@ -218,7 +235,7 @@ describe("/api/requests", () => {
       const request = new NextRequest("http://localhost:3000/api/requests", {
         method: "POST",
         body: JSON.stringify({
-          countryCode: "US",
+          countryCode: "USA",
           type: "battery_charging",
           batteryChargingData,
         }),
@@ -231,7 +248,7 @@ describe("/api/requests", () => {
       expect(data).toEqual(mockCreatedRequest);
       expect(Request.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          countryCode: "US",
+          countryCode: "USA",
           type: "battery_charging",
           batteryChargingData,
         })
@@ -249,7 +266,7 @@ describe("/api/requests", () => {
 
       const request = new NextRequest("http://localhost:3000/api/requests", {
         method: "POST",
-        body: JSON.stringify({ countryCode: "US", type: "battery_charging", batteryChargingData }),
+        body: JSON.stringify({ countryCode: "USA", type: "battery_charging", batteryChargingData }),
       });
 
       const response = await POST(request);
@@ -271,7 +288,7 @@ describe("/api/requests", () => {
       const batteryChargingData = { batteryType: "robot_controller", loanerProvided: true, loanerBatteryNumber: 3 };
       const request = new NextRequest("http://localhost:3000/api/requests", {
         method: "POST",
-        body: JSON.stringify({ countryCode: "US", type: "battery_charging", batteryChargingData }),
+        body: JSON.stringify({ countryCode: "USA", type: "battery_charging", batteryChargingData }),
       });
 
       const response = await POST(request);
@@ -291,7 +308,7 @@ describe("/api/requests", () => {
       const request = new NextRequest("http://localhost:3000/api/requests", {
         method: "POST",
         body: JSON.stringify({
-          countryCode: "US",
+          countryCode: "USA",
           type: "battery_charging",
           batteryChargingData,
           confirmedSupersedeRequestId: "stale-request-id",
@@ -317,7 +334,7 @@ describe("/api/requests", () => {
       const request = new NextRequest("http://localhost:3000/api/requests", {
         method: "POST",
         body: JSON.stringify({
-          countryCode: "US",
+          countryCode: "USA",
           type: "battery_charging",
           batteryChargingData,
           confirmedSupersedeRequestId: "stale-request-id",
@@ -344,7 +361,7 @@ describe("/api/requests", () => {
       setupUserPermissionsMock(['requests.create']); // User has requests create permission
 
       const invalidData = {
-        countryCode: "US",
+        countryCode: "USA",
         // Missing type and comments
       };
 

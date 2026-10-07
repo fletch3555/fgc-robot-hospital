@@ -17,15 +17,11 @@ CREATE INDEX IF NOT EXISTS idx_requests_handled_by ON requests(handled_by);
 -- 2. The loaner pool is a shared resource config, not a per-request
 --    field, so it stays its own table -- just renamed to match the
 --    surviving feature name. Pure metadata change, no data movement.
---    Guarded rather than a bare RENAME: DEPLOYMENT.md's documented
---    from-scratch bootstrap runs schema.sql once against a brand-new
---    Production database, and schema.sql already creates
---    battery_charging_pool directly (it reflects the post-merge end
---    state) -- an unconditional rename would then fail with "relation
---    battery_charging_pool already exists" the first time this file
---    runs there. Already-migrated databases (which created
---    battery_swap_pool via migration 0005 first) are unaffected -- this
---    only changes behavior for a not-yet-existing database.
+--    Guarded rather than a bare RENAME, so it's a no-op unless
+--    battery_swap_pool exists and battery_charging_pool doesn't yet.
+--    That keeps it safe on a database where battery_charging_pool was
+--    already created some other way (an unconditional rename would fail
+--    with "relation battery_charging_pool already exists").
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'battery_swap_pool')

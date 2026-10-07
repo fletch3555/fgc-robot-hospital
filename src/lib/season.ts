@@ -7,7 +7,9 @@ const FALLBACK_SEASON = 2026;
  * at the start of each new season.
  */
 export function getCurrentSeason(): number {
-  const value = process.env.EVENT_SEASON;
+  // Client bundles can't see EVENT_SEASON; next.config.ts inlines it as
+  // NEXT_PUBLIC_EVENT_SEASON at build time so both sides share one value.
+  const value = process.env.EVENT_SEASON ?? process.env.NEXT_PUBLIC_EVENT_SEASON;
 
   if (!value) {
     console.warn(`EVENT_SEASON is not set; defaulting to ${FALLBACK_SEASON}`);

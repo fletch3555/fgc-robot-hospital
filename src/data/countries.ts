@@ -1,3 +1,5 @@
+import { getCurrentSeason } from '@/lib/season';
+
 export type CountryInfo = {
   code: string;
   name: string;
@@ -230,8 +232,8 @@ export const getTeamByCountryCode = (code: string): CountryInfo | undefined => {
 // flags on existing requests, spare parts and match data, which can reference
 // any code from any season. This list only controls which teams are offered
 // when creating something new. Add a new entry each season (once the
-// participant list is published); the most recent season listed is the one
-// used. Anything not listed for that season is not selectable.
+// participant list is published); the one matching EVENT_SEASON is used
+// (see getCurrentSeason). Until a season's list exists, all teams are selectable.
 const PARTICIPANTS_BY_SEASON: Record<number, readonly string[]> = {
   2025: [
     'AFG', 'ALB', 'ALG', 'ASA', 'ANG', 'ANT', 'ARG', 'ARM', 'ARU', 'AUS', // 10
@@ -277,13 +279,32 @@ const PARTICIPANTS_BY_SEASON: Record<number, readonly string[]> = {
   ],
 };
 
-const latestSeason = Math.max(...Object.keys(PARTICIPANTS_BY_SEASON).map(Number));
-const participantCodes = new Set(PARTICIPANTS_BY_SEASON[latestSeason]);
+/**
+ * Codes participating in `season`, or null if no list has been added for it
+ * yet -- in which case nothing is restricted (every catalog team is
+ * selectable) rather than silently offering a different season's teams.
+ */
+export const getParticipantCodes = (season: number): ReadonlySet<string> | null => {
+  const codes = PARTICIPANTS_BY_SEASON[season];
+  return codes ? new Set(codes) : null;
+};
 
-/** Teams that can be picked when creating a request or spare part. */
-export const selectableCountries: CountryInfo[] = countries.filter(c => participantCodes.has(c.code));
+export const getSelectableCountries = (season: number): CountryInfo[] => {
+  const participants = getParticipantCodes(season);
+  return participants ? countries.filter(c => participants.has(c.code)) : countries;
+};
 
-export const isSelectableCountry = (code: string): boolean => participantCodes.has(code.toUpperCase());
+const currentSeason = getCurrentSeason();
+const currentParticipants = getParticipantCodes(currentSeason);
+
+/** Teams that can be picked when creating a request or spare part this season. */
+export const selectableCountries: CountryInfo[] = getSelectableCountries(currentSeason);
+
+export const isSelectableCountry = (code: string): boolean => {
+  const normalizedCode = code.toUpperCase();
+  return countries.some(country => country.code === normalizedCode) &&
+    (!currentParticipants || currentParticipants.has(normalizedCode));
+};
 
 /**
  * Picker options: the selectable teams, plus `currentCode`'s team if it's

@@ -7,6 +7,8 @@
 import {
   countries,
   getCountryOptions,
+  getParticipantCodes,
+  getSelectableCountries,
   getTeamByCountryCode,
   isSelectableCountry,
   matchesTeamQuery,
@@ -69,6 +71,53 @@ describe('Countries Data Unit Tests', () => {
       const codes = new Set(countries.map(c => c.code));
       selectableCountries.forEach(c => expect(codes.has(c.code)).toBe(true));
       expect(selectableCountries.length).toBeLessThan(countries.length);
+    });
+
+    it('resolves participants per season and does not restrict seasons without a list', () => {
+      expect(getParticipantCodes(2025)?.has('BEL')).toBe(false);
+      expect(getParticipantCodes(2026)?.has('BEL')).toBe(true);
+      expect(getParticipantCodes(2099)).toBeNull();
+      expect(getSelectableCountries(2099)).toBe(countries);
+      expect(getSelectableCountries(2025).some(c => c.code === 'BEL')).toBe(false);
+    });
+
+    describe('resolves the list from EVENT_SEASON', () => {
+      const original = process.env.EVENT_SEASON;
+      afterEach(() => {
+        if (original === undefined) delete process.env.EVENT_SEASON;
+        else process.env.EVENT_SEASON = original;
+      });
+
+      // countries.ts decides its season at import time, so load it fresh.
+      const loadWithSeason = (season: string) => {
+        process.env.EVENT_SEASON = season;
+        let mod!: typeof import('@/data/countries');
+        jest.isolateModules(() => {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports -- isolateModules needs a synchronous load
+          mod = require('@/data/countries');
+        });
+        return mod;
+      };
+
+      it('uses the 2025 list for EVENT_SEASON=2025, not the latest list', () => {
+        const mod = loadWithSeason('2025');
+        expect(mod.isSelectableCountry('BEL')).toBe(false); // absent 2025, present 2026
+        expect(mod.isSelectableCountry('ARM')).toBe(true); // present 2025, absent 2026
+        expect(mod.selectableCountries.some(c => c.code === 'BEL')).toBe(false);
+      });
+
+      it('uses the 2026 list for EVENT_SEASON=2026', () => {
+        const mod = loadWithSeason('2026');
+        expect(mod.isSelectableCountry('BEL')).toBe(true);
+        expect(mod.isSelectableCountry('ARM')).toBe(false);
+      });
+
+      it('allows every real team but not unknown codes when the season has no list', () => {
+        const mod = loadWithSeason('2099');
+        expect(mod.selectableCountries).toBe(mod.countries);
+        expect(mod.isSelectableCountry('NZL')).toBe(true);
+        expect(mod.isSelectableCountry('XXX')).toBe(false);
+      });
     });
 
     it("adds a record's current team to picker options even if not participating", () => {
