@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { WithAuth } from '@/components/auth/WithAuth';
-import { countries, matchesTeamQuery } from '@/data/countries';
+import { countries, getCountryOptions, matchesTeamQuery } from '@/data/countries';
 import CountryFlag from '@/components/common/CountryFlag';
 import {
   Typography,
@@ -54,7 +54,10 @@ interface RequestedItem {
   fgcInventoryId: string;
   partNumber: string;
   description: string;
-  requestedQuantity: number;
+  // '' while the field is cleared mid-edit -- distinct from 0, so
+  // backspacing to clear it doesn't get forced back to a number before
+  // the user has finished typing a new one.
+  requestedQuantity: number | '';
 }
 
 function NewSparePart() {
@@ -201,7 +204,7 @@ function NewSparePart() {
     }
 
     // Validate that all items have valid quantities
-    const hasInvalidQuantities = formData.requestedItems.some(item => item.requestedQuantity <= 0);
+    const hasInvalidQuantities = formData.requestedItems.some(item => Number(item.requestedQuantity) <= 0);
     if (hasInvalidQuantities) {
       setError('All items must have a quantity greater than 0');
       setIsSubmitting(false);
@@ -219,7 +222,7 @@ function NewSparePart() {
           issuedItems: formData.requestedItems.map(item => ({
             fgcPartNumber: item.partNumber,
             itemName: item.description,
-            quantity: item.requestedQuantity
+            quantity: Number(item.requestedQuantity)
           })),
           notes: formData.notes || '',
         }),
@@ -290,7 +293,7 @@ function NewSparePart() {
 
                 <Grid size={12}>
                   <Autocomplete
-                    options={countries}
+                    options={getCountryOptions(formData.countryCode)}
                     getOptionLabel={(option) => `${option.name} (${option.code})`}
                     filterOptions={(options, { inputValue }) => options.filter((o) => matchesTeamQuery(o, inputValue))}
                     value={countries.find(country => country.code === formData.countryCode) || null}
@@ -403,7 +406,15 @@ function NewSparePart() {
                                   size="small"
                                   type="number"
                                   value={item.requestedQuantity}
-                                  onChange={(e) => handleRequestedItemChange(index, 'requestedQuantity', parseInt(e.target.value) || 1)}
+                                  onChange={(e) => {
+                                    const raw = e.target.value;
+                                    if (raw === '') {
+                                      handleRequestedItemChange(index, 'requestedQuantity', '');
+                                      return;
+                                    }
+                                    const parsed = parseInt(raw, 10);
+                                    if (!Number.isNaN(parsed)) handleRequestedItemChange(index, 'requestedQuantity', parsed);
+                                  }}
                                   required
                                   slotProps={{ htmlInput: { min: 1, style: { textAlign: 'center' } } }}
                                   sx={{ width: 80 }}

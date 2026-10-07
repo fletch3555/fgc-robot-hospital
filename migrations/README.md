@@ -1,14 +1,16 @@
 # Migrations
 
-`schema.sql` (repo root) is the canonical schema for a **fresh** install — run it
-once against a brand-new database, per `DEPLOYMENT.md`.
+This directory is the single source of truth for schema — there's no separate
+`schema.sql`. `scripts/migrate.js` applies every file here, in order, to reach the
+same end state whether bootstrapping a brand-new database or bringing an existing
+one up to date.
 
-This directory holds the **incremental** changes needed to bring an
-**existing** database up to date, since every table in `schema.sql` uses
-`CREATE TABLE IF NOT EXISTS`. Re-running `schema.sql` against a database
-that already has these tables does nothing for columns added later — it
-silently skips the whole `CREATE TABLE` statement. Incremental changes have
-to be applied as their own `ALTER TABLE` statements here instead.
+That still means **incremental** changes to an **existing** database need their own
+file here: every table's `CREATE TABLE IF NOT EXISTS` (in `0001_init.sql` or any
+later file) is a no-op against a database that already has that table, so editing
+an existing `CREATE TABLE` to add a column does nothing for a database that already
+ran it. New columns on existing tables ship as their own `ALTER TABLE` statement in
+a new file instead.
 
 ## Applying
 
@@ -34,13 +36,12 @@ node scripts/migrate.js --force
 double-check it before using this against a database you didn't mean to
 touch.
 
-`0001_init.sql` is a frozen copy of `schema.sql` as it existed before this
-directory was introduced, included so the runner can bootstrap a genuinely
-fresh database too. For the already-existing production database it's a
-no-op, since its `CREATE TABLE IF NOT EXISTS` statements match what's
-already there — but this is exactly what fully provisions a brand-new
-Preview database from empty on its first deploy, no manual `schema.sql`
-run required.
+`0001_init.sql` is the original full schema (tables, indexes, and seed data) from
+before this directory existed. For the already-existing production database it's a
+no-op, since its `CREATE TABLE IF NOT EXISTS` statements match what's already there
+— but this is exactly what fully provisions a brand-new database (Preview or
+Production) from empty on its first deploy, no manual schema-creation step needed
+for either environment.
 
 ## Writing a new migration
 
@@ -49,7 +50,5 @@ run required.
   values appended to `CHECK` constraints. Avoid `NOT NULL` without a
   backfill in the same file, and avoid removing values a `CHECK` constraint
   already allows — old rows may still use them.
-- Also update `schema.sql` itself to match, so a fresh install ends up in
-  the same state without needing to replay every migration.
 - At the start of each new season, bump the `season` column's `DEFAULT` in
-  both a new migration and in `schema.sql`.
+  a new migration.

@@ -93,16 +93,14 @@ Setting up or replacing the Preview database is a one-time manual step
 (creating a Supabase project, setting the Preview-scoped env var in
 Vercel) that needs the user's own login — see `DEPLOYMENT.md`. Once it's
 wired up, `scripts/migrate.js` bootstraps its schema automatically on the
-first Preview deploy (see Migrations below) — no manual `schema.sql` run
-needed against it.
+first Preview deploy (see Migrations below).
 
 ## Database schema changes: additive-only
 
 This project keeps multiple seasons' worth of `requests`/`spare_parts` data
 in one database (see `migrations/README.md`). That only stays safe if
 schema changes never break rows written under an older schema. Follow
-these rules for **any** change to `schema.sql` or a new file under
-`migrations/`:
+these rules for **any** new file under `migrations/`:
 
 - **Never add a `NOT NULL` column without a `DEFAULT`, or without
   backfilling existing rows in the same migration.** A bare `ALTER TABLE ...
@@ -114,15 +112,12 @@ these rules for **any** change to `schema.sql` or a new file under
   codebase** (`src/models/*.ts`, raw `query()` calls in `src/app/api/**`)
   without grepping for every reference first and updating them in the same
   change.
-- **Don't rely on re-running `schema.sql` to update an existing database.**
-  Every table uses `CREATE TABLE IF NOT EXISTS`, so re-running it against a
-  database that already has the table is a no-op — it will NOT apply a
-  newly added column. Incremental changes to an existing database go in
+- **Don't rely on editing an existing `CREATE TABLE IF NOT EXISTS`
+  statement to update an existing database.** That's a no-op against a
+  database that already has the table — it will NOT apply a newly added
+  column. Incremental changes to an existing database go in
   `migrations/000N_*.sql` as explicit `ALTER TABLE` statements. See
   `migrations/README.md` for the numbering/writing convention.
-- **Update `schema.sql` in the same change** as any new migration, so a
-  fresh install ends up in the same state without replaying every
-  migration by hand.
 - **Prefer nullable/optional new columns** over required ones unless the
   value is truly always knowable at insert time.
 
@@ -165,5 +160,4 @@ an `allSeasons`-style query param through if the route needs to expose the
 override (see `src/app/api/requests/route.ts` for the pattern).
 
 At the start of each new season: bump `EVENT_SEASON` in the environment,
-and bump the `season` column's `DEFAULT` in both `schema.sql` and a new
-migration.
+and bump the `season` column's `DEFAULT` in a new migration.

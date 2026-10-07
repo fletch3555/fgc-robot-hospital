@@ -6,7 +6,7 @@ import { serializeHardwareData } from './HardwareFields';
 import { serializeSoftwareData } from './SoftwareFields';
 import { serializeMachineShopData } from './MachineShopFields';
 import { serializeBatteryChargingData } from './BatteryChargingFields';
-import { countries } from '@/data/countries';
+import { selectableCountries } from '@/data/countries';
 // Note: Component imports removed as they're no longer used in this file
 
 // Type-specific data serializers
@@ -98,7 +98,7 @@ export default function RequestForm({
           <option value="">
             Select a country
           </option>
-          {countries.map((country) => (
+          {selectableCountries.map((country) => (
             <option key={country.code} value={country.code}>
               {country.name}
             </option>

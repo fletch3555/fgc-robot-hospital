@@ -117,8 +117,15 @@ export async function reserveBatteryUnit(
   if ((conflict.rowCount ?? 0) > 0) {
     const conflictingId = conflict.rows[0].id;
     if (supersedeRequestId && conflictingId === supersedeRequestId) {
+      // Append rather than overwrite -- a battery_charging request's comments is
+      // normally untouched (the form hides that field for this type), but a row
+      // migrated from the old battery_swaps system can already carry a historical
+      // note there (see migrations/0008_merge_battery_swaps_into_requests.sql),
+      // and clobbering it would silently destroy that history.
       await queryFn(
-        `UPDATE requests SET status = 'completed', handled_by = $2, comments = $3, updated_at = CURRENT_TIMESTAMP
+        `UPDATE requests SET status = 'completed', handled_by = $2, updated_at = CURRENT_TIMESTAMP,
+                comments = CASE WHEN $3::text IS NULL OR $3 = '' THEN comments
+                                 ELSE TRIM(COALESCE(comments || E'\n', '') || $3) END
          WHERE id = $1`,
         [conflictingId, supersededBy ?? null, supersedeNote ?? null]
       );

@@ -22,7 +22,7 @@ import {
   Search as SearchIcon,
   Info as InfoIcon,
 } from '@mui/icons-material';
-import { countries, searchTeams } from '@/data/countries';
+import { matchesTeamQuery, selectableCountries } from '@/data/countries';
 import CountryFlag from '@/components/common/CountryFlag';
 
 function TeamsPage() {
@@ -32,14 +32,7 @@ function TeamsPage() {
 
   // Filter teams based on search
   const filteredTeams = useMemo(() => {
-    let teams = countries;
-
-    // Apply search filter
-    if (searchTerm.trim()) {
-      teams = searchTeams(searchTerm.trim());
-    }
-
-    return teams;
+    return selectableCountries.filter(team => matchesTeamQuery(team, searchTerm));
   }, [searchTerm]);
 
   // Pagination
@@ -59,7 +52,7 @@ function TeamsPage() {
   };
 
   // Statistics
-  const totalTeams = countries.length;
+  const totalTeams = selectableCountries.length;
 
   return (
     <Container maxWidth="lg">

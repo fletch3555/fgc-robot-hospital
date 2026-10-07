@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { WithAuth } from '@/components/auth/WithAuth';
 import { WithPermissions } from '@/components/auth/WithPermissions';
-import { countries, matchesTeamQuery } from '@/data/countries';
+import { countries, getCountryOptions, matchesTeamQuery } from '@/data/countries';
 import CountryFlag from '@/components/common/CountryFlag';
 import {
   Typography,
@@ -76,7 +76,10 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
     fgcInventoryId: '',
     partNumber: '',
     description: '',
-    quantity: 1,
+    // '' while the field is cleared mid-edit -- distinct from 0, so
+    // backspacing to clear it doesn't get forced back to a number before
+    // the user has finished typing a new one.
+    quantity: 1 as number | '',
     notes: '',
   });
 
@@ -205,7 +208,8 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
       return;
     }
 
-    if (formData.quantity <= 0) {
+    const quantity = Number(formData.quantity);
+    if (quantity <= 0) {
       setError('Quantity must be greater than 0');
       setIsSubmitting(false);
       return;
@@ -217,7 +221,7 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
         countryCode: formData.countryCode,
         fgcPartNumber: formData.partNumber || null,
         itemName: formData.description,
-        quantity: formData.quantity,
+        quantity,
         notes: trimmedNotes ? [trimmedNotes] : null,
       };
 
@@ -330,7 +334,7 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
 
               <Grid size={12}>
                 <Autocomplete
-                  options={countries}
+                  options={getCountryOptions(formData.countryCode)}
                   getOptionLabel={(option) => `${option.name} (${option.code})`}
                   filterOptions={(options, { inputValue }) => options.filter((o) => matchesTeamQuery(o, inputValue))}
                   value={countries.find(country => country.code === formData.countryCode) || null}
@@ -459,7 +463,15 @@ function EditSparePartPage({ params }: { params: Promise<{ id: string }> }) {
                   type="number"
                   label="Qty (individual items)"
                   value={formData.quantity}
-                  onChange={(e) => handleChange('quantity', parseInt(e.target.value) || 1)}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === '') {
+                      handleChange('quantity', '');
+                      return;
+                    }
+                    const parsed = parseInt(raw, 10);
+                    if (!Number.isNaN(parsed)) handleChange('quantity', parsed);
+                  }}
                   required
                   slotProps={{ htmlInput: { min: 1 } }}
                 />

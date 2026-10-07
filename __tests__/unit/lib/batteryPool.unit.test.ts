@@ -82,5 +82,13 @@ describe("reserveBatteryUnit", () => {
       expect.stringContaining("UPDATE requests SET status = 'completed'"),
       ["stale-request-id", "clerk-id", "Closed automatically: re-loaned before being marked returned."]
     );
+    // Appends rather than overwrites -- a request migrated from the old
+    // battery_swaps system can already carry a historical note in comments
+    // (migrations/0008_merge_battery_swaps_into_requests.sql), which a flat
+    // `comments = $3` would silently destroy.
+    expect(update).toHaveBeenCalledWith(
+      expect.stringContaining("COALESCE(comments"),
+      expect.anything()
+    );
   });
 });

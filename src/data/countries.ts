@@ -225,13 +225,90 @@ export const getTeamByCountryCode = (code: string): CountryInfo | undefined => {
   return countries.find(country => country.code === code);
 };
 
+// Teams participating in each season's event, by code. `countries` above is
+// the full catalog and must stay complete: it's the lookup table for names and
+// flags on existing requests, spare parts and match data, which can reference
+// any code from any season. This list only controls which teams are offered
+// when creating something new. Add a new entry each season (once the
+// participant list is published); the most recent season listed is the one
+// used. Anything not listed for that season is not selectable.
+const PARTICIPANTS_BY_SEASON: Record<number, readonly string[]> = {
+  2025: [
+    'AFG', 'ALB', 'ALG', 'ASA', 'ANG', 'ANT', 'ARG', 'ARM', 'ARU', 'AUS', // 10
+    'AUT', 'AZE', 'BAH', 'BAN', 'BAR', 'BLR', 'BIZ', 'BEN', 'BER', 'BHU', // 20
+    'BOL', 'BIH', 'BOT', 'BRA', 'IVB', 'BRU', 'BUL', 'BUR', 'BDI', 'CPV', // 30
+    'CAM', 'CMR', 'CAN', 'CAY', 'CAF', 'CHA', 'CHI', 'TPE', 'COL', 'COM', // 40
+    'CGO', 'COK', 'CRC', 'CIV', 'CRO', 'CUB', 'CYP', 'CZE', 'COD', 'DEN', // 50
+    'DJI', 'DMA', 'DOM', 'ECU', 'EGY', 'ESA', 'GEQ', 'ERI', 'EST', 'SWZ', // 60
+    'ETH', 'FSM', 'FIJ', 'FIN', 'FRA', 'GAB', 'GAM', 'GEO', 'GER', 'GHA', // 70
+    'GBR', 'GRE', 'GRN', 'GUM', 'GUA', 'GUI', 'GBS', 'GUY', 'HAI', 'HON', // 80
+    'HKG', 'HPE', 'HUN', 'IND', 'INA', 'IRQ', 'IRL', 'IRI', 'ISR', 'ITA', // 90
+    'JAM', 'JPN', 'JOR', 'KAZ', 'KEN', 'KIR', 'KOS', 'KGZ', 'LAO', 'LAT', // 100
+    'LBN', 'LES', 'LBR', 'LBA', 'LTU', 'LUX', 'MAD', 'MAW', 'MAS', 'MDV', // 110
+    'MLI', 'MLT', 'MHL', 'MTN', 'MRI', 'MEX', 'MGL', 'MNE', 'MAR', 'MOZ', // 120
+    'MYA', 'NAM', 'NEP', 'NED', 'NCA', 'NIG', 'NGR', 'MKD', 'NOR', 'OMA', // 130
+    'PAK', 'PLE', 'PAN', 'PNG', 'PAR', 'CHN', 'PER', 'PHI', 'POL', 'POR', // 140
+    'PUR', 'QAT', 'KOR', 'MDA', 'ROU', 'RWA', 'SKN', 'LCA', 'VIN', 'SMR', // 150
+    'STP', 'KSA', 'SEN', 'SRB', 'SEY', 'SLE', 'SVK', 'SLO', 'SOL', 'SOM', // 160
+    'RSA', 'SSD', 'ESP', 'SRI', 'SUD', 'SUR', 'SWE', 'SUI', 'SYR', 'TJK', // 170
+    'TLS', 'TOG', 'TGA', 'TTO', 'TUN', 'TUR', 'TKM', 'ISV', 'UGA', 'UKR', // 180
+    'UAE', 'TAN', 'USA', 'UZB', 'VAN', 'VEN', 'VIE', 'YEM', 'ZAM', 'ZIM', // 190
+  ],
+  2026: [
+    'AFG', 'ALB', 'ALG', 'ASA', 'ANG', 'ANT', 'ARG', 'ARU', 'AUS', 'AUT', // 10
+    'AZE', 'BAH', 'BRN', 'BAN', 'BAR', 'BLR', 'BEL', 'BIZ', 'BEN', 'BER', // 20
+    'BHU', 'BOL', 'BIH', 'BOT', 'BRA', 'IVB', 'BRU', 'BUL', 'BUR', 'CPV', // 30
+    'CAM', 'CMR', 'CAN', 'CAY', 'CAF', 'CHA', 'CHI', 'TPE', 'COL', 'COM', // 40
+    'CGO', 'COK', 'CRC', 'CIV', 'CRO', 'CUB', 'CZE', 'PRK', 'COD', 'DEN', // 50
+    'DJI', 'DMA', 'DOM', 'ECU', 'EGY', 'ESA', 'GEQ', 'ERI', 'EST', 'SWZ', // 60
+    'ETH', 'FSM', 'FIJ', 'FIN', 'FRA', 'GAB', 'GAM', 'GEO', 'GER', 'GHA', // 70
+    'GBR', 'GRE', 'GRN', 'GUM', 'GUA', 'GUI', 'GBS', 'GUY', 'HAI', 'HON', // 80
+    'HKG', 'HPE', 'HUN', 'IND', 'INA', 'IRQ', 'IRL', 'IRI', 'ISR', 'ITA', // 90
+    'JAM', 'JPN', 'JOR', 'KAZ', 'KEN', 'KIR', 'KOS', 'KGZ', 'LAO', 'LAT', // 100
+    'LBN', 'LES', 'LBR', 'LBA', 'LTU', 'LUX', 'MAD', 'MAW', 'MAS', 'MDV', // 110
+    'MLI', 'MLT', 'MHL', 'MTN', 'MRI', 'MEX', 'MGL', 'MNE', 'MAR', 'MOZ', // 120
+    'MYA', 'NAM', 'NEP', 'NED', 'NCA', 'NIG', 'NGR', 'MKD', 'NOR', 'OMA', // 130
+    'PAK', 'PLE', 'PAN', 'PNG', 'PAR', 'CHN', 'PER', 'PHI', 'POL', 'POR', // 140
+    'PUR', 'QAT', 'KOR', 'MDA', 'ROU', 'RUS', 'RWA', 'SKN', 'LCA', 'VIN', // 150
+    'STP', 'SEN', 'SRB', 'SEY', 'SLE', 'SVK', 'SLO', 'SOL', 'SOM', 'RSA', // 160
+    'SSD', 'ESP', 'SRI', 'SUD', 'SWE', 'SYR', 'TJK', 'THA', 'TLS', 'TOG', // 170
+    'TGA', 'TTO', 'TUN', 'TUR', 'TKM', 'ISV', 'UGA', 'UKR', 'UAE', 'TAN', // 180
+    'USA', 'URU', 'UZB', 'VAN', 'VEN', 'VIE', 'YEM', 'ZAM', 'ZIM',        // 190
+  ],
+};
+
+const latestSeason = Math.max(...Object.keys(PARTICIPANTS_BY_SEASON).map(Number));
+const participantCodes = new Set(PARTICIPANTS_BY_SEASON[latestSeason]);
+
+/** Teams that can be picked when creating a request or spare part. */
+export const selectableCountries: CountryInfo[] = countries.filter(c => participantCodes.has(c.code));
+
+export const isSelectableCountry = (code: string): boolean => participantCodes.has(code.toUpperCase());
+
+/**
+ * Picker options: the selectable teams, plus `currentCode`'s team if it's
+ * not among them (e.g. editing a record from a season that team attended),
+ * so the current value never disappears from the picker.
+ */
+export const getCountryOptions = (currentCode?: string | null): CountryInfo[] => {
+  if (!currentCode || isSelectableCountry(currentCode)) return selectableCountries;
+  const current = getTeamByCountryCode(currentCode);
+  return current ? [...selectableCountries, current] : selectableCountries;
+};
+
+// Strips combining diacritical marks after Unicode-decomposing accented
+// characters, so a plain-ASCII search (e.g. "cote", "turkiye") still matches
+// names like "Côte d'Ivoire" or "Türkiye" that a bare .toLowerCase() can't.
+const normalize = (value: string): string =>
+  value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
 // Shared by searchTeams below and every country/team Autocomplete's
 // filterOptions, so "matches" has one definition instead of each caller
 // relying on its own getOptionLabel string to incidentally support code search.
 export const matchesTeamQuery = (team: { code: string; name: string }, query: string): boolean => {
-  const searchTerm = query.toLowerCase().trim();
+  const searchTerm = normalize(query.trim());
   if (!searchTerm) return true;
-  return team.name.toLowerCase().includes(searchTerm) || team.code.toLowerCase().includes(searchTerm);
+  return normalize(team.name).includes(searchTerm) || team.code.toLowerCase().includes(searchTerm);
 };
 
 export const searchTeams = (query: string): CountryInfo[] => {
