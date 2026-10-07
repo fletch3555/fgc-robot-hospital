@@ -287,7 +287,8 @@ export const kopInventory: IKoPItem[] = [
     part_number: "REV-41-1119",
     description: "5.5mm Nut Driver",
     quantity: 2,
-    review_status: 'do_not_loan' as ReviewStatus,
+    // Loanable with approval; review annually whether this should stay loanable.
+    review_status: 'approval_needed' as ReviewStatus,
     image_url: "/images/Visual_BOM_2025/REV-41-1119.jpg"
   },
   {
@@ -908,7 +909,8 @@ export const kopInventory: IKoPItem[] = [
     part_number: "REV-41-1374",
     description: "5.5mm Combination Wrench",
     quantity: 2,
-    review_status: 'do_not_loan' as ReviewStatus,
+    // Loanable with approval; review annually whether this should stay loanable.
+    review_status: 'approval_needed' as ReviewStatus,
     image_url: "/images/Visual_BOM_2025/REV-41-1374.webp"
   },
   {
@@ -917,7 +919,8 @@ export const kopInventory: IKoPItem[] = [
     part_number: "REV-41-1376",
     description: "1.5mm Allen Wrench",
     quantity: 1,
-    review_status: 'do_not_loan' as ReviewStatus,
+    // Loanable with approval; review annually whether this should stay loanable.
+    review_status: 'approval_needed' as ReviewStatus,
     image_url: "/images/Visual_BOM_2025/REV-41-1376.png"
   },
   {
@@ -926,7 +929,8 @@ export const kopInventory: IKoPItem[] = [
     part_number: "REV-41-1377",
     description: "2mm Allen Wrench",
     quantity: 1,
-    review_status: 'do_not_loan' as ReviewStatus,
+    // Loanable with approval; review annually whether this should stay loanable.
+    review_status: 'approval_needed' as ReviewStatus,
     image_url: "/images/Visual_BOM_2025/REV-41-1377.png"
   },
   {
