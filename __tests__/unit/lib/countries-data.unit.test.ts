@@ -7,6 +7,8 @@
 import {
   countries,
   getCountryOptions,
+  getParticipantCodes,
+  getSelectableCountries,
   getTeamByCountryCode,
   isSelectableCountry,
   matchesTeamQuery,
@@ -69,6 +71,14 @@ describe('Countries Data Unit Tests', () => {
       const codes = new Set(countries.map(c => c.code));
       selectableCountries.forEach(c => expect(codes.has(c.code)).toBe(true));
       expect(selectableCountries.length).toBeLessThan(countries.length);
+    });
+
+    it('resolves participants per season and does not restrict seasons without a list', () => {
+      expect(getParticipantCodes(2025)?.has('BEL')).toBe(false);
+      expect(getParticipantCodes(2026)?.has('BEL')).toBe(true);
+      expect(getParticipantCodes(2099)).toBeNull();
+      expect(getSelectableCountries(2099)).toBe(countries);
+      expect(getSelectableCountries(2025).some(c => c.code === 'BEL')).toBe(false);
     });
 
     it("adds a record's current team to picker options even if not participating", () => {

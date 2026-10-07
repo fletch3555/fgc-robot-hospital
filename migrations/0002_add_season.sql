@@ -7,7 +7,7 @@
 --
 -- Existing rows are backfilled from created_at since they predate
 -- this column. Bump the DEFAULT below at the start of each new season
--- (and again in schema.sql, for fresh installs).
+-- (in a new migration; see migrations/README.md).
 
 ALTER TABLE requests ADD COLUMN IF NOT EXISTS season INTEGER;
 ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS season INTEGER;

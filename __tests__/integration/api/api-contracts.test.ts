@@ -63,7 +63,7 @@ describe("API Contract & Error Handling Tests", () => {
   describe("Performance & Edge Cases", () => {
     it("should handle large request payloads", async () => {
       const largeData = {
-        countryCode: "US",
+        countryCode: "USA",
         type: "hardware",
         comments: "x".repeat(10000), // Large comment
       };
@@ -82,7 +82,7 @@ describe("API Contract & Error Handling Tests", () => {
 
     it("should handle very large JSON strings", async () => {
       const massiveData = {
-        countryCode: "US",
+        countryCode: "USA",
         type: "hardware",
         comments: "a".repeat(100000), // 100KB comment
         metadata: Array(1000).fill({ key: "value".repeat(100) })
@@ -118,7 +118,7 @@ describe("API Contract & Error Handling Tests", () => {
       const postRequests = Array(5).fill(null).map(() => 
         requestsPOST(new NextRequest("http://localhost:3000/api/requests", {
           method: "POST",
-          body: JSON.stringify({ countryCode: "US", type: "hardware" }),
+          body: JSON.stringify({ countryCode: "USA", type: "hardware" }),
           headers: { "Content-Type": "application/json" }
         }))
       );

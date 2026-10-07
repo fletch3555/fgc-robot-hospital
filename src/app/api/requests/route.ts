@@ -6,6 +6,7 @@ import { checkPermissions } from "@/lib/authz";
 import { PermissionName } from "@/lib/auth-types";
 import { reserveBatteryUnit, BatteryUnitConflictError } from "@/lib/batteryPool";
 import { getCurrentSeason } from "@/lib/season";
+import { isValidCountryCode } from "@/lib/countryUtils";
 
 export async function GET(req: NextRequest) {
   try {
@@ -80,6 +81,12 @@ export async function POST(req: NextRequest) {
 
     if (!countryCode || !type || !VALID_REQUEST_TYPES.includes(type)) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // New requests may only be created for this season's participating teams
+    // (existing requests keep resolving via the full catalog).
+    if (!isValidCountryCode(countryCode)) {
+      return NextResponse.json({ error: "Invalid country code" }, { status: 400 });
     }
 
     // Also require the type-specific create permission. requests.create

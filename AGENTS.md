@@ -161,3 +161,9 @@ override (see `src/app/api/requests/route.ts` for the pattern).
 
 At the start of each new season: bump `EVENT_SEASON` in the environment,
 and bump the `season` column's `DEFAULT` in a new migration.
+Also add that season's team list to `PARTICIPANTS_BY_SEASON` in
+`src/data/countries.ts`. It only controls which teams can be picked or
+accepted when creating new records (a season with no list restricts
+nothing); the full `countries` catalog stays the lookup table for names and
+flags on existing records. `next.config.ts` inlines `EVENT_SEASON` as
+`NEXT_PUBLIC_EVENT_SEASON` so client components resolve the same season.
