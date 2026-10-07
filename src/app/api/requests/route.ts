@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     // New requests may only be created for this season's participating teams
     // (existing requests keep resolving via the full catalog).
-    if (!isValidCountryCode(countryCode)) {
+    if (typeof countryCode !== "string" || !isValidCountryCode(countryCode)) {
       return NextResponse.json({ error: "Invalid country code" }, { status: 400 });
     }
 
